@@ -3,6 +3,8 @@ import { View, Text, Button, FlatList, StyleSheet, ListRenderItem } from "react-
 import { BleManager, Device } from "react-native-ble-plx";
 import base64 from 'react-native-base64';
 import requestPermissions from "@/resources/permissions";
+import { addRssiValueAndGetAverage, calculateDistance } from "@/resources/distance";
+import { Link } from "expo-router";
 
 const bleManager = new BleManager();
 
@@ -12,7 +14,8 @@ interface ScannedDevice {
   id: string;
   name: string | null;
   rssi: number | null;
-  serviceData: string | null;
+  identifier: string | null;
+  distance: number | null;
 }
 
 export default function BeaconScanner(): JSX.Element {
@@ -39,7 +42,7 @@ export default function BeaconScanner(): JSX.Element {
   // Start scanning for BLE devices
   const startScanning = () => {
     if (scanning) return;
-
+    console.log("Escaneo iniciado.")
     setDevices([]); // Limpia la lista actual de dispositivos
     setScanning(true);
 
@@ -56,24 +59,57 @@ export default function BeaconScanner(): JSX.Element {
         }
         if (serviceData) {
           const decodedData = base64.decode(serviceData);
+          const frameType = decodedData.charCodeAt(0);
+          let identifier: string;
+          if (frameType === 0x00) { // UID frame
+            identifier = decodedData.slice(1, 17) // Bytes 2-11
+              .split('')
+              .map(char => ('0' + char.charCodeAt(0).toString(16)).slice(-2))
+              .join('');
+          }
+        let distance:number;
+        if (scannedDevice.rssi != null){
+          distance = addRssiValueAndGetAverage(scannedDevice.id, scannedDevice.rssi);
+        }
+          
         // Avoid duplicates using device ID
         setDevices((prevDevices) => {
-          console.log(scannedDevice.serviceData)
-          const deviceExists = prevDevices.some(
+          // Buscar si el dispositivo ya existe en la lista
+          const existingDeviceIndex = prevDevices.findIndex(
             (device) => device.id === scannedDevice.id
           );
-          if (!deviceExists) {
-            return [
-              ...prevDevices,
-              {
-                id: scannedDevice.id,
-                name: scannedDevice.name,
-                rssi: scannedDevice.rssi,
-                serviceData: decodedData,
-              },
-            ];
+        
+          // Construir el nuevo dispositivo con los datos actuales
+          const newDevice = {
+            id: scannedDevice.id,
+            name: scannedDevice.name,
+            rssi: scannedDevice.rssi,
+            identifier: identifier,
+            distance: distance,
+          };
+        
+          if (existingDeviceIndex === -1) {
+            // Si el dispositivo no existe, agregarlo a la lista
+            return [...prevDevices, newDevice];
+          } else {
+            // Si el dispositivo ya existe, verificar si alguno de sus atributos ha cambiado
+            const existingDevice = prevDevices[existingDeviceIndex];
+            const attributesChanged =
+              existingDevice.name !== newDevice.name ||
+              existingDevice.rssi !== newDevice.rssi ||
+              existingDevice.identifier !== newDevice.identifier ||
+              existingDevice.distance !== newDevice.distance;
+        
+            if (attributesChanged) {
+              // Si algún atributo ha cambiado, actualizar el dispositivo en la lista
+              const updatedDevices = [...prevDevices];
+              updatedDevices[existingDeviceIndex] = newDevice;
+              return updatedDevices;
+            } else {
+              // Si no hay cambios, retornar la lista original
+              return prevDevices;
+            }
           }
-          return prevDevices;
         });
         }
       }
@@ -96,7 +132,9 @@ export default function BeaconScanner(): JSX.Element {
       </Text>
       <Text style={styles.deviceText}>ID: {item.id}</Text>
       <Text style={styles.deviceText}>RSSI: {item.rssi ?? "N/A"}</Text>
-      <Text style={styles.deviceText}>Datos de Servicio: {item.serviceData}</Text>
+      <Text style={styles.deviceText}>Identifier: {item.identifier}</Text>
+      <Text style={styles.deviceText}>Distance: {item.distance} </Text>
+
     </View>
   );
 
@@ -109,7 +147,9 @@ export default function BeaconScanner(): JSX.Element {
         keyExtractor={(item) => item.id}
         renderItem={renderDevice}
       />
+      <Link href={"/showMap"} style={styles.button}>Map</Link>
     </View>
+
   );
 }
 
@@ -132,5 +172,11 @@ const styles = StyleSheet.create({
   deviceText: {
     fontSize: 14,
     color: "#333",
+  },
+  button:{
+    fontSize: 20,
+    textAlign: "center",
+    textDecorationLine: "underline",
+    color: "black",
   },
 });

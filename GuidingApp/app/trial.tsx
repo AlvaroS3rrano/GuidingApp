@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { View, Text, Button, FlatList, StyleSheet, ListRenderItem } from "react-native";
-import { BleManager, Device } from "react-native-ble-plx";
+import { BleManager, Device, Characteristic } from "react-native-ble-plx";
 import base64 from 'react-native-base64';
 import requestPermissions from "@/resources/permissions";
 
@@ -13,24 +13,23 @@ interface ScannedDevice {
   name: string | null;
   rssi: number | null;
   serviceData: string | null;
+  characteristics?: Characteristic[];
 }
 
 export default function BeaconScanner(): JSX.Element {
   const [devices, setDevices] = useState<ScannedDevice[]>([]);
   const [scanning, setScanning] = useState<boolean>(false);
 
-  
-
   useEffect(() => {
     const checkPermissions = async () => {
       const permissionsGranted = await requestPermissions();
-      if (!permissionsGranted){
-        console.warn("No se otorgaron los permisos necesarios para Bluetooth.")
+      if (!permissionsGranted) {
+        console.warn("No se otorgaron los permisos necesarios para Bluetooth.");
       }
-    }
+    };
 
     checkPermissions();
-    
+
     return () => {
       bleManager.destroy(); // Cleanup BLE manager on component unmount
     };
@@ -43,38 +42,62 @@ export default function BeaconScanner(): JSX.Element {
     setDevices([]); // Limpia la lista actual de dispositivos
     setScanning(true);
 
-    bleManager.startDeviceScan([TARGET_SERVICE_UUID], null, (error, scannedDevice) => {
+    bleManager.startDeviceScan([TARGET_SERVICE_UUID], null, async (error, scannedDevice) => {
       if (error) {
-        console.warn("Error during scan:", error);
+        console.warn("Error durante el escaneo:", error);
         return;
       }
 
       if (scannedDevice) {
         let serviceData;
-        if (scannedDevice.serviceData != null){
+        if (scannedDevice.serviceData != null) {
           serviceData = scannedDevice.serviceData[TARGET_SERVICE_UUID];
         }
         if (serviceData) {
           const decodedData = base64.decode(serviceData);
-        // Avoid duplicates using device ID
-        setDevices((prevDevices) => {
-          console.log(scannedDevice.serviceData)
-          const deviceExists = prevDevices.some(
-            (device) => device.id === scannedDevice.id
-          );
-          if (!deviceExists) {
-            return [
-              ...prevDevices,
-              {
-                id: scannedDevice.id,
-                name: scannedDevice.name,
-                rssi: scannedDevice.rssi,
-                serviceData: decodedData,
-              },
-            ];
+
+          // Evitar duplicados usando el ID del dispositivo
+          setDevices((prevDevices) => {
+            const deviceExists = prevDevices.some(
+              (device) => device.id === scannedDevice.id
+            );
+            if (!deviceExists) {
+              return [
+                ...prevDevices,
+                {
+                  id: scannedDevice.id,
+                  name: scannedDevice.localName,
+                  rssi: scannedDevice.rssi,
+                  serviceData: decodedData,
+                },
+              ];
+            }
+            return prevDevices;
+          });
+
+          // Conectar al dispositivo para obtener más información
+          try {
+            const connectedDevice = await bleManager.connectToDevice(scannedDevice.id);
+            await connectedDevice.discoverAllServicesAndCharacteristics();
+            const services = await connectedDevice.services();
+            let allCharacteristics: Characteristic[] = [];
+
+            for (const service of services) {
+              const characteristics = await service.characteristics();
+              allCharacteristics = [...allCharacteristics, ...characteristics];
+            }
+
+            // Actualizar el dispositivo con las características descubiertas
+            setDevices((prevDevices) =>
+              prevDevices.map((device) =>
+                device.id === connectedDevice.id
+                  ? { ...device, characteristics: allCharacteristics }
+                  : device
+              )
+            );
+          } catch (connectError) {
+            console.warn(`Error al conectar con el dispositivo ${scannedDevice.id}:`, connectError);
           }
-          return prevDevices;
-        });
         }
       }
     });
@@ -97,6 +120,18 @@ export default function BeaconScanner(): JSX.Element {
       <Text style={styles.deviceText}>ID: {item.id}</Text>
       <Text style={styles.deviceText}>RSSI: {item.rssi ?? "N/A"}</Text>
       <Text style={styles.deviceText}>Datos de Servicio: {item.serviceData}</Text>
+      {item.characteristics && (
+        <View style={styles.characteristicsContainer}>
+          <Text style={styles.characteristicsTitle}>Características:</Text>
+          {item.characteristics.map((char) => (
+            <Text key={char.uuid} style={styles.characteristicText}>
+              UUID: {char.uuid} - Valor: {char.value ? base64.decode(char.value) : "N/A"}  
+
+              id: {char.serviceUUID}
+            </Text>
+          ))}
+        </View>
+      )}
     </View>
   );
 
@@ -132,5 +167,15 @@ const styles = StyleSheet.create({
   deviceText: {
     fontSize: 14,
     color: "#333",
+  },
+  characteristicsContainer: {
+    marginTop: 10,
+  },
+  characteristicsTitle: {
+    fontWeight: "bold",
+  },
+  characteristicText: {
+    fontSize: 12,
+    color: "#555",
   },
 });
