@@ -1,25 +1,45 @@
 import React from 'react';
 import { View, StyleSheet, Dimensions } from 'react-native';
 import Svg, { Rect } from 'react-native-svg';
-import { generateGeom, updateMatrixWithDoors, Door } from '@/resources/geometry';
+import { generateGeom, updateMatrixWithDoors, Door, Dot, transformRegion, updatePoint, updateMatrixWithPoints } from '@/resources/geometry';
+import { findPathWithDistance } from '@/resources/sortestpath';
 
-
-let plano = generateGeom([[0,0], [15,0], [15,5], [10,5], [10,10], [0,10]])
+let plano = generateGeom([[0, 0], [15, 0], [15, 5], [10, 5], [10, 10], [0, 10]]);
 
 const doors: Door[] = [
   [[15, 2], [15, 3]], // Door from (15, 1) to (15, 4)
-  [[10, 7], [10, 8]]  // Door from (10, 6) to (10, 9)
+  [[10, 7], [10, 8]], // Door from (10, 6) to (10, 9)
 ];
 
-plano = updateMatrixWithDoors(plano, doors)
+plano = updateMatrixWithDoors(plano, doors);
+
+transformRegion(plano, [[10,0],[15,0],[15,5],[10,5]], 2)
+
+let init: Dot = [13, 2];
+let end: Dot = [3,8];
+updatePoint(plano, init, 3)
+updatePoint(plano, end, 3)
+
+let path: Dot[] = findPathWithDistance(plano, init, end)
+
+updateMatrixWithPoints(plano, path, 4)
+
+
 
 const { width } = Dimensions.get('window');
 const margin = 20; // Margen deseado alrededor del mapa
 const cellSize = (width - 2 * margin) / plano[0].length; // Ajustar el tamaño de las celdas considerando el margen
-const strokeWidth = 2; // Grosor de las líneas que representan las paredes
+
+// Diccionario de colores
+const colorMapping: { [key: number]: string } = {
+  0: 'transparent', // Color para celdas vacías
+  1: 'black',   // Color para paredes
+  2: 'blue',    // Otro valor de ejemplo
+  3: 'red',     // Otro valor de ejemplo
+  4: 'orange'
+};
 
 const MapaInterior: React.FC = () => {
-
   return (
     <View style={styles.container}>
       <Svg
@@ -28,18 +48,16 @@ const MapaInterior: React.FC = () => {
         style={styles.svg}
       >
         {plano.map((fila, y) =>
-          fila.map((celda, x) =>
-            celda === 1 ? (
-              <Rect
-                key={`${x}-${y}`}
-                x={x * cellSize}
-                y={y * cellSize}
-                width={cellSize}
-                height={cellSize}
-                fill="black" // Color de las paredes
-              />
-            ) : null
-          )
+          fila.map((celda, x) => (
+            <Rect
+              key={`${x}-${y}`}
+              x={x * cellSize}
+              y={y * cellSize}
+              width={cellSize}
+              height={cellSize}
+              fill={colorMapping[celda] || 'transparent'} // Asignar color dinámicamente
+            />
+          ))
         )}
       </Svg>
     </View>

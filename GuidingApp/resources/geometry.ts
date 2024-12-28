@@ -1,4 +1,4 @@
-type Dot = [number, number];
+export type Dot = [number, number];
 export type Door = [Dot, Dot];
 
 enum types {
@@ -87,4 +87,70 @@ export function updateMatrixWithDoors(matrix: number[][], doors: Door[]): number
     });
 
     return newMatrix;
+}
+
+/**
+ * Transforms values in a specific region of the matrix.
+ * Changes all occurrences of 0 to a specified number, keeping 1 values intact.
+ * @param matrix - The input matrix to modify.
+ * @param points - List of points defining the region to transform.
+ * @param newValue - The number to replace 0s with.
+ */
+export function transformRegion(matrix: number[][], points: Dot[], newValue: number): void {
+    const height = matrix.length;
+    const width = matrix[0].length;
+
+    // Define the region bounds
+    const minX = Math.min(...points.map(p => p[0]));
+    const maxX = Math.max(...points.map(p => p[0]));
+    const minY = Math.min(...points.map(p => p[1]));
+    const maxY = Math.max(...points.map(p => p[1]));
+
+    // Traverse the region and update values
+    for (let y = minY; y <= maxY; y++) {
+        for (let x = minX; x <= maxX; x++) {
+            // Ensure the point is within bounds and inside the matrix
+            if (x >= 0 && x < width && y >= 0 && y < height && matrix[height - 1 - y][x] === 0) {
+                matrix[height - 1 - y][x] = newValue;
+            }
+        }
+    }
+}
+
+/**
+ * Updates the value of a specific point in the matrix directly.
+ * @param matrix - The matrix to update.
+ * @param point - The point [x, y]
+ * @param newValue - The new value to set at the specified point.
+ */
+export function updatePoint(matrix: number[][], point: Dot , newValue: number): void {
+    const height = matrix.length;
+    const width = matrix[0].length;
+    const x = point[0]; 
+    const y= point[1]; 
+
+    if (x < 0 || x >= width || y < 0 || y >= height) {
+        throw new Error("Point is out of bounds");
+    }
+
+    // Update the matrix directly
+    matrix[height - 1 - y][x] = newValue;
+}
+
+/**
+ * Updates the matrix by setting the specified value for a list of points.
+ * @param matrix - The matrix to modify.
+ * @param points - The list of points to update.
+ * @param newValue - The value to set for each point.
+ */
+export function updateMatrixWithPoints(matrix: number[][], points: Dot[], newValue: number): void {
+    const height = matrix.length;
+
+    points.forEach(([x, y]) => {
+        if (x >= 0 && x < matrix[0].length && y >= 0 && y < height) {
+            matrix[height - 1 - y][x] = newValue;
+        } else {
+            console.warn(`Point (${x}, ${y}) is out of bounds and will be ignored.`);
+        }
+    });
 }
