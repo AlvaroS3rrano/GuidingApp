@@ -4,7 +4,12 @@ import Svg, { Rect } from 'react-native-svg';
 import { generateGeom, updateMatrixWithDoors, Door, Dot, transformRegion, updatePoint, updateMatrixWithPoints } from '@/resources/geometry';
 import { findPathWithDistance } from '@/resources/sortestpath';
 
-let plano = generateGeom([[0, 0], [15, 0], [15, 5], [10, 5], [10, 10], [0, 10]]);
+type MapaInteriorProps = {
+  origin: Dot | null;
+  destination: Dot | null;
+};
+
+let plano: number[][] = generateGeom([[0, 0], [15, 0], [15, 5], [10, 5], [10, 10], [0, 10]]);
 
 const doors: Door[] = [
   [[15, 2], [15, 3]], // Door from (15, 1) to (15, 4)
@@ -12,26 +17,14 @@ const doors: Door[] = [
 ];
 
 plano = updateMatrixWithDoors(plano, doors);
-
-transformRegion(plano, [[10,0],[15,0],[15,5],[10,5]], 2)
-
-let init: Dot = [13, 2];
-let end: Dot = [3,8];
-updatePoint(plano, init, 3)
-updatePoint(plano, end, 3)
-
-let path: Dot[] = findPathWithDistance(plano, init, end)
-
-updateMatrixWithPoints(plano, path, 4)
-
-
+transformRegion(plano, [[10,0],[15,0],[15,5],[10,5]], 2);
 
 const { width } = Dimensions.get('window');
 const margin = 20; // Margen deseado alrededor del mapa
 const cellSize = (width - 2 * margin) / plano[0].length; // Ajustar el tamaño de las celdas considerando el margen
 
 // Diccionario de colores
-const colorMapping: { [key: number]: string } = {
+const colorMapping: Record<number, string> = {
   0: 'transparent', // Color para celdas vacías
   1: 'black',   // Color para paredes
   2: 'blue',    // Otro valor de ejemplo
@@ -39,15 +32,25 @@ const colorMapping: { [key: number]: string } = {
   4: 'orange'
 };
 
-const MapaInterior: React.FC = () => {
+const MapaInterior: React.FC<MapaInteriorProps> = ({ origin, destination }) => {
+  let updatedPlano: number[][] = JSON.parse(JSON.stringify(plano));
+  let path: Dot[] = [];
+
+  if (origin && destination) {
+    updatePoint(updatedPlano, origin, 3);
+    updatePoint(updatedPlano, destination, 3);
+    path = findPathWithDistance(updatedPlano, origin, destination);
+    updateMatrixWithPoints(updatedPlano, path, 4);
+  }
+
   return (
     <View style={styles.container}>
       <Svg
         width={width - 2 * margin}
-        height={cellSize * plano.length}
+        height={cellSize * updatedPlano.length}
         style={styles.svg}
       >
-        {plano.map((fila, y) =>
+        {updatedPlano.map((fila, y) =>
           fila.map((celda, x) => (
             <Rect
               key={`${x}-${y}`}
