@@ -1,13 +1,21 @@
+/**
+ * index.tsx - A React Native component for scanning BLE beacons.
+ *
+ * This component initializes a BLE scanner to detect nearby beacons, extract their identifiers,
+ * and determine their distance using RSSI values. The closest beacon's identifier is stored
+ * in AsyncStorage for later retrieval in other components.
+ */
+
 import React, { useEffect, useState } from "react";
 import { View, Text, Button, FlatList, StyleSheet, ListRenderItem } from "react-native";
 import { BleManager, Device } from "react-native-ble-plx";
 import base64 from 'react-native-base64';
 import requestPermissions from "@/resources/permissions";
-import { addRssiValueAndGetAverage, calculateDistance } from "@/resources/distance";
+import { addRssiValueAndGetAverage } from "@/resources/distance";
 import { Link } from "expo-router";
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const bleManager = new BleManager();
-
 const TARGET_SERVICE_UUID = "0000fe9a-0000-1000-8000-00805f9b34fb";
 
 interface ScannedDevice {
@@ -22,126 +30,102 @@ export default function BeaconScanner(): JSX.Element {
   const [devices, setDevices] = useState<ScannedDevice[]>([]);
   const [scanning, setScanning] = useState<boolean>(false);
 
-  
-
   useEffect(() => {
     const checkPermissions = async () => {
       const permissionsGranted = await requestPermissions();
       if (!permissionsGranted){
-        console.warn("No se otorgaron los permisos necesarios para Bluetooth.")
+        console.warn("Bluetooth permissions not granted.");
       }
-    }
-
-    checkPermissions();
+    };
     
+    checkPermissions();
     return () => {
       bleManager.destroy(); // Cleanup BLE manager on component unmount
     };
   }, []);
 
-  // Start scanning for BLE devices
+  /**
+   * Initiates BLE scanning to detect nearby beacons.
+   * The closest beacon's identifier is stored in AsyncStorage.
+   */
   const startScanning = () => {
     if (scanning) return;
-    console.log("Escaneo iniciado.")
-    setDevices([]); // Limpia la lista actual de dispositivos
+    console.log("Scanning started.");
+    setDevices([]);
     setScanning(true);
 
-    bleManager.startDeviceScan([TARGET_SERVICE_UUID], null, (error, scannedDevice) => {
+    bleManager.startDeviceScan([TARGET_SERVICE_UUID], null, async (error, scannedDevice) => {
       if (error) {
-        console.warn("Error during scan:", error);
+        console.warn("Scan error:", error);
         return;
       }
 
       if (scannedDevice) {
-        let serviceData;
-        if (scannedDevice.serviceData != null){
-          serviceData = scannedDevice.serviceData[TARGET_SERVICE_UUID];
-        }
-        if (serviceData) {
-          const decodedData = base64.decode(serviceData);
-          const frameType = decodedData.charCodeAt(0);
-          let identifier: string;
-          if (frameType === 0x00) { // UID frame
-            identifier = decodedData.slice(1, 17) // Bytes 2-11
-              .split('')
-              .map(char => ('0' + char.charCodeAt(0).toString(16)).slice(-2))
-              .join('');
-          }
-        let distance:number;
-        if (scannedDevice.rssi != null){
-          distance = addRssiValueAndGetAverage(scannedDevice.id, scannedDevice.rssi);
-        }
-          
-        // Avoid duplicates using device ID
-        setDevices((prevDevices) => {
-          // Buscar si el dispositivo ya existe en la lista
-          const existingDeviceIndex = prevDevices.findIndex(
-            (device) => device.id === scannedDevice.id
-          );
-        
-          // Construir el nuevo dispositivo con los datos actuales
-          const newDevice = {
-            id: scannedDevice.id,
-            name: scannedDevice.name,
-            rssi: scannedDevice.rssi,
-            identifier: identifier,
-            distance: distance,
-          };
-        
-          if (existingDeviceIndex === -1) {
-            // Si el dispositivo no existe, agregarlo a la lista
-            return [...prevDevices, newDevice];
-          } else {
-            // Si el dispositivo ya existe, verificar si alguno de sus atributos ha cambiado
-            const existingDevice = prevDevices[existingDeviceIndex];
-            const attributesChanged =
-              existingDevice.name !== newDevice.name ||
-              existingDevice.rssi !== newDevice.rssi ||
-              existingDevice.identifier !== newDevice.identifier ||
-              existingDevice.distance !== newDevice.distance;
-        
-            if (attributesChanged) {
-              // Si algún atributo ha cambiado, actualizar el dispositivo en la lista
-              const updatedDevices = [...prevDevices];
-              updatedDevices[existingDeviceIndex] = newDevice;
-              return updatedDevices;
-            } else {
-              // Si no hay cambios, retornar la lista original
-              return prevDevices;
+        let identifier = null;
+        if (scannedDevice.serviceData) {
+          const serviceData = scannedDevice.serviceData[TARGET_SERVICE_UUID];
+          if (serviceData) {
+            const decodedData = base64.decode(serviceData);
+            if (decodedData.charCodeAt(0) === 0x00) {
+              identifier = decodedData.slice(1, 17)
+                .split('')
+                .map(char => ('0' + char.charCodeAt(0).toString(16)).slice(-2))
+                .join('');
             }
           }
-        });
         }
+
+        let distance = scannedDevice.rssi ? addRssiValueAndGetAverage(scannedDevice.id, scannedDevice.rssi) : null;
+
+        setDevices((prevDevices) => {
+          const newDevice = { id: scannedDevice.id, name: scannedDevice.name, rssi: scannedDevice.rssi, identifier, distance };
+          const updatedDevices = [...prevDevices.filter(device => device.id !== scannedDevice.id), newDevice];
+
+          const closest = updatedDevices.reduce<ScannedDevice | undefined>((closest, device) => {
+            if (device.distance === null) return closest; // Ignorar dispositivos sin distancia válida
+            if (!closest || (closest.distance !== null && device.distance < closest.distance)) {
+              return device;
+            }
+            return closest;
+          }, undefined);
+
+          if (closest && closest.identifier) {
+            AsyncStorage.setItem('closestBeacon', closest.identifier);
+          }
+
+          return updatedDevices;
+        });
       }
     });
   };
 
-  // Stop scanning for BLE devices
+  /**
+   * Stops the BLE scanning process.
+   */
   const stopScanning = () => {
     if (!scanning) return;
-
     bleManager.stopDeviceScan();
     setScanning(false);
-    console.log("Escaneo detenido.");
+    console.log("Scanning stopped.");
   };
 
+  /**
+   * Renders the scanned device list.
+   */
   const renderDevice: ListRenderItem<ScannedDevice> = ({ item }) => (
     <View style={styles.deviceContainer}>
-      <Text style={styles.deviceText}>
-        Nombre: {item.name || "Dispositivo Desconocido"}
-      </Text>
+      <Text style={styles.deviceText}>Name: {item.name || "Unknown Device"}</Text>
       <Text style={styles.deviceText}>ID: {item.id}</Text>
       <Text style={styles.deviceText}>RSSI: {item.rssi ?? "N/A"}</Text>
       <Text style={styles.deviceText}>Identifier: {item.identifier}</Text>
-      <Text style={styles.deviceText}>Distance: {item.distance} </Text>
-
+      <Text style={styles.deviceText}>Distance: {item.distance}</Text>
     </View>
   );
 
   return (
     <View style={styles.container}>
-      <Button title="Iniciar Escaneo" onPress={startScanning} disabled={scanning} />
-      <Button title="Detener Escaneo" onPress={stopScanning} disabled={!scanning} />
+      <Button title="Start Scanning" onPress={startScanning} disabled={scanning} />
+      <Button title="Stop Scanning" onPress={stopScanning} disabled={!scanning} />
       <FlatList
         data={devices}
         keyExtractor={(item) => item.id}
@@ -149,7 +133,6 @@ export default function BeaconScanner(): JSX.Element {
       />
       <Link href={"/showMap"} style={styles.button}>Map</Link>
     </View>
-
   );
 }
 
@@ -173,7 +156,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#333",
   },
-  button:{
+  button: {
     fontSize: 20,
     textAlign: "center",
     textDecorationLine: "underline",
