@@ -11,24 +11,28 @@ import { View, Text, Button, FlatList, StyleSheet, ListRenderItem } from "react-
 import { BleManager, Device } from "react-native-ble-plx";
 import base64 from 'react-native-base64';
 import requestPermissions from "@/resources/permissions";
-import { addRssiValueAndGetAverage } from "@/resources/distance";
+import { calculateDistance } from "@/resources/distance";
 import { Link } from "expo-router";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+// BLE Manager instance used to control Bluetooth scanning
 const bleManager = new BleManager();
+
+// UUID of the target BLE service used to identify specific beacons
 const TARGET_SERVICE_UUID = "0000fe9a-0000-1000-8000-00805f9b34fb";
 
+// Interface defining the structure of scanned BLE devices
 interface ScannedDevice {
-  id: string;
-  name: string | null;
-  rssi: number | null;
-  identifier: string | null;
-  distance: number | null;
+  id: string;              // Unique identifier for the BLE device
+  name: string | null;     // Name of the BLE device (if available)
+  rssi: number | null;     // Signal strength indicator (Received Signal Strength Indication)
+  identifier: string | null; // Extracted beacon identifier (if applicable)
+  distance: number | null; // Estimated distance from the device based on RSSI
 }
 
 export default function BeaconScanner(): JSX.Element {
-  const [devices, setDevices] = useState<ScannedDevice[]>([]);
-  const [scanning, setScanning] = useState<boolean>(false);
+  const [devices, setDevices] = useState<ScannedDevice[]>([]); // List of detected BLE devices
+  const [scanning, setScanning] = useState<boolean>(false); // State to track scanning status
 
   useEffect(() => {
     const checkPermissions = async () => {
@@ -46,7 +50,7 @@ export default function BeaconScanner(): JSX.Element {
 
   /**
    * Initiates BLE scanning to detect nearby beacons.
-   * The closest beacon's identifier is stored in AsyncStorage.
+   * Extracts beacon identifiers, estimates distances, and stores the closest beacon in AsyncStorage.
    */
   const startScanning = () => {
     if (scanning) return;
@@ -60,6 +64,7 @@ export default function BeaconScanner(): JSX.Element {
         return;
       }
 
+      // to get the identifier
       if (scannedDevice) {
         let identifier = null;
         if (scannedDevice.serviceData) {
@@ -74,21 +79,26 @@ export default function BeaconScanner(): JSX.Element {
             }
           }
         }
+        
+        let distance = (scannedDevice.rssi) 
+              ? calculateDistance(scannedDevice.rssi) 
+              : null;
 
-        let distance = scannedDevice.rssi ? addRssiValueAndGetAverage(scannedDevice.id, scannedDevice.rssi) : null;
 
         setDevices((prevDevices) => {
           const newDevice = { id: scannedDevice.id, name: scannedDevice.name, rssi: scannedDevice.rssi, identifier, distance };
           const updatedDevices = [...prevDevices.filter(device => device.id !== scannedDevice.id), newDevice];
 
+          // Determine the closest beacon based on distance
           const closest = updatedDevices.reduce<ScannedDevice | undefined>((closest, device) => {
-            if (device.distance === null) return closest; // Ignorar dispositivos sin distancia válida
+            if (device.distance === null) return closest; // Ignore devices without valid distance
             if (!closest || (closest.distance !== null && device.distance < closest.distance)) {
               return device;
             }
             return closest;
           }, undefined);
 
+          // Store the identifier of the closest beacon in AsyncStorage
           if (closest && closest.identifier) {
             AsyncStorage.setItem('closestBeacon', closest.identifier);
           }
@@ -110,7 +120,7 @@ export default function BeaconScanner(): JSX.Element {
   };
 
   /**
-   * Renders the scanned device list.
+   * Renders the scanned device list with details about each detected beacon.
    */
   const renderDevice: ListRenderItem<ScannedDevice> = ({ item }) => (
     <View style={styles.deviceContainer}>

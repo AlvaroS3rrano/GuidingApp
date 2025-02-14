@@ -9,13 +9,13 @@ import React, { useState } from 'react';
 import { SafeAreaView, StyleSheet, Button, Text, View } from 'react-native';
 import Map from './map';
 import SearchBar from './searchBar';
-import { Dot } from '@/resources/geometry';
+import { Dot } from '@/app/classes/geometry';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Dictionary of predefined locations, where each key (string) has a Dot (coordinate) value
 const places: Record<string, Dot> = {
-  'Or': [13, 2], // Coordinates for "origin"
-  'Des': [3, 8], // Coordinates for "destination"
+  'Or': {x: 13, y: 2}, // Coordinates for "origin"
+  'Des': {x: 3, y: 8}, // Coordinates for "destination"
 };
 
 // Main component that manages search functionality and map visualization
@@ -67,7 +67,7 @@ const ShowMap: React.FC = () => {
   );
 };
 
-// 🔹 Styles for the main container
+// Styles for the main container
 const styles = StyleSheet.create({
   container: {
     flex: 1,                // Occupies full screen
@@ -77,5 +77,5 @@ const styles = StyleSheet.create({
   },
 });
 
-// 🔹 Export the component for use in other files
+// Export the component for use in other files
 export default ShowMap;
