@@ -14,7 +14,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { View, StyleSheet, Dimensions } from 'react-native';
-import Svg, { Rect, Polygon } from 'react-native-svg';
+import Svg, { Rect, Polygon, Polyline } from 'react-native-svg';
 import { Magnetometer } from 'expo-sensors';
 import { generateGeom, updateMatrixWithDoors, Door, Dot, transformRegion, updatePoint, updateMatrixWithPoints } from './classes/geometry';
 import { findPathWithDistance } from '@/resources/sortestpath';
@@ -76,12 +76,41 @@ const MapaInterior: React.FC<MapaInteriorProps> = ({ origin, destination }) => {
   // Clone the initial map structure
   let updatedPlano: number[][] = JSON.parse(JSON.stringify(plano));
   let path: Dot[] = [];
+  let arrowAngle = 0;
 
   if (origin && destination) {
     updatePoint(updatedPlano, origin, 3); // Mark the origin
     updatePoint(updatedPlano, destination, 3); // Mark the destination
     path = findPathWithDistance(updatedPlano, origin, destination); // Compute shortest path
-    updateMatrixWithPoints(updatedPlano, path, 4); // Update the map with the computed path
+    //updateMatrixWithPoints(updatedPlano, path, 4); // Update the map with the computed path
+
+    if (path.length > 1) {
+      const lastPoint = path[path.length - 1]; // Destino
+      //console.log("dest")
+      //console.log(lastPoint)
+
+      const secondLastPoint = path[path.length - 2]; // Punto antes del destino
+      //console.log("prev")
+      //console.log(secondLastPoint)
+
+    
+      // Ajuste para la inversión del eje Y
+      const adjustedLastY = plano.length - 1 - lastPoint.y;
+      const adjustedSecondLastY = plano.length - 1 - secondLastPoint.y;
+    
+      // Cálculo correcto del desplazamiento
+      const dx = lastPoint.x - secondLastPoint.x;
+
+      const dy = lastPoint.y - secondLastPoint.y;
+
+    
+      // Obtener el ángulo en grados asegurando que apunta en la dirección correcta
+      arrowAngle = Math.atan2(dy, dx) * (180 / Math.PI);
+    
+      // Ajustar el ángulo si el sistema de coordenadas no coincide
+      arrowAngle = -arrowAngle + 90 
+    }
+    
   }
 
   return (
@@ -104,6 +133,32 @@ const MapaInterior: React.FC<MapaInteriorProps> = ({ origin, destination }) => {
           ))
         )}
 
+        {/* Render thin path */}
+        {path.length > 1 && (
+          <Polyline
+            points={path.map(p => `${p.x * cellSize + cellSize / 2},${(plano.length - 1 - p.y) * cellSize + cellSize / 2}`).join(" ")}
+            stroke="orange"
+            strokeWidth="3"
+            fill="none"
+            strokeLinecap="round"
+          />
+        )}
+
+        {path.length > 1 && (
+          <Polygon
+            points={`
+              ${path[path.length - 1].x * cellSize + cellSize / 2},${(plano.length - 1 - path[path.length - 1].y) * cellSize}
+              ${path[path.length - 1].x * cellSize},${(plano.length - 1 - path[path.length - 1].y) * cellSize + cellSize}
+              ${path[path.length - 1].x * cellSize + cellSize},${(plano.length - 1 - path[path.length - 1].y) * cellSize + cellSize}
+            `}
+            fill="orange"
+            stroke="black"
+            strokeWidth="1"
+            transform={`rotate(${arrowAngle}, ${path[path.length - 1].x * cellSize + cellSize / 2}, ${(plano.length - 1 - path[path.length - 1].y) * cellSize + cellSize / 2})`}
+          />
+        )}
+
+        {/* User direction arrow */}
         {origin && (
           <Polygon
             points={`

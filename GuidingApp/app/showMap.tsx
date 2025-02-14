@@ -16,6 +16,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 const places: Record<string, Dot> = {
   'Or': {x: 13, y: 2}, // Coordinates for "origin"
   'Des': {x: 3, y: 8}, // Coordinates for "destination"
+  'Des2': {x: 9, y: 8}, // Coordinates for "destination"
 };
 
 // Main component that manages search functionality and map visualization
