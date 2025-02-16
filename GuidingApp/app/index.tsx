@@ -84,7 +84,6 @@ export default function BeaconScanner(): JSX.Element {
               ? calculateDistance(scannedDevice.rssi) 
               : null;
 
-
         setDevices((prevDevices) => {
           const newDevice = { id: scannedDevice.id, name: scannedDevice.name, rssi: scannedDevice.rssi, identifier, distance };
           const updatedDevices = [...prevDevices.filter(device => device.id !== scannedDevice.id), newDevice];

@@ -1,64 +1,73 @@
-import React, { useState } from 'react';
+/**
+ * SearchBar.tsx
+ * 
+ * This component provides a user interface for entering the origin and destination locations.
+ * It is a controlled component that receives the current values and update functions from its parent.
+ * 
+ * Props:
+ * - origin: The current origin value.
+ * - destination: The current destination value.
+ * - onOriginChange: Callback to update the origin value.
+ * - onDestinationChange: Callback to update the destination value.
+ * - onSearch: Callback executed when the user initiates a search.
+ */
+
+import React from 'react';
 import { View, TextInput, Button, StyleSheet } from 'react-native';
 
-// Definimos los tipos de las props que recibe el componente
 type SearchBarProps = {
-  onSearch: (origin: string, destination: string) => void; // Función que recibe el origen y el destino como strings
+  origin: string;
+  destination: string;
+  onOriginChange: (text: string) => void;
+  onDestinationChange: (text: string) => void;
+  onSearch: () => void;
 };
 
-// Definimos el componente funcional SearchBar con TypeScript
-const SearchBar: React.FC<SearchBarProps> = ({ onSearch }) => {
-  // Definimos los estados para almacenar el origen y el destino ingresados por el usuario
-  const [origin, setOrigin] = useState('');
-  const [destination, setDestination] = useState('');
-
-  // Función que se ejecuta cuando el usuario presiona el botón "Buscar"
-  const handleSearch = () => {
-    if (onSearch) {
-        onSearch(origin, destination); // Llamamos a la función onSearch pasando los valores ingresados
-    }
-  };
-
+const SearchBar: React.FC<SearchBarProps> = ({
+  origin,
+  destination,
+  onOriginChange,
+  onDestinationChange,
+  onSearch,
+}) => {
   return (
     <View style={styles.container}>
-      {/* Campo de entrada para el origen */}
+      {/* Input field for the origin location */}
       <TextInput
         style={styles.input}
-        placeholder="Ubicación de origen"
+        placeholder="Origin Location"
         value={origin}
-        onChangeText={setOrigin} // Se actualiza el estado de origin cuando el usuario escribe
+        onChangeText={onOriginChange}
       />
       
-      {/* Campo de entrada para el destino */}
+      {/* Input field for the destination location */}
       <TextInput
         style={styles.input}
-        placeholder="Destino"
+        placeholder="Destination"
         value={destination}
-        onChangeText={setDestination} // Se actualiza el estado de destination cuando el usuario escribe
+        onChangeText={onDestinationChange}
       />
       
-      {/* Botón que ejecuta la búsqueda al ser presionado */}
-      <Button title="Buscar" onPress={handleSearch} />
+      {/* Button to trigger the search action */}
+      <Button title="Search" onPress={onSearch} />
     </View>
   );
 };
 
-// Estilos del componente
 const styles = StyleSheet.create({
   container: {
-    padding: 10,          // Espaciado interno
+    padding: 10,
     backgroundColor: 'white',
-    width: '100%',        // Ocupar todo el ancho disponible
+    width: '100%',
   },
   input: {
-    height: 40,          // Altura del campo de entrada
-    borderColor: 'gray', // Color del borde
-    borderWidth: 1,      // Grosor del borde
-    marginBottom: 10,    // Espaciado entre los campos de entrada
-    paddingHorizontal: 10, // Espaciado interno horizontal
-    borderRadius: 5,     // Bordes redondeados
+    height: 40,
+    borderColor: 'gray',
+    borderWidth: 1,
+    marginBottom: 10,
+    paddingHorizontal: 10,
+    borderRadius: 5,
   },
 });
 
-// Exportamos el componente para que pueda ser usado en otros archivos
 export default SearchBar;
