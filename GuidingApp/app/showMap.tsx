@@ -1,26 +1,27 @@
 /**
  * ShowMap.tsx
- * 
- * This component manages the display of a map along with a search interface for selecting an origin and destination.
- * It integrates the SearchBar component to allow users to enter locations and displays a Map component that shows the corresponding nodes.
- * Additionally, it includes functionality to retrieve the closest beacon from AsyncStorage.
- * When both origin and destination are set, the component computes a current node (closestNode) based on the closest beacon identifier
- * and passes it to the Map component via the current_node prop.
- * 
- * Functionality:
- * - Maintains state for origin, destination, and the closest beacon identifier.
- * - Updates the origin field if the closest beacon matches a node in the places dictionary.
- * - Computes the current node (closestNode) from the closest beacon and passes it to the Map component if both origin and destination exist.
+ *
+ * This file defines the ShowMap component, which integrates the interactive map with the search interface.
+ *
+ * Key functionalities:
+ * - Manages state for origin, destination, and a recommended origin (retrieved from AsyncStorage).
+ * - Automatically retrieves a recommended origin (e.g., from the closest beacon) and suggests it without auto-filling.
+ * - Renders the Map component as a full-screen background and overlays the SearchBar on top using absolute positioning.
+ * - When the Search button is pressed (with valid origin and destination), triggers the map to animate so that the 
+ *   user's position (triangle) is centered.
+ *
+ * Usage:
+ * - Passes the necessary props to the Map and SearchBar components.
+ * - Updates the user sensor position based on the search action, which is then used to center the map.
  */
 
-import React, { useState } from 'react';
-import { SafeAreaView, StyleSheet, Button, Text } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { StyleSheet, View } from 'react-native';
 import Map from './map';
 import SearchBar from './searchBar';
 import { Node } from '@/app/classes/node';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// Predefined nodes for the map. Each Node is initialized with an ID, an array of area points, and a sensor coordinate.
 const or = new Node(
   "d4fcb04a6573ea399df3adbf06f91b38",
   [{ x: 10, y: 0 }, { x: 15, y: 0 }, { x: 15, y: 5 }, { x: 10, y: 5 }],
@@ -32,42 +33,43 @@ const des = new Node(
   { x: 3, y: 8 }
 );
 
-// Dictionary mapping node names to their corresponding Node objects.
+// Dictionary mapping node names to Node objects
 const places: Record<string, Node> = {
   'Or': or,
   'Des': des,
 };
 
 const ShowMap: React.FC = () => {
-  // State for the origin and destination values displayed in the SearchBar.
   const [origin, setOrigin] = useState('');
   const [destination, setDestination] = useState('');
-  // State for storing the closest beacon identifier.
   const [closestBeacon, setClosestBeacon] = useState<string | null>(null);
+  const [originSuggestion, setOriginSuggestion] = useState<string>('');
+  // Flag to indicate that Search was pressed
+  const [searchPressed, setSearchPressed] = useState(false);
 
-  // Function executed when the user presses the search button.
+  useEffect(() => {
+    getClosestBeacon();
+  }, []);
+
   const handleSearch = () => {
     if (places[origin] && places[destination]) {
-      console.log("Search successful with:", origin, destination);
+      setSearchPressed(true);
     } else {
       console.warn("Location not found in the dictionary.");
     }
   };
 
-  // Function to retrieve the closest beacon identifier from AsyncStorage and update the origin field.
   const getClosestBeacon = async () => {
     try {
       const identifier = await AsyncStorage.getItem('closestBeacon');
       if (identifier) {
         setClosestBeacon(identifier);
-        // Search for the node in the places dictionary that matches the retrieved beacon identifier.
         const matchingEntry = Object.entries(places).find(
           ([, node]) => node.id === identifier
         );
         if (matchingEntry) {
           const [nodeName] = matchingEntry;
-          // Update the origin state with the node name so that it appears in the SearchBar.
-          setOrigin(nodeName);
+          setOriginSuggestion(nodeName);
         } else {
           console.warn("No matching node found for the beacon identifier");
         }
@@ -79,44 +81,46 @@ const ShowMap: React.FC = () => {
     }
   };
 
-  // Compute the current node (closestNode) based on the closestBeacon state.
-  // This is only computed if both origin and destination are provided.
+  // In this implementation, userSensor will be used by Map to draw the triangle in its position.
+  // After search, Map will animate the pan so that the triangle is centered.
   const currentNode =
     origin && destination && closestBeacon
       ? Object.entries(places).find(([, node]) => node.id === closestBeacon)?.[1] || null
       : null;
 
   return (
-    <SafeAreaView style={styles.container}>
-      {/* SearchBar component with controlled inputs for origin and destination */}
-      <SearchBar
-        origin={origin}
-        destination={destination}
-        onOriginChange={setOrigin}
-        onDestinationChange={setDestination}
-        onSearch={handleSearch}
-      />
-      
-      {/* Map component receiving origin, destination, and current_node (closest node) if both origin and destination exist */}
+    <View style={styles.container}>
       <Map 
         origin={origin ? places[origin] : null} 
         destination={destination ? places[destination] : null}
         current_node={currentNode}
+        searchPressed={searchPressed}
       />
-      
-      {/* Button to fetch the closest beacon and update the origin field accordingly */}
-      <Button title="Get Closest Beacon" onPress={getClosestBeacon} />
-      {closestBeacon && <Text>Closest Beacon: {closestBeacon}</Text>}
-    </SafeAreaView>
+      <View style={styles.searchBarContainer}>
+        <SearchBar
+          origin={origin}
+          destination={destination}
+          recommendedOrigin={originSuggestion}
+          onOriginChange={setOrigin}
+          onDestinationChange={setDestination}
+          onSearch={() => {
+            handleSearch();
+          }}
+        />
+      </View>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
-    justifyContent: 'center',
-    alignItems: 'center',
+  },
+  searchBarContainer: {
+    position: 'absolute',
+    top: 40,
+    left: 10,
+    right: 10,
   },
 });
 
