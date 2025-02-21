@@ -27,47 +27,25 @@ import React, { useEffect, useState, useRef } from 'react';
 import { View, StyleSheet, Dimensions, Animated, PanResponder } from 'react-native';
 import Svg, { Rect, Polygon, Polyline } from 'react-native-svg';
 import { Magnetometer } from 'expo-sensors';
-import { generateGeom, updateMatrixWithDoors, Door, Dot, transformRegion, updatePoint } from './classes/geometry';
+import { Dot, transformRegion, updatePoint } from './classes/geometry';
 import { findPathWithDistance } from '@/resources/sortestpath';
 import { Node } from '@/app/classes/node';
+import { MapData } from '@/app/classes/mapData';
 
 type MapaInteriorProps = {
-  origin: Node | null;
-  destination: Node | null;
-  current_node: Node | null; // user's sensor position
-  searchPressed: boolean;
-  centerTrigger: number;
-  isPreview: boolean;
+  mapData: MapData;         // Map configuration data
+  origin: Node | null;      // Selected origin node
+  destination: Node | null; // Selected destination node
+  current_node: Node | null; // User's current sensor position
+  searchPressed: boolean;   // Flag indicating search/preview mode
+  centerTrigger: number;    // Incremented to force re-centering
+  isPreview: boolean;       // Flag indicating preview mode
 };
-
-let plano: number[][] = generateGeom([
-  { x: 0, y: 0 },
-  { x: 15, y: 0 },
-  { x: 15, y: 5 },
-  { x: 10, y: 5 },
-  { x: 10, y: 10 },
-  { x: 0, y: 10 }
-]);
-const doors: Door[] = [
-  [{ x: 15, y: 2 }, { x: 15, y: 3 }],
-  [{ x: 10, y: 7 }, { x: 10, y: 8 }],
-];
-plano = updateMatrixWithDoors(plano, doors);
 
 const { width, height } = Dimensions.get('window');
-// Set cellSize so the map fills the screen width
-const cellSize = width / plano[0].length;
-
-// Define color mapping for each cell type
-const colorMapping: Record<number, string> = {
-  0: 'transparent',
-  1: 'black',
-  2: 'blue',
-  3: 'red',
-  4: 'orange'
-};
 
 const MapaInterior: React.FC<MapaInteriorProps> = ({
+  mapData,
   origin,
   destination,
   current_node,
@@ -78,7 +56,7 @@ const MapaInterior: React.FC<MapaInteriorProps> = ({
   const [heading, setHeading] = useState(0);
   const map_adjustments = 70;
 
-  // Set up the magnetometer for device heading
+  // Set up the magnetometer to track device heading
   useEffect(() => {
     const subscribe = async () => {
       Magnetometer.setUpdateInterval(100);
@@ -92,18 +70,20 @@ const MapaInterior: React.FC<MapaInteriorProps> = ({
     return () => Magnetometer.removeAllListeners();
   }, []);
 
-  // Clone the base map structure for modifications
-  let updatedPlano: number[][] = JSON.parse(JSON.stringify(plano));
+  // Clone the initial map grid from the mapData prop
+  let updatedPlano: number[][] = JSON.parse(JSON.stringify(mapData.initialMap));
   let path: Dot[] = [];
   let arrowAngle = 0;
 
-  const originSensor = origin ? origin.sensor : null;
-  const destinationSensor = destination ? destination.sensor : null;
+  // If both origin and destination are defined, compute the path using the graph.
+  if (origin && destination) {
+    // Utiliza la nueva función que recibe el grid, el grafo y los nodos
+    path = findPathWithDistance(updatedPlano, mapData.graph, origin, destination);
+    
+    // Para efectos de visualización, marcar el origen y destino en el grid
+    updatePoint(updatedPlano, origin.sensor, 3);
+    updatePoint(updatedPlano, destination.sensor, 3);
 
-  if (originSensor && destinationSensor) {
-    updatePoint(updatedPlano, originSensor, 3); // Mark the origin cell
-    updatePoint(updatedPlano, destinationSensor, 3); // Mark the destination cell
-    path = findPathWithDistance(updatedPlano, originSensor, destinationSensor);
     if (path.length > 1) {
       const lastPoint = path[path.length - 1];
       const secondLastPoint = path[path.length - 2];
@@ -114,25 +94,28 @@ const MapaInterior: React.FC<MapaInteriorProps> = ({
     }
   }
 
-  // Determine which sensor to use for centering:
-  // In preview mode (origin does not match current node), use origin's sensor.
-  // Otherwise, use current_node if available, or fallback to origin's sensor.
-  const sensorForCenter = isPreview ? originSensor : (current_node ? current_node.sensor : originSensor);
+  // Determine which sensor to use for centering
+  const sensorForCenter = isPreview
+    ? origin?.sensor || null
+    : current_node
+      ? current_node.sensor
+      : origin?.sensor || null;
 
+  // Transform the region if current_node and origin are available
   if (current_node && origin && origin.area) {
     transformRegion(updatedPlano, origin.area, 2);
   }
 
-  // Calculate map dimensions
+  // Calculate cell size based on the grid's width
+  const cellSize = width / updatedPlano[0].length;
   const mapWidth = cellSize * updatedPlano[0].length;
   const mapHeight = cellSize * updatedPlano.length;
-  // Initially center the map so the whole map is centered on the screen
+  // Initially center the map on the screen
   const initialTranslateX = width / 2 - mapWidth / 2;
   const initialTranslateY = height / 2 - mapHeight / 2;
 
-  // Set up Animated.ValueXY for panning the map
+  // Set up animated values for panning the map
   const pan = useRef(new Animated.ValueXY({ x: initialTranslateX, y: initialTranslateY })).current;
-  // Save the current pan values in a ref for later reference
   const panValue = useRef({ x: initialTranslateX, y: initialTranslateY });
   useEffect(() => {
     const id = pan.addListener((value) => {
@@ -143,7 +126,7 @@ const MapaInterior: React.FC<MapaInteriorProps> = ({
     };
   }, [pan]);
 
-  // Configure PanResponder to allow dragging the map with touch gestures
+  // Configure PanResponder for touch gestures
   const panResponder = useRef(
     PanResponder.create({
       onMoveShouldSetPanResponder: () => true,
@@ -160,8 +143,7 @@ const MapaInterior: React.FC<MapaInteriorProps> = ({
     })
   ).current;
 
-  // Effect to animate the map when Search is pressed or when centerTrigger changes.
-  // This centers the map so that the sensor (user's sensor or origin sensor in preview) is at the center.
+  // Animate the map to center on the sensor when search is pressed or centerTrigger changes
   useEffect(() => {
     if (searchPressed && sensorForCenter) {
       const sensorXPixel = sensorForCenter.x * cellSize;
@@ -176,7 +158,6 @@ const MapaInterior: React.FC<MapaInteriorProps> = ({
         useNativeDriver: false,
       }).start();
     } else if (!searchPressed) {
-      // Animate back to the original pan (centered map)
       Animated.timing(pan, {
         toValue: { x: initialTranslateX, y: initialTranslateY },
         duration: 300,
@@ -185,16 +166,24 @@ const MapaInterior: React.FC<MapaInteriorProps> = ({
     }
   }, [searchPressed, sensorForCenter, updatedPlano.length, pan, initialTranslateX, initialTranslateY, centerTrigger]);
 
+  // Define color mapping for grid cells
+  const colorMapping: Record<number, string> = {
+    0: 'transparent',
+    1: 'black',
+    2: 'blue',
+    3: 'red',
+    4: 'orange'
+  };
+
   return (
     <View style={styles.container}>
-      {/* Animated.View handles panning and responds to touch gestures */}
+      {/* Animated.View handles panning and touch gestures */}
       <Animated.View 
         style={{ transform: pan.getTranslateTransform() }} 
         {...panResponder.panHandlers}
       >
-        {/* Svg renders the entire map as a grid */}
         <Svg width={mapWidth} height={mapHeight} style={styles.svg}>
-          {/* Render the map grid: each Rect represents a cell */}
+          {/* Render the grid */}
           {updatedPlano.map((row, y) =>
             row.map((cell, x) => (
               <Rect
@@ -207,7 +196,7 @@ const MapaInterior: React.FC<MapaInteriorProps> = ({
               />
             ))
           )}
-          {/* Render the computed path (if exists) as a polyline */}
+          {/* Render the computed path as a polyline if available */}
           {path.length > 1 && (
             <Polyline
               points={path
@@ -222,7 +211,7 @@ const MapaInterior: React.FC<MapaInteriorProps> = ({
               strokeLinecap="round"
             />
           )}
-          {/* Render the destination arrow as a polygon */}
+          {/* Render the destination arrow */}
           {path.length > 1 && (
             <Polygon
               points={`
@@ -238,7 +227,7 @@ const MapaInterior: React.FC<MapaInteriorProps> = ({
               })`}
             />
           )}
-          {/* Conditionally render the user's sensor (triangle) only if not in preview mode */}
+          {/* Render the user's sensor as a triangle if not in preview mode */}
           {!isPreview && current_node && (
             (() => {
               const sensorXPixel = current_node.sensor.x * cellSize;
@@ -269,7 +258,7 @@ const MapaInterior: React.FC<MapaInteriorProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff', // White background for uncovered areas
+    backgroundColor: '#fff', // White background
   },
   svg: {
     backgroundColor: '#fff',

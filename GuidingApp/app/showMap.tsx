@@ -1,10 +1,31 @@
+/**
+ * ShowMap.tsx
+ *
+ * This file defines the ShowMap component, which integrates the interactive map with the search interface.
+ *
+ * Key functionalities:
+ * - Manages state for origin, destination, and a recommended origin (retrieved from AsyncStorage).
+ * - Automatically retrieves a recommended origin (e.g., from the closest beacon) and suggests it without auto-filling.
+ * - Renders the Map component as a full-screen background and overlays the SearchBar on top using absolute positioning.
+ * - When the Search button is pressed (with valid origin and destination), triggers the map to animate so that the 
+ *   user's position (triangle) is centered.
+ *
+ * Usage:
+ * - Passes the necessary props to the Map and SearchBar components.
+ * - Updates the user sensor position based on the search action, which is then used to center the map.
+ */
+
 import React, { useState, useEffect } from 'react';
 import { StyleSheet, View, Button, TouchableOpacity, Text } from 'react-native';
 import Map from './map';
 import SearchBar from './searchBar';
 import { Node } from '@/app/classes/node';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+// Import geometry functions to create the grid
+import { generateGeom, updateMatrixWithDoors, Door } from './classes/geometry';
+import { MapData } from '@/app/classes/mapData'; // Import the MapData type
 
+// Create Node instances using your existing Node class
 const or = new Node(
   "d4fcb04a6573ea399df3adbf06f91b38",
   [{ x: 10, y: 0 }, { x: 15, y: 0 }, { x: 15, y: 5 }, { x: 10, y: 5 }],
@@ -16,10 +37,50 @@ const des = new Node(
   { x: 3, y: 8 }
 );
 
-// Dictionary mapping node names to Node objects
+const cent = new Node(
+  "530801241127a8aad378170fdbabbd17",
+  [{ x: 0, y: 0 }, { x: 10, y: 0 }, { x: 10, y: 5 }, { x: 0, y: 5 }],
+  { x: 5, y: 3 } // Ubicado en la puerta
+);
+
+// Create a mapping for node selection; keys are labels for user convenience
 const places: Record<string, Node> = {
   'Or': or,
   'Des': des,
+  'Cent': cent,
+};
+
+// Generate the initial map grid using your functions
+let initialGrid: number[][] = generateGeom([
+  { x: 0, y: 0 },
+  { x: 15, y: 0 },
+  { x: 15, y: 5 },
+  { x: 10, y: 5 },
+  { x: 10, y: 10 },
+  { x: 0, y: 10 }
+]);
+const doors: Door[] = [
+  [{ x: 15, y: 2 }, { x: 15, y: 3 }],
+  [{ x: 10, y: 7 }, { x: 10, y: 8 }],
+];
+initialGrid = updateMatrixWithDoors(initialGrid, doors);
+
+// Build the graph using the created nodes
+const graph = {
+  nodes: [or, cent, des],
+  edges: [
+    { from: or.id, to: cent.id, weight: 5 },
+    { from: des.id, to: cent.id, weight: 5 },
+    { from: cent.id, to: des.id, weight: 5 },
+    { from: cent.id, to: or.id, weight: 5 },
+  ]
+};
+
+// Create the MapData instance
+const mapData: MapData = {
+  name: "Ground Floor",
+  initialMap: initialGrid,
+  graph: graph,
 };
 
 const ShowMap: React.FC = () => {
@@ -27,9 +88,9 @@ const ShowMap: React.FC = () => {
   const [destination, setDestination] = useState('');
   const [closestBeacon, setClosestBeacon] = useState<string | null>(null);
   const [originSuggestion, setOriginSuggestion] = useState<string>('');
-  // searchPressed indicates that the Search/Preview button was pressed and the overlay should switch
+  // Flag indicating that Search/Preview was pressed
   const [searchPressed, setSearchPressed] = useState(false);
-  // centerTrigger is incremented when the center button is pressed to force re-centering of the map
+  // Used to force re-centering of the map
   const [centerTrigger, setCenterTrigger] = useState(0);
   // Error messages for invalid inputs
   const [originError, setOriginError] = useState("");
@@ -40,13 +101,13 @@ const ShowMap: React.FC = () => {
   }, []);
 
   const handleSearch = () => {
-    // Validate origin
+    // Validate origin using the places mapping
     if (origin && !places[origin]) {
       setOriginError("The origin location does not exist.");
     } else {
       setOriginError("");
     }
-    // Validate destination
+    // Validate destination using the places mapping
     if (destination && !places[destination]) {
       setDestinationError("The destination location does not exist.");
     } else {
@@ -58,7 +119,7 @@ const ShowMap: React.FC = () => {
     }
   };
 
-  // Manejo personalizado de los cambios para borrar el error al ingresar un valor válido
+  // Handle origin input changes and clear error if valid
   const handleOriginChange = (text: string) => {
     setOrigin(text);
     if (places[text]) {
@@ -95,21 +156,24 @@ const ShowMap: React.FC = () => {
     }
   };
 
-  // Compute beaconNode regardless of destination
+  // Compute beaconNode using the places mapping
   const beaconNode = closestBeacon
     ? (Object.entries(places).find(([, node]) => node.id === closestBeacon)?.[1] || null)
     : null;
 
   // Determine preview mode: active if origin exists, beaconNode exists, and they differ
-  const isPreview = origin && places[origin] && beaconNode ? (places[origin].id !== beaconNode.id) : false;
+  const isPreview = origin && places[origin] && beaconNode
+    ? (places[origin].id !== beaconNode.id)
+    : false;
 
   // For the map, if preview is active, do not show the user's sensor arrow.
   const mapCurrentNode = isPreview ? null : beaconNode;
 
   return (
     <View style={styles.container}>
-      {/* Map rendered as background */}
+      {/* Render the map as background using the new MapData structure */}
       <Map 
+        mapData={mapData}
         origin={origin ? places[origin] : null} 
         destination={destination ? places[destination] : null}
         current_node={mapCurrentNode}
@@ -117,7 +181,7 @@ const ShowMap: React.FC = () => {
         centerTrigger={centerTrigger}
         isPreview={isPreview}
       />
-      {/* Overlay container: display SearchBar or Cancel button based on searchPressed */}
+      {/* Overlay: display SearchBar or Cancel button based on searchPressed */}
       <View style={styles.overlayContainer}>
         {searchPressed ? (
           <View style={styles.cancelButtonContainer}>
@@ -128,8 +192,8 @@ const ShowMap: React.FC = () => {
             origin={origin}
             destination={destination}
             recommendedOrigin={originSuggestion}
-            onOriginChange={handleOriginChange}  // Función personalizada para limpiar error
-            onDestinationChange={handleDestinationChange}  // Función personalizada para limpiar error
+            onOriginChange={handleOriginChange}
+            onDestinationChange={handleDestinationChange}
             onSearch={handleSearch}
             buttonTitle={isPreview ? "Preview" : "Search"}
             originError={originError}
@@ -137,7 +201,7 @@ const ShowMap: React.FC = () => {
           />
         )}
       </View>
-      {/* If search is active, show the center button in the bottom right */}
+      {/* Show center button if search is active */}
       {searchPressed && (
         <TouchableOpacity style={styles.centerButton} onPress={() => setCenterTrigger(prev => prev + 1)}>
           <Text style={styles.centerButtonText}>🎯</Text>
@@ -161,7 +225,6 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
     padding: 10,
     borderRadius: 5,
-    //elevation: 2,
   },
   centerButton: {
     position: 'absolute',
