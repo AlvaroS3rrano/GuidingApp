@@ -9,12 +9,18 @@
  * - Draws an arrow (polygon) at the destination.
  * - Displays the user's current sensor position as a triangle, rotated according to the device's heading.
  * - Enables smooth panning (dragging) of the map using touch gestures via Animated and PanResponder.
- * - When the Search button is pressed, animates the map so that the user's position triangle moves to the center
- *   of the screen.
+ * - When the Search button is pressed, animates the map so that the user's sensor (or origin sensor in preview mode)
+ *   moves to the center of the screen.
+ * - When Cancel is pressed, the map animates back to its original centered position.
+ * - A center button (triggered by centerTrigger) re-centers the map accordingly.
  *
- * Usage:
- * - Receives props for origin, destination, and current_node (user's sensor position).
- * - The 'searchPressed' flag triggers the pan animation to center the user's sensor.
+ * Props:
+ * - origin: Node selected as origin.
+ * - destination: Node selected as destination.
+ * - current_node: User's sensor position from the beacon.
+ * - searchPressed: Flag indicating that Search mode is active.
+ * - centerTrigger: A number that increments when the center button is pressed.
+ * - isPreview: Flag indicating that the origin does not match the current node (preview mode).
  */
 
 import React, { useEffect, useState, useRef } from 'react';
@@ -30,6 +36,8 @@ type MapaInteriorProps = {
   destination: Node | null;
   current_node: Node | null; // user's sensor position
   searchPressed: boolean;
+  centerTrigger: number;
+  isPreview: boolean;
 };
 
 let plano: number[][] = generateGeom([
@@ -64,6 +72,8 @@ const MapaInterior: React.FC<MapaInteriorProps> = ({
   destination,
   current_node,
   searchPressed,
+  centerTrigger,
+  isPreview,
 }) => {
   const [heading, setHeading] = useState(0);
   const map_adjustments = 70;
@@ -82,7 +92,7 @@ const MapaInterior: React.FC<MapaInteriorProps> = ({
     return () => Magnetometer.removeAllListeners();
   }, []);
 
-  // Clone the base map structure for further modifications
+  // Clone the base map structure for modifications
   let updatedPlano: number[][] = JSON.parse(JSON.stringify(plano));
   let path: Dot[] = [];
   let arrowAngle = 0;
@@ -104,8 +114,10 @@ const MapaInterior: React.FC<MapaInteriorProps> = ({
     }
   }
 
-  // Use current_node if available; otherwise, fallback to originSensor
-  const userSensor = current_node ? current_node.sensor : originSensor;
+  // Determine which sensor to use for centering:
+  // In preview mode (origin does not match current node), use origin's sensor.
+  // Otherwise, use current_node if available, or fallback to origin's sensor.
+  const sensorForCenter = isPreview ? originSensor : (current_node ? current_node.sensor : originSensor);
 
   if (current_node && origin && origin.area) {
     transformRegion(updatedPlano, origin.area, 2);
@@ -118,7 +130,7 @@ const MapaInterior: React.FC<MapaInteriorProps> = ({
   const initialTranslateX = width / 2 - mapWidth / 2;
   const initialTranslateY = height / 2 - mapHeight / 2;
 
-  // Set up Animated.ValueXY for panning
+  // Set up Animated.ValueXY for panning the map
   const pan = useRef(new Animated.ValueXY({ x: initialTranslateX, y: initialTranslateY })).current;
   // Save the current pan values in a ref for later reference
   const panValue = useRef({ x: initialTranslateX, y: initialTranslateY });
@@ -148,15 +160,14 @@ const MapaInterior: React.FC<MapaInteriorProps> = ({
     })
   ).current;
 
-  // When search is pressed, animate the map so that the user's sensor (triangle) moves to the center of the screen.
+  // Effect to animate the map when Search is pressed or when centerTrigger changes.
+  // This centers the map so that the sensor (user's sensor or origin sensor in preview) is at the center.
   useEffect(() => {
-    if (searchPressed && userSensor) {
-      // Calculate the sensor's pixel position on the map
-      const sensorXPixel = userSensor.x * cellSize;
-      const sensorYPixel = (updatedPlano.length - 1 - userSensor.y) * cellSize;
+    if (searchPressed && sensorForCenter) {
+      const sensorXPixel = sensorForCenter.x * cellSize;
+      const sensorYPixel = (updatedPlano.length - 1 - sensorForCenter.y) * cellSize;
       const sensorCenterX = sensorXPixel + cellSize / 2;
       const sensorCenterY = sensorYPixel + cellSize / 2;
-      // Compute new pan values so that the sensor center is at the center of the screen
       const newPanX = width / 2 - sensorCenterX;
       const newPanY = height / 2 - sensorCenterY;
       Animated.timing(pan, {
@@ -164,12 +175,19 @@ const MapaInterior: React.FC<MapaInteriorProps> = ({
         duration: 300,
         useNativeDriver: false,
       }).start();
+    } else if (!searchPressed) {
+      // Animate back to the original pan (centered map)
+      Animated.timing(pan, {
+        toValue: { x: initialTranslateX, y: initialTranslateY },
+        duration: 300,
+        useNativeDriver: false,
+      }).start();
     }
-  }, [searchPressed, userSensor, updatedPlano.length, pan]);
+  }, [searchPressed, sensorForCenter, updatedPlano.length, pan, initialTranslateX, initialTranslateY, centerTrigger]);
 
   return (
     <View style={styles.container}>
-      {/* Animated.View handles panning and moving of the map */}
+      {/* Animated.View handles panning and responds to touch gestures */}
       <Animated.View 
         style={{ transform: pan.getTranslateTransform() }} 
         {...panResponder.panHandlers}
@@ -220,11 +238,11 @@ const MapaInterior: React.FC<MapaInteriorProps> = ({
               })`}
             />
           )}
-          {/* Render the user's sensor as a triangle (Polygon) */}
-          {userSensor &&
+          {/* Conditionally render the user's sensor (triangle) only if not in preview mode */}
+          {!isPreview && current_node && (
             (() => {
-              const sensorXPixel = userSensor.x * cellSize;
-              const sensorYPixel = (updatedPlano.length - 1 - userSensor.y) * cellSize;
+              const sensorXPixel = current_node.sensor.x * cellSize;
+              const sensorYPixel = (updatedPlano.length - 1 - current_node.sensor.y) * cellSize;
               const sensorCenterX = sensorXPixel + cellSize / 2;
               const sensorCenterY = sensorYPixel + cellSize / 2;
               return (
@@ -240,7 +258,8 @@ const MapaInterior: React.FC<MapaInteriorProps> = ({
                   transform={`rotate(${heading}, ${sensorCenterX}, ${sensorCenterY})`}
                 />
               );
-            })()}
+            })()
+          )}
         </Svg>
       </Animated.View>
     </View>
@@ -250,7 +269,7 @@ const MapaInterior: React.FC<MapaInteriorProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff', // White background for areas without map content
+    backgroundColor: '#fff', // White background for uncovered areas
   },
   svg: {
     backgroundColor: '#fff',

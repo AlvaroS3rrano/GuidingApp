@@ -1,22 +1,5 @@
-/**
- * ShowMap.tsx
- *
- * This file defines the ShowMap component, which integrates the interactive map with the search interface.
- *
- * Key functionalities:
- * - Manages state for origin, destination, and a recommended origin (retrieved from AsyncStorage).
- * - Automatically retrieves a recommended origin (e.g., from the closest beacon) and suggests it without auto-filling.
- * - Renders the Map component as a full-screen background and overlays the SearchBar on top using absolute positioning.
- * - When the Search button is pressed (with valid origin and destination), triggers the map to animate so that the 
- *   user's position (triangle) is centered.
- *
- * Usage:
- * - Passes the necessary props to the Map and SearchBar components.
- * - Updates the user sensor position based on the search action, which is then used to center the map.
- */
-
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, View, Button, TouchableOpacity, Text } from 'react-native';
 import Map from './map';
 import SearchBar from './searchBar';
 import { Node } from '@/app/classes/node';
@@ -44,18 +27,49 @@ const ShowMap: React.FC = () => {
   const [destination, setDestination] = useState('');
   const [closestBeacon, setClosestBeacon] = useState<string | null>(null);
   const [originSuggestion, setOriginSuggestion] = useState<string>('');
-  // Flag to indicate that Search was pressed
+  // searchPressed indicates that the Search/Preview button was pressed and the overlay should switch
   const [searchPressed, setSearchPressed] = useState(false);
+  // centerTrigger is incremented when the center button is pressed to force re-centering of the map
+  const [centerTrigger, setCenterTrigger] = useState(0);
+  // Error messages for invalid inputs
+  const [originError, setOriginError] = useState("");
+  const [destinationError, setDestinationError] = useState("");
 
   useEffect(() => {
     getClosestBeacon();
   }, []);
 
   const handleSearch = () => {
+    // Validate origin
+    if (origin && !places[origin]) {
+      setOriginError("The origin location does not exist.");
+    } else {
+      setOriginError("");
+    }
+    // Validate destination
+    if (destination && !places[destination]) {
+      setDestinationError("The destination location does not exist.");
+    } else {
+      setDestinationError("");
+    }
+    // Proceed only if both origin and destination are valid
     if (places[origin] && places[destination]) {
       setSearchPressed(true);
-    } else {
-      console.warn("Location not found in the dictionary.");
+    }
+  };
+
+  // Manejo personalizado de los cambios para borrar el error al ingresar un valor válido
+  const handleOriginChange = (text: string) => {
+    setOrigin(text);
+    if (places[text]) {
+      setOriginError("");
+    }
+  };
+
+  const handleDestinationChange = (text: string) => {
+    setDestination(text);
+    if (places[text]) {
+      setDestinationError("");
     }
   };
 
@@ -81,33 +95,54 @@ const ShowMap: React.FC = () => {
     }
   };
 
-  // In this implementation, userSensor will be used by Map to draw the triangle in its position.
-  // After search, Map will animate the pan so that the triangle is centered.
-  const currentNode =
-    origin && destination && closestBeacon
-      ? Object.entries(places).find(([, node]) => node.id === closestBeacon)?.[1] || null
-      : null;
+  // Compute beaconNode regardless of destination
+  const beaconNode = closestBeacon
+    ? (Object.entries(places).find(([, node]) => node.id === closestBeacon)?.[1] || null)
+    : null;
+
+  // Determine preview mode: active if origin exists, beaconNode exists, and they differ
+  const isPreview = origin && places[origin] && beaconNode ? (places[origin].id !== beaconNode.id) : false;
+
+  // For the map, if preview is active, do not show the user's sensor arrow.
+  const mapCurrentNode = isPreview ? null : beaconNode;
 
   return (
     <View style={styles.container}>
+      {/* Map rendered as background */}
       <Map 
         origin={origin ? places[origin] : null} 
         destination={destination ? places[destination] : null}
-        current_node={currentNode}
+        current_node={mapCurrentNode}
         searchPressed={searchPressed}
+        centerTrigger={centerTrigger}
+        isPreview={isPreview}
       />
-      <View style={styles.searchBarContainer}>
-        <SearchBar
-          origin={origin}
-          destination={destination}
-          recommendedOrigin={originSuggestion}
-          onOriginChange={setOrigin}
-          onDestinationChange={setDestination}
-          onSearch={() => {
-            handleSearch();
-          }}
-        />
+      {/* Overlay container: display SearchBar or Cancel button based on searchPressed */}
+      <View style={styles.overlayContainer}>
+        {searchPressed ? (
+          <View style={styles.cancelButtonContainer}>
+            <Button title="Cancel" onPress={() => setSearchPressed(false)} />
+          </View>
+        ) : (
+          <SearchBar
+            origin={origin}
+            destination={destination}
+            recommendedOrigin={originSuggestion}
+            onOriginChange={handleOriginChange}  // Función personalizada para limpiar error
+            onDestinationChange={handleDestinationChange}  // Función personalizada para limpiar error
+            onSearch={handleSearch}
+            buttonTitle={isPreview ? "Preview" : "Search"}
+            originError={originError}
+            destinationError={destinationError}
+          />
+        )}
       </View>
+      {/* If search is active, show the center button in the bottom right */}
+      {searchPressed && (
+        <TouchableOpacity style={styles.centerButton} onPress={() => setCenterTrigger(prev => prev + 1)}>
+          <Text style={styles.centerButtonText}>🎯</Text>
+        </TouchableOpacity>
+      )}
     </View>
   );
 };
@@ -116,11 +151,32 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  searchBarContainer: {
+  overlayContainer: {
     position: 'absolute',
     top: 40,
     left: 10,
     right: 10,
+  },
+  cancelButtonContainer: {
+    backgroundColor: 'transparent',
+    padding: 10,
+    borderRadius: 5,
+    //elevation: 2,
+  },
+  centerButton: {
+    position: 'absolute',
+    bottom: 20,
+    right: 20,
+    backgroundColor: 'white',
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 3,
+  },
+  centerButtonText: {
+    fontSize: 24,
   },
 });
 
