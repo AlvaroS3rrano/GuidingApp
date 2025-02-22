@@ -25,10 +25,10 @@
 
 import React, { useEffect, useState, useRef } from 'react';
 import { View, StyleSheet, Dimensions, Animated, PanResponder } from 'react-native';
-import Svg, { Rect, Polygon, Polyline } from 'react-native-svg';
+import Svg, { Rect, Polygon, Polyline, Circle } from 'react-native-svg';
 import { Magnetometer } from 'expo-sensors';
 import { Dot, transformRegion, updatePoint } from './classes/geometry';
-import { findPathWithDistance } from '@/resources/sortestpath';
+import { findPathWithDistance, PathResult, Segment } from '@/resources/pathFinding';
 import { Node } from '@/app/classes/node';
 import { MapData } from '@/app/classes/mapData';
 
@@ -72,13 +72,18 @@ const MapaInterior: React.FC<MapaInteriorProps> = ({
 
   // Clone the initial map grid from the mapData prop
   let updatedPlano: number[][] = JSON.parse(JSON.stringify(mapData.initialMap));
+  let pathResult: PathResult | null = null;
   let path: Dot[] = [];
   let arrowAngle = 0;
 
   // If both origin and destination are defined, compute the path using the graph.
   if (origin && destination) {
     // Utiliza la nueva función que recibe el grid, el grafo y los nodos
-    path = findPathWithDistance(updatedPlano, mapData.graph, origin, destination);
+    pathResult = findPathWithDistance(updatedPlano, mapData.graph, origin, destination);
+    if (pathResult) {
+      path = pathResult.fullPath
+    }
+      
     
     // Para efectos de visualización, marcar el origen y destino en el grid
     updatePoint(updatedPlano, origin.sensor, 3);
@@ -100,11 +105,12 @@ const MapaInterior: React.FC<MapaInteriorProps> = ({
     : current_node
       ? current_node.sensor
       : origin?.sensor || null;
-
+  /*
   // Transform the region if current_node and origin are available
   if (current_node && origin && origin.area) {
     transformRegion(updatedPlano, origin.area, 2);
   }
+  */
 
   // Calculate cell size based on the grid's width
   const cellSize = width / updatedPlano[0].length;
@@ -227,6 +233,23 @@ const MapaInterior: React.FC<MapaInteriorProps> = ({
               })`}
             />
           )}
+          {/* Render the sensor nodes from pathResult on the path line */}
+          {pathResult && pathResult.nodes.map((p, index) => {
+            const cx = p.x * cellSize + cellSize / 2;
+            const cy = (updatedPlano.length - 1 - p.y) * cellSize + cellSize / 2;
+            const radius = cellSize / 3; // Adjust the circle radius as needed
+            return (
+              <Circle
+                key={`node-${index}`}
+                cx={cx}
+                cy={cy}
+                r={radius}
+                fill="royalblue"  // Change the fill color as desired
+                stroke={index === 0 || index === pathResult.nodes.length - 1 ? "black" : "none"}
+                strokeWidth={index === 0 || index === pathResult.nodes.length - 1 ? 2 : 0}
+              />
+            );
+          })}
           {/* Render the user's sensor as a triangle if not in preview mode */}
           {!isPreview && current_node && (
             (() => {

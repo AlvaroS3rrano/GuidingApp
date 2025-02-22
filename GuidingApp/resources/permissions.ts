@@ -12,18 +12,14 @@ const requestPermissions = async () => {
       permissions.push(PermissionsAndroid.PERMISSIONS.BLUETOOTH_ADMIN);
     }
 
-    console.log("1")
-
     // Agregar permisos adicionales para Android 12 (API 31) o superior
     if (Platform.OS === 'android' && Platform.Version >= 31) {
-      console.log("2")
       permissions.push(
         PermissionsAndroid.PERMISSIONS.BLUETOOTH_SCAN,
         PermissionsAndroid.PERMISSIONS.BLUETOOTH_CONNECT
       );
     }
 
-    console.log("3")
     console.log(permissions)
     // Solicitar permisos
     const granted = await PermissionsAndroid.requestMultiple(permissions);
