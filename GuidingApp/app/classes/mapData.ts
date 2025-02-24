@@ -20,6 +20,11 @@ export interface MapData {
   graph: Graph;            // Graph containing nodes and their connections
 }
 
+export interface Path {
+  origin: Node;
+  destination: Node;
+}
+
 
 if (require.main === module) {
     // Example of instances using your Node class

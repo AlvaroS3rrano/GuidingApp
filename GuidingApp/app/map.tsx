@@ -30,7 +30,7 @@ import { Magnetometer } from 'expo-sensors';
 import { Dot, transformRegion, updatePoint } from './classes/geometry';
 import { findPathWithDistance, PathResult, Segment } from '@/resources/pathFinding';
 import { Node } from '@/app/classes/node';
-import { MapData } from '@/app/classes/mapData';
+import { MapData, Path } from '@/app/classes/mapData';
 
 type MapaInteriorProps = {
   mapData: MapData;         // Map configuration data
@@ -40,6 +40,7 @@ type MapaInteriorProps = {
   searchPressed: boolean;   // Flag indicating search/preview mode
   centerTrigger: number;    // Incremented to force re-centering
   isPreview: boolean;       // Flag indicating preview mode
+  newTrip: Path | null;
 };
 
 const { width, height } = Dimensions.get('window');
@@ -77,25 +78,24 @@ const MapaInterior: React.FC<MapaInteriorProps> = ({
   let arrowAngle = 0;
 
   // If both origin and destination are defined, compute the path using the graph.
-  if (origin && destination) {
-    // Utiliza la nueva función que recibe el grid, el grafo y los nodos
-    pathResult = findPathWithDistance(updatedPlano, mapData.graph, origin, destination);
-    if (pathResult) {
-      path = pathResult.fullPath
-    }
-      
-    
-    // Para efectos de visualización, marcar el origen y destino en el grid
-    updatePoint(updatedPlano, origin.sensor, 3);
-    updatePoint(updatedPlano, destination.sensor, 3);
-
-    if (path.length > 1) {
-      const lastPoint = path[path.length - 1];
-      const secondLastPoint = path[path.length - 2];
-      const dx = lastPoint.x - secondLastPoint.x;
-      const dy = lastPoint.y - secondLastPoint.y;
-      arrowAngle = Math.atan2(dy, dx) * (180 / Math.PI);
-      arrowAngle = -arrowAngle + 90;
+  if (destination) {
+    // Si se ha pulsado Search, no estamos en modo Preview y existe current_node,
+    // se usa current_node como punto de partida; en caso contrario, se usa origin.
+    const startNode = (searchPressed && !isPreview && current_node) ? current_node : origin;
+    if (startNode) {
+      pathResult = findPathWithDistance(updatedPlano, mapData.graph, startNode, destination);
+      if (pathResult) {
+        path = pathResult.fullPath;
+      }
+      // (Opcional) Si quieres recalcular la dirección de la flecha según el nuevo path...
+      if (path.length > 1) {
+        const lastPoint = path[path.length - 1];
+        const secondLastPoint = path[path.length - 2];
+        const dx = lastPoint.x - secondLastPoint.x;
+        const dy = lastPoint.y - secondLastPoint.y;
+        arrowAngle = Math.atan2(dy, dx) * (180 / Math.PI);
+        arrowAngle = -arrowAngle + 90;
+      }
     }
   }
 
@@ -184,8 +184,8 @@ const MapaInterior: React.FC<MapaInteriorProps> = ({
   return (
     <View style={styles.container}>
       {/* Animated.View handles panning and touch gestures */}
-      <Animated.View 
-        style={{ transform: pan.getTranslateTransform() }} 
+      <Animated.View
+        style={{ transform: pan.getTranslateTransform() }}
         {...panResponder.panHandlers}
       >
         <Svg width={mapWidth} height={mapHeight} style={styles.svg}>
@@ -228,28 +228,52 @@ const MapaInterior: React.FC<MapaInteriorProps> = ({
               fill="orange"
               stroke="black"
               strokeWidth="1"
-              transform={`rotate(${arrowAngle}, ${path[path.length - 1].x * cellSize + cellSize / 2}, ${
-                (updatedPlano.length - 1 - path[path.length - 1].y) * cellSize + cellSize / 2
-              })`}
+              transform={`rotate(${arrowAngle}, ${path[path.length - 1].x * cellSize + cellSize / 2}, ${(updatedPlano.length - 1 - path[path.length - 1].y) * cellSize + cellSize / 2
+                })`}
             />
           )}
-          {/* Render the sensor nodes from pathResult on the path line */}
-          {pathResult && pathResult.nodes.map((p, index) => {
-            const cx = p.x * cellSize + cellSize / 2;
-            const cy = (updatedPlano.length - 1 - p.y) * cellSize + cellSize / 2;
-            const radius = cellSize / 3; // Adjust the circle radius as needed
-            return (
-              <Circle
-                key={`node-${index}`}
-                cx={cx}
-                cy={cy}
-                r={radius}
-                fill="royalblue"  // Change the fill color as desired
-                stroke={index === 0 || index === pathResult.nodes.length - 1 ? "black" : "none"}
-                strokeWidth={index === 0 || index === pathResult.nodes.length - 1 ? 2 : 0}
-              />
-            );
-          })}
+          {/* Render the origin point if it exists */}
+          {origin && (
+            <Circle
+              cx={origin.sensor.x * cellSize + cellSize / 2}
+              cy={(updatedPlano.length - 1 - origin.sensor.y) * cellSize + cellSize / 2}
+              r={cellSize / 3}
+              fill="red" 
+              stroke="black"
+              strokeWidth={2}
+            />
+          )}
+
+          {/* Render the destination point if it exists */}
+          {destination && (
+            <Circle
+              cx={destination.sensor.x * cellSize + cellSize / 2}
+              cy={(updatedPlano.length - 1 - destination.sensor.y) * cellSize + cellSize / 2}
+              r={cellSize / 3}
+              fill="lightgreen"
+              stroke="black"
+              strokeWidth={2}
+            />
+          )}
+
+          {/* If a path exists, render the intermediate nodes */}
+          {pathResult && pathResult.nodes.length > 2 && (
+            pathResult.nodes.slice(1, -1).map((p, index) => {
+              const cx = p.x * cellSize + cellSize / 2;
+              const cy = (updatedPlano.length - 1 - p.y) * cellSize + cellSize / 2;
+              const radius = cellSize / 3;
+              return (
+                <Circle
+                  key={`node-${index}`}
+                  cx={cx}
+                  cy={cy}
+                  r={radius}
+                  fill="royalblue"  // Color for intermediate nodes
+                />
+              );
+            })
+          )}
+
           {/* Render the user's sensor as a triangle if not in preview mode */}
           {!isPreview && current_node && (
             (() => {
