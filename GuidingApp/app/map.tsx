@@ -13,34 +13,39 @@
  *   moves to the center of the screen.
  * - When Cancel is pressed, the map animates back to its original centered position.
  * - A center button (triggered by centerTrigger) re-centers the map accordingly.
+ * - NEW: When the current sensor position reaches the destination (and in search mode, not preview),
+ *   a prettier alert is shown with "Cancel" and "OK". If "OK" is pressed, it calls the cancel callback.
  *
  * Props:
  * - origin: Node selected as origin.
  * - destination: Node selected as destination.
- * - current_node: User's sensor position from the beacon.
+ * - current_node: User's current sensor position from the beacon.
  * - searchPressed: Flag indicating that Search mode is active.
  * - centerTrigger: A number that increments when the center button is pressed.
- * - isPreview: Flag indicating that the origin does not match the current node (preview mode).
+ * - isPreview: Flag indicating preview mode.
+ * - newTrip: The new trip path (if any).
+ * - onCancelSearch: Callback to cancel the search (triggered when OK is pressed in the alert).
  */
 
 import React, { useEffect, useState, useRef } from 'react';
-import { View, StyleSheet, Dimensions, Animated, PanResponder } from 'react-native';
+import { View, StyleSheet, Dimensions, Animated, PanResponder, Alert } from 'react-native';
 import Svg, { Rect, Polygon, Polyline, Circle } from 'react-native-svg';
 import { Magnetometer } from 'expo-sensors';
-import { Dot, transformRegion, updatePoint } from './classes/geometry';
-import { findPathWithDistance, PathResult, Segment } from '@/resources/pathFinding';
+import { Dot } from './classes/geometry';
+import { findPathWithDistance, PathResult } from '@/resources/pathFinding';
 import { Node } from '@/app/classes/node';
 import { MapData, Path } from '@/app/classes/mapData';
 
 type MapaInteriorProps = {
-  mapData: MapData;         // Map configuration data
-  origin: Node | null;      // Selected origin node
-  destination: Node | null; // Selected destination node
-  current_node: Node | null; // User's current sensor position
-  searchPressed: boolean;   // Flag indicating search/preview mode
-  centerTrigger: number;    // Incremented to force re-centering
-  isPreview: boolean;       // Flag indicating preview mode
+  mapData: MapData;
+  origin: Node | null;
+  destination: Node | null;
+  current_node: Node | null;
+  searchPressed: boolean;
+  centerTrigger: number;
+  isPreview: boolean;
   newTrip: Path | null;
+  onCancelSearch?: () => void;
 };
 
 const { width, height } = Dimensions.get('window');
@@ -53,6 +58,7 @@ const MapaInterior: React.FC<MapaInteriorProps> = ({
   searchPressed,
   centerTrigger,
   isPreview,
+  onCancelSearch,
 }) => {
   const [heading, setHeading] = useState(0);
   const map_adjustments = 70;
@@ -71,6 +77,34 @@ const MapaInterior: React.FC<MapaInteriorProps> = ({
     return () => Magnetometer.removeAllListeners();
   }, []);
 
+  // NEW: Check if destination is reached and display a prettier alert with two options
+  useEffect(() => {
+    if (searchPressed && !isPreview && current_node && destination) {
+      if (
+        current_node.sensor.x === destination.sensor.x &&
+        current_node.sensor.y === destination.sensor.y
+      ) {
+        Alert.alert(
+          "Destination Reached",
+          "You have arrived at your destination!",
+          [
+            {
+              text: "Cancel",
+              style: "cancel",
+            },
+            {
+              text: "OK",
+              onPress: () => {
+                if (onCancelSearch) onCancelSearch();
+              },
+            },
+          ],
+          { cancelable: true }
+        );
+      }
+    }
+  }, [current_node, destination, searchPressed, isPreview, onCancelSearch]);
+
   // Clone the initial map grid from the mapData prop
   let updatedPlano: number[][] = JSON.parse(JSON.stringify(mapData.initialMap));
   let pathResult: PathResult | null = null;
@@ -79,15 +113,15 @@ const MapaInterior: React.FC<MapaInteriorProps> = ({
 
   // If both origin and destination are defined, compute the path using the graph.
   if (destination) {
-    // Si se ha pulsado Search, no estamos en modo Preview y existe current_node,
-    // se usa current_node como punto de partida; en caso contrario, se usa origin.
+    // If Search is pressed, not in preview mode and current_node exists,
+    // use current_node as starting point; otherwise, use origin.
     const startNode = (searchPressed && !isPreview && current_node) ? current_node : origin;
     if (startNode) {
       pathResult = findPathWithDistance(updatedPlano, mapData.graph, startNode, destination);
       if (pathResult) {
         path = pathResult.fullPath;
       }
-      // (Opcional) Si quieres recalcular la dirección de la flecha según el nuevo path...
+      // Optionally recalculate the arrow direction based on the new path...
       if (path.length > 1) {
         const lastPoint = path[path.length - 1];
         const secondLastPoint = path[path.length - 2];
@@ -105,12 +139,6 @@ const MapaInterior: React.FC<MapaInteriorProps> = ({
     : current_node
       ? current_node.sensor
       : origin?.sensor || null;
-  /*
-  // Transform the region if current_node and origin are available
-  if (current_node && origin && origin.area) {
-    transformRegion(updatedPlano, origin.area, 2);
-  }
-  */
 
   // Calculate cell size based on the grid's width
   const cellSize = width / updatedPlano[0].length;
@@ -220,7 +248,7 @@ const MapaInterior: React.FC<MapaInteriorProps> = ({
           {/* Render the destination arrow */}
           {path.length > 1 && (
             <Polygon
-              points={`
+              points={` 
                 ${path[path.length - 1].x * cellSize + cellSize / 2},${(updatedPlano.length - 1 - path[path.length - 1].y) * cellSize}
                 ${path[path.length - 1].x * cellSize},${(updatedPlano.length - 1 - path[path.length - 1].y) * cellSize + cellSize}
                 ${path[path.length - 1].x * cellSize + cellSize},${(updatedPlano.length - 1 - path[path.length - 1].y) * cellSize + cellSize}
@@ -228,8 +256,7 @@ const MapaInterior: React.FC<MapaInteriorProps> = ({
               fill="orange"
               stroke="black"
               strokeWidth="1"
-              transform={`rotate(${arrowAngle}, ${path[path.length - 1].x * cellSize + cellSize / 2}, ${(updatedPlano.length - 1 - path[path.length - 1].y) * cellSize + cellSize / 2
-                })`}
+              transform={`rotate(${arrowAngle}, ${path[path.length - 1].x * cellSize + cellSize / 2}, ${(updatedPlano.length - 1 - path[path.length - 1].y) * cellSize + cellSize / 2})`}
             />
           )}
           {/* Render the origin point if it exists */}
@@ -243,7 +270,6 @@ const MapaInterior: React.FC<MapaInteriorProps> = ({
               strokeWidth={2}
             />
           )}
-
           {/* Render the destination point if it exists */}
           {destination && (
             <Circle
@@ -255,7 +281,6 @@ const MapaInterior: React.FC<MapaInteriorProps> = ({
               strokeWidth={2}
             />
           )}
-
           {/* If a path exists, render the intermediate nodes */}
           {pathResult && pathResult.nodes.length > 2 && (
             pathResult.nodes.slice(1, -1).map((p, index) => {
@@ -268,34 +293,31 @@ const MapaInterior: React.FC<MapaInteriorProps> = ({
                   cx={cx}
                   cy={cy}
                   r={radius}
-                  fill="royalblue"  // Color for intermediate nodes
+                  fill="royalblue"
                 />
               );
             })
           )}
-
           {/* Render the user's sensor as a triangle if not in preview mode */}
-          {!isPreview && current_node && (
-            (() => {
-              const sensorXPixel = current_node.sensor.x * cellSize;
-              const sensorYPixel = (updatedPlano.length - 1 - current_node.sensor.y) * cellSize;
-              const sensorCenterX = sensorXPixel + cellSize / 2;
-              const sensorCenterY = sensorYPixel + cellSize / 2;
-              return (
-                <Polygon
-                  points={`
-                    ${sensorCenterX},${sensorYPixel}
-                    ${sensorXPixel},${sensorYPixel + cellSize}
-                    ${sensorXPixel + cellSize},${sensorYPixel + cellSize}
-                  `}
-                  fill="#00FF00"
-                  stroke="black"
-                  strokeWidth="2"
-                  transform={`rotate(${heading}, ${sensorCenterX}, ${sensorCenterY})`}
-                />
-              );
-            })()
-          )}
+          {!isPreview && current_node && (() => {
+            const sensorXPixel = current_node.sensor.x * cellSize;
+            const sensorYPixel = (updatedPlano.length - 1 - current_node.sensor.y) * cellSize;
+            const sensorCenterX = sensorXPixel + cellSize / 2;
+            const sensorCenterY = sensorYPixel + cellSize / 2;
+            return (
+              <Polygon
+                points={`
+                  ${sensorCenterX},${sensorYPixel}
+                  ${sensorXPixel},${sensorYPixel + cellSize}
+                  ${sensorXPixel + cellSize},${sensorYPixel + cellSize}
+                `}
+                fill="#00FF00"
+                stroke="black"
+                strokeWidth="2"
+                transform={`rotate(${heading}, ${sensorCenterX}, ${sensorCenterY})`}
+              />
+            );
+          })()}
         </Svg>
       </Animated.View>
     </View>
@@ -305,7 +327,7 @@ const MapaInterior: React.FC<MapaInteriorProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff', // White background
+    backgroundColor: '#fff',
   },
   svg: {
     backgroundColor: '#fff',

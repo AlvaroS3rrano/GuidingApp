@@ -5,27 +5,25 @@
  *
  * Key functionalities:
  * - Manages state for origin, destination, and a recommended origin (retrieved from AsyncStorage).
- * - Automatically retrieves a recommended origin (e.g., from the closest beacon) and suggests it without auto-filling.
- * - Uses a state variable (currentBeacon) to keep the last valid beacon (current node) when a new one is not found.
- * - Polls AsyncStorage periodically to update the current beacon automatically.
+ * - Retrieves a recommended origin (e.g., from the closest beacon) and suggests it without auto-filling.
+ * - Uses a state variable (currentBeacon) to keep the last valid beacon (current node) when a new one is not stable.
+ * - Polls AsyncStorage periodically to update the current beacon automatically, but only after receiving
+ *   the same beacon for 10 seconds continuously.
  * - Renders the Map component as a full-screen background and overlays the SearchBar on top using absolute positioning.
  * - When the Search button is pressed (with valid origin and destination), triggers the map to animate so that the 
  *   user's position (triangle) is centered.
- *
- * Usage:
- * - Passes the necessary props to the Map and SearchBar components.
- * - Updates the user sensor position based on the search action, which is then used to center the map.
+ * - Passes a cancel callback to the Map component so that when the user confirms reaching the destination,
+ *   the search is canceled.
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { StyleSheet, View, Button, TouchableOpacity, Text } from 'react-native';
 import Map from './map';
 import SearchBar from './searchBar';
 import { Node } from '@/app/classes/node';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-// Import geometry functions to create the grid
 import { generateGeom, updateMatrixWithDoors, Door } from './classes/geometry';
-import { MapData, Path } from '@/app/classes/mapData'; // Import the MapData type
+import { MapData, Path } from '@/app/classes/mapData';
 
 // Create Node instances using your existing Node class
 const or = new Node(
@@ -38,11 +36,10 @@ const des = new Node(
   [{ x: 0, y: 5 }, { x: 10, y: 5 }, { x: 10, y: 10 }, { x: 0, y: 10 }],
   { x: 3, y: 8 }
 );
-
 const cent = new Node(
   "530801241127a8aad378170fdbabbd17",
   [{ x: 0, y: 0 }, { x: 10, y: 0 }, { x: 10, y: 5 }, { x: 0, y: 5 }],
-  { x: 5, y: 3 } // Located at the door
+  { x: 5, y: 3 }
 );
 
 // Create a mapping for node selection; keys are labels for user convenience
@@ -90,46 +87,41 @@ const ShowMap: React.FC = () => {
   const [destination, setDestination] = useState('');
   const [closestBeacon, setClosestBeacon] = useState<string | null>(null);
   const [originSuggestion, setOriginSuggestion] = useState<string>('');
-  // Flag indicating that Search/Preview was pressed
   const [searchPressed, setSearchPressed] = useState(false);
   const [newTrip, setNewTrip] = useState<Path | null>(null);
-  // Used to force re-centering of the map
   const [centerTrigger, setCenterTrigger] = useState(0);
-  // Error messages for invalid inputs
   const [originError, setOriginError] = useState("");
   const [destinationError, setDestinationError] = useState("");
-
-  // State to keep the last valid beacon (current node)
   const [currentBeacon, setCurrentBeacon] = useState<Node | null>(null);
+
+  // This ref is used to debounce beacon updates.
+  // It holds the candidate beacon and its associated timer.
+  const candidateRef = useRef<{ node: Node; timer: NodeJS.Timeout | null } | null>(null);
 
   useEffect(() => {
     getClosestBeacon();
   }, []);
 
   const handleSearch = () => {
-    // Validate origin using the places mapping
     if (origin && !places[origin]) {
       setOriginError("The origin location does not exist.");
     } else {
       setOriginError("");
     }
-    // Validate destination using the places mapping
     if (destination && !places[destination]) {
       setDestinationError("The destination location does not exist.");
     } else {
       setDestinationError("");
     }
-    // Proceed only if both origin and destination are valid
     if (places[origin] && places[destination]) {
       setSearchPressed(true);
-      // In preview mode, set a new trip if needed
+      // In preview mode, set a new trip if needed (if applicable)
       if (isPreview) {
         setNewTrip({ origin: places[origin], destination: places[destination] });
       }
     }
   };
 
-  // Handle origin input changes and clear error if valid
   const handleOriginChange = (text: string) => {
     setOrigin(text);
     if (places[text]) {
@@ -166,21 +158,40 @@ const ShowMap: React.FC = () => {
     }
   };
 
-  // Compute beaconNode using the places mapping
+  // Retrieve the beacon node based on the stored identifier.
   const beaconNode = closestBeacon
     ? (Object.entries(places).find(([, node]) => node.id === closestBeacon)?.[1] || null)
     : null;
 
-  // Update the currentBeacon state only when a valid beaconNode is found.
-  // This ensures that if beaconNode becomes null, the last valid beacon is preserved.
+  // Debounce logic: update the current beacon only if the same beacon is received for 10 seconds.
   useEffect(() => {
     if (beaconNode) {
-      setCurrentBeacon(beaconNode);
+      // If there's no candidate or the candidate is different from the new beacon,
+      // clear any existing timer and set a new candidate with a new timer.
+      if (!candidateRef.current || candidateRef.current.node.id !== beaconNode.id) {
+        if (candidateRef.current?.timer) {
+          clearTimeout(candidateRef.current.timer);
+        }
+        candidateRef.current = {
+          node: beaconNode,
+          timer: setTimeout(() => {
+            setCurrentBeacon(beaconNode);
+            candidateRef.current = null;
+          }, 1000),
+        };
+      }
+      // If candidateRef.current exists and its node is the same as beaconNode,
+      // we simply wait for the timer to finish.
+    } else {
+      // If no beacon is detected, clear the candidate.
+      if (candidateRef.current?.timer) {
+        clearTimeout(candidateRef.current.timer);
+      }
+      candidateRef.current = null;
     }
   }, [beaconNode]);
 
   // Poll for updated closest beacon from AsyncStorage every second.
-  // Since AsyncStorage does not have native listeners, we periodically check for updates.
   useEffect(() => {
     const intervalId = setInterval(async () => {
       try {
@@ -191,31 +202,43 @@ const ShowMap: React.FC = () => {
           );
           if (matchingEntry) {
             const node = matchingEntry[1];
-            // Update currentBeacon if it has changed
-            if (!currentBeacon || currentBeacon.id !== node.id) {
-              setCurrentBeacon(node);
+            // When a new beacon is detected, the useEffect above handles debouncing.
+            if (!candidateRef.current || candidateRef.current.node.id !== node.id) {
+              candidateRef.current = {
+                node,
+                timer: setTimeout(() => {
+                  setCurrentBeacon(node);
+                  candidateRef.current = null;
+                }, 10000),
+              };
             }
           }
+        } else {
+          if (candidateRef.current?.timer) {
+            clearTimeout(candidateRef.current.timer);
+          }
+          candidateRef.current = null;
         }
       } catch (error) {
         console.error("Error polling for closest beacon:", error);
       }
     }, 1000);
     return () => clearInterval(intervalId);
-  }, [currentBeacon]);
+  }, []);
 
-  // Determine preview mode: active if origin exists, beaconNode exists, and they differ
   const isPreview = origin && places[origin] && beaconNode
     ? (places[origin].id !== beaconNode.id)
     : false;
 
-  // For the map, if preview is active, do not show the user's sensor arrow.
-  // Use the last valid beacon (currentBeacon) if not in preview mode.
   const mapCurrentNode = isPreview ? null : currentBeacon;
+
+  // Callback to cancel the search, used when the user confirms the destination reached
+  const cancelSearch = () => {
+    setSearchPressed(false);
+  };
 
   return (
     <View style={styles.container}>
-      {/* Render the map as background using the new MapData structure */}
       <Map 
         mapData={mapData}
         origin={origin ? places[origin] : null} 
@@ -225,12 +248,12 @@ const ShowMap: React.FC = () => {
         centerTrigger={centerTrigger}
         isPreview={isPreview}
         newTrip={newTrip}
+        onCancelSearch={cancelSearch}
       />
-      {/* Overlay: display SearchBar or Cancel button based on searchPressed */}
       <View style={styles.overlayContainer}>
         {searchPressed ? (
           <View style={styles.cancelButtonContainer}>
-            <Button title="Cancel" onPress={() => setSearchPressed(false)} />
+            <Button title="Cancel" onPress={cancelSearch} />
           </View>
         ) : (
           <SearchBar
@@ -246,7 +269,6 @@ const ShowMap: React.FC = () => {
           />
         )}
       </View>
-      {/* Show center button if search is active */}
       {searchPressed && (
         <TouchableOpacity style={styles.centerButton} onPress={() => setCenterTrigger(prev => prev + 1)}>
           <Text style={styles.centerButtonText}>🎯</Text>
