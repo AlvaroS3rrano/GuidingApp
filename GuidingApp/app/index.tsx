@@ -1,28 +1,30 @@
 // index.tsx
 import React, { useEffect, useState } from "react";
 import { View, Text, FlatList, StyleSheet } from "react-native";
-import { beaconEventEmitter, ScannedDevice } from "@/app/services/beaconScannerService";
 import { Link } from "expo-router";
+import { beaconEventEmitter, ScannedDevice } from "@/app/services/beaconScannerService";
 
+/**
+ * BeaconListScreen - Displays the list of detected beacons.
+ *
+ * This screen subscribes to beacon update events from the BeaconScannerService via an EventEmitter.
+ * All error handling has been moved to the global ErrorBanner component in _layout.tsx.
+ */
 export default function BeaconListScreen() {
   const [devices, setDevices] = useState<ScannedDevice[]>([]);
 
   useEffect(() => {
-    // Handler to update the devices state when the beacon list changes
     const updateHandler = (updatedDevices: ScannedDevice[]) => {
       setDevices(updatedDevices);
     };
 
-    // Subscribe to beacon updates
     beaconEventEmitter.on("update", updateHandler);
 
-    // Clean up subscription on component unmount
     return () => {
       beaconEventEmitter.off("update", updateHandler);
     };
   }, []);
 
-  // Render function for each beacon item
   const renderItem = ({ item }: { item: ScannedDevice }) => (
     <View style={styles.deviceContainer}>
       <Text style={styles.deviceText}>Name: {item.name || "Unknown Device"}</Text>
@@ -40,12 +42,10 @@ export default function BeaconListScreen() {
         keyExtractor={(item) => item.id}
         renderItem={renderItem}
       />
-
       <Link href={"/showMap"} style={styles.button}>
           Map
       </Link>
     </View>
-    
   );
 }
 
@@ -76,3 +76,4 @@ const styles = StyleSheet.create({
     color: "black",
   },
 });
+

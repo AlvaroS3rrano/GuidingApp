@@ -6,7 +6,16 @@ import { calculateDistance } from "@/resources/distance";
 import requestPermissions from "@/resources/permissions";
 import { EventEmitter } from "events";
 
-// Event emitter to broadcast beacon list updates
+/**
+ * BeaconScannerService - Handles BLE beacon scanning.
+ *
+ * This service utilizes react-native-ble-plx to perform continuous beacon scanning in the background.
+ * It maintains a global list of detected beacons, updating each device's information based on scan data.
+ * An EventEmitter broadcasts real-time updates so that other components (like the Beacon List Screen)
+ * can subscribe and render the latest beacon information.
+ * The service also determines the closest beacon based on estimated distance and stores its identifier in AsyncStorage.
+ * In case of a scanning error, the service will attempt to restart scanning every 5 seconds.
+ */
 export const beaconEventEmitter = new EventEmitter();
 
 // Interface for scanned devices
@@ -28,6 +37,7 @@ export const startBeaconScanning = async () => {
   const permissionsGranted = await requestPermissions();
   if (!permissionsGranted) {
     console.warn("Bluetooth permissions not granted.");
+    beaconEventEmitter.emit("error", "Bluetooth permissions not granted.");
     return;
   }
 
@@ -42,6 +52,12 @@ export const startBeaconScanning = async () => {
     async (error, scannedDevice) => {
       if (error) {
         console.warn("Scan error:", error);
+        beaconEventEmitter.emit("error", error.message || "Scan error occurred.");
+        // Stop the current scan and retry after 5 seconds
+        bleManager.stopDeviceScan();
+        setTimeout(() => {
+          startBeaconScanning();
+        }, 5000);
         return;
       }
 

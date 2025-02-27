@@ -1,23 +1,33 @@
 // _layout.tsx
 import { useEffect } from "react";
+import { View, StyleSheet } from "react-native";
 import { Stack } from "expo-router";
-import { startBeaconScanning, stopBeaconScanning } from "@/app/services/beaconScannerService";
+import { startBeaconScanning, stopBeaconScanning } from "../app/services/beaconScannerService";
+import ErrorBanner from "@/app/components/errorBanner"; 
 
 export default function RootLayout() {
   useEffect(() => {
-    // Start beacon scanning when the layout mounts
+    // Start beacon scanning when the layout mounts.
     startBeaconScanning();
 
-    // Optionally, stop scanning when the layout unmounts
     return () => {
       stopBeaconScanning();
     };
   }, []);
 
   return (
-    <Stack>
-      <Stack.Screen name="index" options={{ headerTitle: "Show Beacons" }} />
-      <Stack.Screen name="showMap" options={{ headerTitle: "Map" }} />
-    </Stack>
+    <View style={styles.container}>
+      <Stack>
+        <Stack.Screen name="index" options={{ headerTitle: "Show Beacons" }} />
+        <Stack.Screen name="showMap" options={{ headerTitle: "Map" }} />
+      </Stack>
+      <ErrorBanner />
+    </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+});
