@@ -5,12 +5,11 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 
 @Controller
-public class SaludoControlador {
+public class IndexController {
 
-    @GetMapping("/saludo")
-    public String saludo(Model model){
-        model.addAttribute("message", "Hola mundo!");
-        return "saludo";
+    @GetMapping("/")
+    public String index(Model model) {
+        model.addAttribute("title", "Home");
+        return "index";
     }
-    
 }
