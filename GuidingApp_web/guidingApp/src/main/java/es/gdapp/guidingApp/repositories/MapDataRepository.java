@@ -17,7 +17,9 @@ public class MapDataRepository {
     public void init() {
         // Sample MapData entries
         MapData sampleMap1 = new MapData("Sample Map 1", 0.0, 5, 5);
+        sampleMap1.setId(1L);
         MapData sampleMap2 = new MapData("Sample Map 2", 45.0, 10, 10);
+        sampleMap2.setId(2L);
 
         mapDataStorage.put(1L, sampleMap1);
         mapDataStorage.put(2L, sampleMap2);

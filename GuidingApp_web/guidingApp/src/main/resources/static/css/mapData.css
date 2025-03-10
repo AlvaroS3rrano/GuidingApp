@@ -5,7 +5,6 @@
     box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
 }
 
-/* Encabezado centrado */
 .mapdata-container h1 {
     text-align: center;
     margin-bottom: 20px;
@@ -17,6 +16,9 @@
 }
 
 .mapdata-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
     border: 1px solid #ccc;
     margin-bottom: 15px;
     padding: 15px;
@@ -24,16 +26,28 @@
     background-color: #fafafa;
 }
 
-.mapdata-item h2 {
-    margin-top: 0;
+.map-name {
+    font-size: 1rem;
     color: #333;
 }
 
-.matrix {
-    font-family: monospace;
-    white-space: pre;
-    background-color: #eee;
-    padding: 10px;
-    border-radius: 5px;
-    margin-top: 10px;
+/* Action buttons container */
+.action-buttons {
+    display: flex;
+    gap: 0.5rem;
+}
+
+/* Base styling for buttons */
+.btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0.25rem;
+    display: flex;
+    align-items: center;
+}
+
+/* Optional: Hover effects for buttons */
+.btn:hover {
+    opacity: 0.8;
 }

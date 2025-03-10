@@ -1,0 +1,90 @@
+/* editMapData.css */
+
+.edit-container {
+    display: flex;
+    flex-direction: row;
+    width: 100%;
+    min-height: 80vh; /* Adjust as needed */
+}
+
+.left-side, .right-side {
+    flex: 1;
+    padding: 20px;
+}
+
+.left-side {
+    background-color: #f9f9f9;
+    border-right: 1px solid #ccc;
+}
+
+.right-side {
+    background-color: #fff;
+}
+
+/* Center headings */
+.left-side h2,
+.right-side h2 {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+/* Matrix display styling */
+.matrix-display {
+    /* Remove any extra margins/padding so the matrix can fill the container */
+    margin: 0;
+    padding: 0;
+    /* Use the full width and height of the left-side container */
+    width: 100%;
+    height: 100%;
+    /* Center the SVG inside the container */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+}
+
+.matrix-display svg {
+    max-width: 100%;
+    max-height: 100%;
+}
+
+/* Form styles */
+form {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+}
+
+.form-group label {
+    margin-bottom: 5px;
+    font-weight: bold;
+}
+
+.form-group input {
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    font-size: 1rem;
+}
+
+/* Submit button styles */
+.btn.submit-btn {
+    align-self: center;
+    padding: 10px 20px;
+    background-color: #333;
+    color: #fff;
+    border: none;
+    border-radius: 5px;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.btn.submit-btn:hover {
+    background-color: #555;
+}

@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Edit Map Data</title>
+    <link rel="stylesheet" href="/css/navbar.css">
+    <link rel="stylesheet" href="/css/editMapData.css">
+    <link rel="stylesheet" href="/css/common.css">
+</head>
+<body>
+{{> general/_navbar }}
+
+<div class="edit-container">
+    <!-- Left side: Matrix SVG preview -->
+    <div class="left-side">
+        <h2>Matrix Preview</h2>
+        <div class="matrix-display">
+            {{{matrixSVG}}}
+        </div>
+    </div>
+    <!-- Right side: Form for editing -->
+    <div class="right-side">
+        <h2>Edit Map Data Information</h2>
+        <form action="/mapdata/update" method="post">
+            <input type="hidden" name="id" value="{{id}}">
+
+            <div class="form-group">
+                <label for="name">Name:</label>
+                <input type="text" id="name" name="name" value="{{name}}" required>
+            </div>
+
+            <div class="form-group">
+                <label for="northAngle">North Angle:</label>
+                <input type="number" step="any" id="northAngle" name="northAngle" value="{{northAngle}}" required>
+            </div>
+
+            <button type="submit" class="btn submit-btn">Save Changes</button>
+        </form>
+    </div>
+</div>
+</body>
+</html>
