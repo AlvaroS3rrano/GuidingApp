@@ -18,25 +18,89 @@
             {{{matrixSVG}}}
         </div>
     </div>
-    <!-- Right side: Form for editing -->
+    <!-- Right side: Tabbed form for editing -->
     <div class="right-side">
         <h2>Edit Map Data Information</h2>
-        <form action="/mapdata/update" method="post">
-            <input type="hidden" name="id" value="{{id}}">
 
-            <div class="form-group">
-                <label for="name">Name:</label>
-                <input type="text" id="name" name="name" value="{{name}}" required>
-            </div>
+        <!-- Tab Navigation Buttons -->
+        <div class="tab-buttons">
+            <button type="button" onclick="showTab('generalInfo')">General Info</button>
+            <button type="button" onclick="showTab('matrixModification')">Matrix Modification</button>
+            <button type="button" onclick="showTab('customValues')">Custom Values</button>
+        </div>
 
-            <div class="form-group">
-                <label for="northAngle">North Angle:</label>
-                <input type="number" step="any" id="northAngle" name="northAngle" value="{{northAngle}}" required>
-            </div>
+        <!-- General Info Tab -->
+        <div id="generalInfo" class="tab-content">
+            <form action="/mapData/update" method="post">
+                <input type="hidden" name="id" value="{{id}}">
+                <div class="form-group">
+                    <label for="name">Name:</label>
+                    <input type="text" id="name" name="name" value="{{name}}" required>
+                </div>
+                <div class="form-group">
+                    <label for="northAngle">North Angle:</label>
+                    <input type="number" step="any" id="northAngle" name="northAngle" value="{{northAngle}}" required>
+                </div>
+                <!-- New fields for matrix resizing -->
+                <div class="form-group">
+                    <label for="newRows">Number of Rows:</label>
+                    <input type="number" id="newRows" name="newRows" value="{{matrixRows}}" required>
+                </div>
+                <div class="form-group">
+                    <label for="newCols">Number of Columns:</label>
+                    <input type="number" id="newCols" name="newCols" value="{{matrixCols}}" required>
+                </div>
+                <button type="submit" class="btn submit-btn">Save Changes</button>
+            </form>
+        </div>
 
-            <button type="submit" class="btn submit-btn">Save Changes</button>
-        </form>
+        <!-- Matrix Modification Tab -->
+        <div id="matrixModification" class="tab-content">
+            <form id="matrixModificationForm" action="/mapData/modifyMatrix" method="post">
+                <input type="hidden" name="id" value="{{id}}">
+                <div class="form-group">
+                    <label for="fillValue">Fill Value for Matrix Modification (0 or 1):</label>
+                    <select id="fillValue" name="fillValue" required>
+                        <option value="1">1</option>
+                        <option value="0">0</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="coordinates">Coordinates (Format: x,y per line):</label>
+                    <textarea id="coordinates" name="coordinates" rows="5" placeholder="Example:&#10;0,1&#10;2,1&#10;2,3&#10;0,3" required></textarea>
+                </div>
+                <button type="submit" class="btn submit-btn">Apply Matrix Modification</button>
+            </form>
+        </div>
+
+        <!-- Custom Values Tab -->
+        <div id="customValues" class="tab-content">
+            <form action="/mapData/customValues" method="post">
+                <input type="hidden" name="id" value="{{id}}">
+                <div class="form-group">
+                    <label>Enter Custom Numbers:</label>
+                    <div id="dynamicNumbers">
+                        <!-- Initial dynamic number field -->
+                        <input type="number" name="customNumbers[]" placeholder="Enter number">
+                        <br>
+                    </div>
+                    <button type="button" onclick="addNumberField()">Add another number</button>
+                </div>
+                <button type="submit" class="btn submit-btn">Save Custom Values</button>
+            </form>
+        </div>
     </div>
 </div>
+{{#errorMessage}}
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        var errorMessage = "{{errorMessage}}";
+        if (errorMessage.trim() !== "") {
+            alert(errorMessage);
+        }
+    });
+</script>
+{{/errorMessage}}
+<script src="/js/editMapData.js"></script>
 </body>
 </html>

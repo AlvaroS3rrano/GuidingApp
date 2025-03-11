@@ -88,3 +88,19 @@ form {
 .btn.submit-btn:hover {
     background-color: #555;
 }
+
+/* Basic styles for tab navigation */
+.tab-buttons {
+    margin-bottom: 20px;
+}
+.tab-buttons button {
+    padding: 10px 20px;
+    margin-right: 5px;
+    cursor: pointer;
+}
+.tab-content {
+    display: none;
+}
+.tab-content.active {
+    display: block;
+}

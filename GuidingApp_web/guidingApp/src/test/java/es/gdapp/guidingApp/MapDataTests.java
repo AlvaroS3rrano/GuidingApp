@@ -33,10 +33,10 @@ public class MapDataTests {
     public void testConnectCoordinates() {
         // Define coordinates that should be connected
         List<List<Integer>> coordinates =Arrays.asList(
-                Arrays.asList(0, 1),
-                Arrays.asList(2, 1),
-                Arrays.asList(2, 3),
-                Arrays.asList(0, 3)
+                Arrays.asList(1, 0),
+                Arrays.asList(3, 0),
+                Arrays.asList(3, 2),
+                Arrays.asList(1, 2)
         );
 
         // Call the method
@@ -74,7 +74,7 @@ public class MapDataTests {
         // Ensure only the specified coordinates are modified
         for (int i = 0; i < originalMatrix.length; i++) {
             for (int j = 0; j < originalMatrix[i].length; j++) {
-                if ((i == 3 && (j == 1 || j == 2)) || (i == 4 && (j == 1 || j == 2))) {
+                if ((i == 2 && (j == 0 || j == 1)) || (i == 3 && (j == 0 || j == 1))) {
                     assertEquals(1, mapData.getMatrix()[i][j], "These positions should be 1.");
                 } else {
                     assertEquals(0, mapData.getMatrix()[i][j], "These positions should remain 0.");
@@ -100,5 +100,70 @@ public class MapDataTests {
         assertFalse(mapData.isPointInMatrix(-1, 2), "Point (-1, 2) should be outside the matrix (negative row index)");
         assertFalse(mapData.isPointInMatrix(3, -1), "Point (3, -1) should be outside the matrix (negative column index)");
     }
+
+    @Test
+    public void testResizeMatrixIncrease() {
+        // Set a known pattern in the 5x5 matrix:
+        // Row 0: [0, 0, 0, 0, 0]
+        // Row 1: [0, 0, 0, 0, 0]
+        // Row 2: [0, 1, 1, 1, 0]
+        // Row 3: [0, 1, 0, 1, 0]
+        // Row 4: [0, 1, 1, 1, 0]
+        int[][] pattern = {
+                {0, 0, 0, 0, 0},
+                {0, 0, 0, 0, 0},
+                {0, 1, 1, 1, 0},
+                {0, 1, 0, 1, 0},
+                {0, 1, 1, 1, 0}
+        };
+        mapData.setMatrix(pattern);
+
+        // Increase the matrix size from 5x5 to 6x7.
+        // Expected vertical offset: newRows - oldRows = 6 - 5 = 1.
+        mapData.resizeMatrix(6, 7);
+
+        int[][] expectedMatrix = {
+                {0, 0, 0, 0, 0, 0, 0},   // new row 0: new, not filled from original content
+                {0, 0, 0, 0, 0, 0, 0},   // new row 1: copy of original row 0
+                {0, 0, 0, 0, 0, 0, 0},   // new row 2: copy of original row 1
+                {0, 1, 1, 1, 0, 0, 0},   // new row 3: copy of original row 2
+                {0, 1, 0, 1, 0, 0, 0},   // new row 4: copy of original row 3
+                {0, 1, 1, 1, 0, 0, 0}    // new row 5: copy of original row 4
+        };
+
+        assertArrayEquals(expectedMatrix, mapData.getMatrix(), "Matrix should be resized correctly when increasing size.");
+    }
+
+    @Test
+    public void testResizeMatrixDecrease() {
+        // Set a known pattern in the 5x5 matrix:
+        // Row 0: [0, 0, 0, 0, 0]
+        // Row 1: [0, 0, 0, 0, 0]
+        // Row 2: [0, 1, 1, 1, 0]
+        // Row 3: [0, 1, 0, 1, 0]
+        // Row 4: [0, 1, 1, 1, 0]
+        int[][] pattern = {
+                {0, 0, 0, 0, 0},
+                {0, 0, 0, 0, 0},
+                {0, 1, 1, 1, 0},
+                {0, 1, 0, 1, 0},
+                {0, 1, 1, 1, 0}
+        };
+        mapData.setMatrix(pattern);
+
+        // Decrease the matrix size from 5x5 to 4x4.
+        // Expected vertical offset: newRows - oldRows = 4 - 5 = -1, so the top row is dropped.
+        mapData.resizeMatrix(4, 4);
+
+        int[][] expectedMatrix = {
+                {0, 0, 0, 0},    // new row 0: copy of original row 1
+                {0, 1, 1, 1},    // new row 1: copy of original row 2
+                {0, 1, 0, 1},    // new row 2: copy of original row 3
+                {0, 1, 1, 1}     // new row 3: copy of original row 4
+        };
+
+        assertArrayEquals(expectedMatrix, mapData.getMatrix(), "Matrix should be resized correctly when decreasing size.");
+    }
 }
+
 
