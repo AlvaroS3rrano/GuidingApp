@@ -12,6 +12,7 @@ public class MapData {
     private String name;
     private double northAngle;
     private int[][] matrix;
+    private List<Node> nodes;
 
     // Constructor to initialize the map with a specific number of rows and columns
     public MapData(String name, double northAngle, int rows, int columns) {

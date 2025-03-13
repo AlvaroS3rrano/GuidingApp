@@ -2,6 +2,7 @@ package es.gdapp.guidingApp.controllers;
 
 import es.gdapp.guidingApp.models.MapData;
 import es.gdapp.guidingApp.services.MapDataService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Collection;
@@ -12,6 +13,7 @@ public class MapDataRestController {
 
     private final MapDataService mapDataService;
 
+    @Autowired
     public MapDataRestController(MapDataService mapDataService) {
         this.mapDataService = mapDataService;
     }

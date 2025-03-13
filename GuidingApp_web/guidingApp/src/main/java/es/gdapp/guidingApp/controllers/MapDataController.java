@@ -4,6 +4,7 @@ import es.gdapp.guidingApp.models.MapData;
 import es.gdapp.guidingApp.services.MapDataService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
@@ -17,6 +18,7 @@ public class MapDataController {
 
     private final MapDataService mapDataService;
 
+    @Autowired
     public MapDataController(MapDataService mapDataService) {
         this.mapDataService = mapDataService;
     }
@@ -142,6 +144,7 @@ public class MapDataController {
         model.addAttribute("matrixSVG", mapData.getMatrixSVG());
         model.addAttribute("matrixRows", mapData.getMatrix().length);
         model.addAttribute("matrixCols", mapData.getMatrix()[0].length);
+        model.addAttribute("nodes", mapData.getNodes());
     }
 
 }

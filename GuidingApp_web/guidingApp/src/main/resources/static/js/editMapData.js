@@ -3,24 +3,28 @@
  * @param {string} tabId - The id of the tab content to display.
  */
 function showTab(tabId) {
-    var tabs = document.getElementsByClassName('tab-content');
-    for (var i = 0; i < tabs.length; i++) {
+    let tabs = document.getElementsByClassName('tab-content');
+    for (let i = 0; i < tabs.length; i++) {
         tabs[i].classList.remove('active');
     }
     document.getElementById(tabId).classList.add('active');
 }
 
 /**
- * Adds a new number input field to the dynamic numbers container.
+ * Redirects to the node editing page.
+ * @param {number} nodeId - The ID of the node to edit.
  */
-function addNumberField() {
-    var container = document.getElementById('dynamicNumbers');
-    var input = document.createElement('input');
-    input.type = 'number';
-    input.name = 'customNumbers[]'; // Name as an array for backend processing
-    input.placeholder = 'Enter number';
-    container.appendChild(input);
-    container.appendChild(document.createElement('br'));
+function editNode(nodeId) {
+    window.location.href = '/nodes/edit?id=' + nodeId;
+}
+
+/**
+ * Redirects to the page to create a new node.
+ */
+function addNewNode() {
+    // Assumes the mapId is available in a hidden input in the general info form
+    let mapId = document.querySelector('input[name="id"]').value;
+    window.location.href = '/nodes/new?mapId=' + mapId;
 }
 
 // Set the initial tab when the page loads
@@ -56,5 +60,19 @@ document.addEventListener("DOMContentLoaded", function() {
                 });
         });
     }
+});
+
+document.addEventListener("DOMContentLoaded", function() {
+    // Load the node modal partial from the controller endpoint
+    fetch('/partials/nodeModal')
+        .then(response => response.text())
+        .then(html => {
+            document.getElementById('modalContainer').innerHTML = html;
+            // Dynamically load nodeModal.js if it's not already included via a <script> tag in the template
+            let script = document.createElement('script');
+            script.src = '/js/nodeModal.js';
+            document.body.appendChild(script);
+        })
+        .catch(error => console.error('Error loading node modal:', error));
 });
 

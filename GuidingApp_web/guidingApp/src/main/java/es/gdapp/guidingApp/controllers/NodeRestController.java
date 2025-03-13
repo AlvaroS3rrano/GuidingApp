@@ -2,6 +2,7 @@ package es.gdapp.guidingApp.controllers;
 
 import es.gdapp.guidingApp.models.Node;
 import es.gdapp.guidingApp.services.NodeService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Collection;
@@ -12,6 +13,7 @@ public class NodeRestController {
 
     private final NodeService nodeService;
 
+    @Autowired
     public NodeRestController(NodeService nodeService) {
         this.nodeService = nodeService;
     }

@@ -6,6 +6,7 @@
     <link rel="stylesheet" href="/css/navbar.css">
     <link rel="stylesheet" href="/css/editMapData.css">
     <link rel="stylesheet" href="/css/common.css">
+    <link rel="stylesheet" href="/css/nodeModal.css">
 </head>
 <body>
 {{> general/_navbar }}
@@ -26,7 +27,7 @@
         <div class="tab-buttons">
             <button type="button" onclick="showTab('generalInfo')">General Info</button>
             <button type="button" onclick="showTab('matrixModification')">Matrix Modification</button>
-            <button type="button" onclick="showTab('customValues')">Custom Values</button>
+            <button type="button" onclick="showTab('nodesTab')">Nodes</button>
         </div>
 
         <!-- General Info Tab -->
@@ -67,33 +68,41 @@
                 </div>
                 <div class="form-group">
                     <label for="coordinates">Coordinates (Format: x,y per line):</label>
-                    <textarea id="coordinates" name="coordinates" rows="5" placeholder="Example:&#10;0,1&#10;2,1&#10;2,3&#10;0,3" required></textarea>
+                    <textarea id="coordinates" name="coordinates" rows="5"
+                              placeholder="Example:&#10;0,1&#10;2,1&#10;2,3&#10;0,3" required></textarea>
                 </div>
                 <button type="submit" class="btn submit-btn">Apply Matrix Modification</button>
             </form>
         </div>
 
-        <!-- Custom Values Tab -->
-        <div id="customValues" class="tab-content">
-            <form action="/mapData/customValues" method="post">
-                <input type="hidden" name="id" value="{{id}}">
-                <div class="form-group">
-                    <label>Enter Custom Numbers:</label>
-                    <div id="dynamicNumbers">
-                        <!-- Initial dynamic number field -->
-                        <input type="number" name="customNumbers[]" placeholder="Enter number">
-                        <br>
-                    </div>
-                    <button type="button" onclick="addNumberField()">Add another number</button>
+        <!-- Nodes Tab -->
+        <div id="nodesTab" class="tab-content">
+            <h3>List of Nodes</h3>
+            <div id="nodesList">
+                {{#nodes}}
+                <div class="node-item">
+                    <span>
+                        Name: {{name}} | Beacon: {{beaconId}} | Coordinates: ({{x}}, {{y}})
+                    </span>
+                    <!-- Pass the node object as JSON for editing -->
+                    <button type="button" onclick='openNodeModal({{{nodeJson}}})'>Edit</button>
                 </div>
-                <button type="submit" class="btn submit-btn">Save Custom Values</button>
-            </form>
+                {{/nodes}}
+                {{^nodes}}
+                <p>No nodes available.</p>
+                {{/nodes}}
+            </div>
+            <button type="button" onclick="openNodeModal()">Add New Node</button>
         </div>
+
+        <!-- Container for the modal popup -->
+        <div id="modalContainer"></div>
     </div>
 </div>
+
 {{#errorMessage}}
 <script>
-    document.addEventListener("DOMContentLoaded", function() {
+    document.addEventListener("DOMContentLoaded", function () {
         var errorMessage = "{{errorMessage}}";
         if (errorMessage.trim() !== "") {
             alert(errorMessage);
