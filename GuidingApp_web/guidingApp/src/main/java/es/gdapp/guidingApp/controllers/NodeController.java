@@ -28,7 +28,7 @@ public class NodeController {
     public String listNodes(@RequestParam("mapId") Long mapId, Model model) {
         Collection<Node> allNodes = nodeService.getAllNodes();
         List<Node> nodesForMap = allNodes.stream()
-                .filter(node -> node.getMapId().equals(mapId))
+                .filter(node -> node.getMap().getId().equals(mapId))
                 .collect(Collectors.toList());
         model.addAttribute("nodes", nodesForMap);
         model.addAttribute("mapId", mapId);
@@ -39,7 +39,7 @@ public class NodeController {
     @GetMapping("/new")
     public String newNodeForm(@RequestParam("mapId") Long mapId, Model model) {
         Node node = new Node();
-        node.setMapId(mapId);
+        //node.setMapId(mapId);
         model.addAttribute("node", node);
         return "nodes/form";
     }
@@ -51,7 +51,7 @@ public class NodeController {
         nodeService.saveNode(node);
         Map<String, Object> response = new HashMap<>();
         response.put("success", true);
-        response.put("mapId", node.getMapId());
+        response.put("mapId", node.getMap().getId());
         return response;
     }
 
@@ -68,10 +68,10 @@ public class NodeController {
     @PostMapping("/edit")
     @ResponseBody
     public Map<String, Object> updateNode(@ModelAttribute("node") Node node) {
-        nodeService.updateNode(node);
+        nodeService.updateNode(node.getId(), node);
         Map<String, Object> response = new HashMap<>();
         response.put("success", true);
-        response.put("mapId", node.getMapId());
+        response.put("mapId", node.getMap().getId());
         return response;
     }
 

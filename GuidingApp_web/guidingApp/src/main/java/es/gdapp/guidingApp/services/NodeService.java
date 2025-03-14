@@ -17,9 +17,9 @@ public class NodeService {
         this.nodeRepository = nodeRepository;
     }
 
-    // Create or update a Node
+    // Create or update a Node entry
     public Node saveNode(Node node) {
-        return nodeRepository.save(node.getId(), node);
+        return nodeRepository.save(node);
     }
 
     // Retrieve a Node by its id
@@ -27,21 +27,22 @@ public class NodeService {
         return nodeRepository.findById(id);
     }
 
-    // Retrieve all Nodes
+    // Retrieve all Node entries
     public Collection<Node> getAllNodes() {
         return nodeRepository.findAll();
     }
 
     // Update an existing Node (throws exception if not found)
-    public Node updateNode(Node node) {
-        if (nodeRepository.findById(node.getId()).isPresent()) {
-            return nodeRepository.save(node.getId(), node);
+    public Node updateNode(Long id, Node node) {
+        if (nodeRepository.findById(id).isPresent()) {
+            node.setId(id);
+            return nodeRepository.save(node);
         }
-        throw new NoSuchElementException("Node not found with id: " + node.getId());
+        throw new NoSuchElementException("Node not found with id: " + id);
     }
 
-    // Delete a Node by its id
+    // Delete a Node entry by its id
     public void deleteNode(Long id) {
-        nodeRepository.delete(id);
+        nodeRepository.deleteById(id);
     }
 }

@@ -18,8 +18,8 @@ public class MapDataService {
     }
 
     // Create or update a MapData entry
-    public MapData saveMapData(Long id, MapData mapData) {
-        return mapDataRepository.save(id, mapData);
+    public MapData saveMapData(MapData mapData) {
+        return mapDataRepository.save(mapData);
     }
 
     // Retrieve a MapData entry by its id
@@ -35,13 +35,15 @@ public class MapDataService {
     // Update an existing MapData (throws exception if not found)
     public MapData updateMapData(Long id, MapData mapData) {
         if (mapDataRepository.findById(id).isPresent()) {
-            return mapDataRepository.save(id, mapData);
+            // Optionally, you can set the id explicitly before saving
+            mapData.setId(id);
+            return mapDataRepository.save(mapData);
         }
         throw new NoSuchElementException("MapData not found with id: " + id);
     }
 
     // Delete a MapData entry by its id
     public void deleteMapData(Long id) {
-        mapDataRepository.delete(id);
+        mapDataRepository.deleteById(id);
     }
 }

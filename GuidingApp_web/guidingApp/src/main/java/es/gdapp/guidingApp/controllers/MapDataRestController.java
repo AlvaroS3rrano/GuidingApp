@@ -33,8 +33,8 @@ public class MapDataRestController {
 
     // Create a new MapData entry
     @PostMapping("/{id}")
-    public MapData createMapData(@PathVariable Long id, @RequestBody MapData mapData) {
-        return mapDataService.saveMapData(id, mapData);
+    public MapData createMapData(@RequestBody MapData mapData) {
+        return mapDataService.saveMapData(mapData);
     }
 
     // Update an existing MapData entry

@@ -37,13 +37,6 @@ public class NodeRestController {
         return nodeService.saveNode(node);
     }
 
-    // Update an existing node
-    @PutMapping("/{id}")
-    public Node updateNode(@PathVariable Long id, @RequestBody Node node) {
-        node.setId(id);
-        return nodeService.updateNode(node);
-    }
-
     // Delete a node by id
     @DeleteMapping("/{id}")
     public void deleteNode(@PathVariable Long id) {

@@ -1,5 +1,7 @@
 package es.gdapp.guidingApp.models;
 
+import es.gdapp.guidingApp.converters.IntArrayConverter;
+import jakarta.persistence.*;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
@@ -7,21 +9,34 @@ import java.util.List;
 
 @Data
 @NoArgsConstructor
+@Entity
+@Table(name = "map_data")
 public class MapData {
-    private Long id;         // Unique identifier for the map
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;  // Unique identifier
+
     private String name;
+
     private double northAngle;
+
+    @Convert(converter = IntArrayConverter.class)
+    @Column(columnDefinition = "TEXT")
     private int[][] matrix;
+
+    // One-to-many relationship with Node
+    @OneToMany(mappedBy = "map", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Node> nodes;
 
-    // Constructor to initialize the map with a specific number of rows and columns
+    // Custom constructor to initialize the matrix
     public MapData(String name, double northAngle, int rows, int columns) {
         this.name = name;
         this.northAngle = northAngle;
         this.matrix = new int[rows][columns];
         for (int i = 0; i < rows; i++) {
             for (int j = 0; j < columns; j++) {
-                this.matrix[i][j] = 0; // Initialize matrix with 0s
+                this.matrix[i][j] = 0;
             }
         }
     }
