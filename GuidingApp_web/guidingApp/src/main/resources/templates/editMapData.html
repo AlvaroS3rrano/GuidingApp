@@ -7,6 +7,8 @@
     <link rel="stylesheet" href="/css/editMapData.css">
     <link rel="stylesheet" href="/css/common.css">
     <link rel="stylesheet" href="/css/nodeModal.css">
+    <link rel="stylesheet" href="/css/nodes.css">
+    <link rel="stylesheet" href="/css/buttons.css">
 </head>
 <body>
 {{> general/_navbar }}
@@ -32,7 +34,7 @@
 
         <!-- General Info Tab -->
         <div id="generalInfo" class="tab-content">
-            <form action="/mapData/update" method="post">
+            <form id="generalInfoForm" action="/mapData/update" method="post">
                 <input type="hidden" name="id" value="{{id}}">
                 <div class="form-group">
                     <label for="name">Name:</label>
@@ -51,7 +53,6 @@
                     <label for="newCols">Number of Columns:</label>
                     <input type="number" id="newCols" name="newCols" value="{{matrixCols}}" required>
                 </div>
-                <button type="submit" class="btn submit-btn">Save Changes</button>
             </form>
         </div>
 
@@ -81,18 +82,49 @@
             <div id="nodesList">
                 {{#nodes}}
                 <div class="node-item">
-                    <span>
-                        Name: {{name}} | Beacon: {{beaconId}} | Coordinates: ({{x}}, {{y}})
-                    </span>
-                    <!-- Pass the node object as JSON for editing -->
-                    <button type="button" onclick='openNodeModal({{{nodeJson}}})'>Edit</button>
+                    <span class="node-beacon">{{beaconId}}</span>
+                    <div class="node-action-buttons">
+                        <button class="btn view-btn" title="View">
+                            <!-- Eye SVG icon -->
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
+                                 stroke="currentColor" style="width:16px; height:16px;">
+                                <path stroke-linecap="round" stroke-linejoin="round"
+                                      d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                            </svg>
+                        </button>
+                        <button type="button" class="btn edit-btn" title="Edit" onclick='openNodeModal({{{nodeJson}}})'>
+                            <!-- Pencil SVG icon -->
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor"
+                                 style="width:16px; height:16px;">
+                                <path d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708l-9.5 9.5a.5.5 0 0 1-.168.11l-5 2a.5.5 0 0 1-.65-.65l2-5a.5.5 0 0 1 .11-.168l9.5-9.5zM11.207 2L2 11.207V14h2.793L14 4.793 11.207 2z"/>
+                            </svg>
+                        </button>
+                        <button class="btn delete-btn" title="Delete">
+                            <!-- Trash SVG icon -->
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor"
+                                 style="width:16px; height:16px;">
+                                <path d="M5.5 5.5A.5.5 0 0 1 6 5h4a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-1 0V6H6v6.5a.5.5 0 0 1-1 0v-7z"/>
+                                <path fill-rule="evenodd"
+                                      d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 1 1 0-2h3.5a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1zM4.118 4L4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4H4.118z"/>
+                            </svg>
+                        </button>
+                    </div>
                 </div>
                 {{/nodes}}
                 {{^nodes}}
                 <p>No nodes available.</p>
                 {{/nodes}}
             </div>
-            <button type="button" onclick="openNodeModal()">Add New Node</button>
+            <button type="button" class="btn submit-btn add-node-btn" onclick="openNodeModal()">Add New Node</button>
+        </div>
+
+        <!-- Fixed action buttons at the bottom -->
+        <div class="action-buttons-fixed">
+            <!-- The save button submits the main form (make sure the form has an id, e.g., "generalInfoForm") -->
+            <button type="submit" form="generalInfoForm" class="save-btn">Save Changes</button>
+            <!-- The discard button triggers a JavaScript function -->
+            <button type="button" class="discard-btn" onclick="discardChanges()">Discard Changes</button>
         </div>
 
         <!-- Container for the modal popup -->
@@ -103,7 +135,7 @@
 {{#errorMessage}}
 <script>
     document.addEventListener("DOMContentLoaded", function () {
-        var errorMessage = "{{errorMessage}}";
+        let errorMessage = "{{errorMessage}}";
         if (errorMessage.trim() !== "") {
             alert(errorMessage);
         }

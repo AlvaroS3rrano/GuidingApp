@@ -6,12 +6,11 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
 
 @Controller
 public class MapDataController {
@@ -107,6 +106,15 @@ public class MapDataController {
                 tempMapData.resizeMatrix(newRows, newCols);
             }
 
+            // Before saving, iterate through nodes and set temporary (negative) IDs to null
+            if (tempMapData.getNodes() != null) {
+                tempMapData.getNodes().forEach(node -> {
+                    if (node.getId() != null && node.getId() < 0) {
+                        node.setId(null);
+                    }
+                });
+            }
+
             // Persist the complete MapData (including any modifications to nodes)
             mapDataService.updateMapData(tempMapData.getId(), tempMapData);
             // Refresh the session working instance with the updated entity
@@ -114,6 +122,32 @@ public class MapDataController {
             populateModelWithMapData(model, tempMapData);
         }
         return "editMapData";
+    }
+
+    @Transactional
+    @PostMapping("/mapData/discardChanges")
+    @ResponseBody
+    public Map<String, Object> discardChanges(HttpSession session) {
+        MapData tempMapData = (MapData) session.getAttribute("tempMapData");
+        if (tempMapData == null) {
+            throw new RuntimeException("No MapData available in session.");
+        }
+        // Reload the MapData from the database along with its nodes
+        MapData freshMapData = mapDataService.getMapDataById(tempMapData.getId())
+                .orElseThrow(() -> new RuntimeException("MapData not found with id: " + tempMapData.getId()));
+
+        // Force initialization of the nodes collection while the session is still open
+        if (freshMapData.getNodes() != null) {
+            freshMapData.getNodes().size();
+        }
+
+        // Update the session with the fresh, persistent MapData
+        session.setAttribute("tempMapData", freshMapData);
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("success", true);
+        response.put("redirectUrl", "/mapData/edit/" + freshMapData.getId() + "?tab=nodes");
+        return response;
     }
 
     /**
@@ -150,6 +184,11 @@ public class MapDataController {
      * @param mapData the MapData object with the data
      */
     private void populateModelWithMapData(Model model, MapData mapData) {
+        // Force initialization of the nodes collection
+        if (mapData.getNodes() != null) {
+            mapData.getNodes().size();
+        }
+
         model.addAttribute("id", mapData.getId());
         model.addAttribute("name", mapData.getName());
         model.addAttribute("northAngle", mapData.getNorthAngle());

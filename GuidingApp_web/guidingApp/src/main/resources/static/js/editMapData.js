@@ -62,3 +62,26 @@ document.addEventListener("DOMContentLoaded", function() {
         .catch(error => console.error('Error loading node modal:', error));
 });
 
+function discardChanges() {
+    if (confirm("Are you sure you want to discard your changes?")) {
+        fetch('/mapData/discardChanges', {
+            method: "POST",
+            headers: {
+                "X-Requested-With": "XMLHttpRequest"
+            }
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (!data.success) {
+                    alert("Error discarding changes.");
+                } else {
+                    window.location.href = data.redirectUrl;
+                }
+            })
+            .catch(error => {
+                console.error("Error discarding changes:", error);
+            });
+    }
+}
+
+
