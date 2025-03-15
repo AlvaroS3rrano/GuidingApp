@@ -35,6 +35,10 @@ public class MapDataController {
         if (mapData == null || !mapData.getId().equals(id)) {
             mapData = mapDataService.getMapDataById(id)
                     .orElseThrow(() -> new RuntimeException("MapData not found with id: " + id));
+            // Initialize the nodes list if null to prevent errors in the view
+            if (mapData.getNodes() == null) {
+                mapData.setNodes(new ArrayList<>());
+            }
             session.setAttribute("tempMapData", mapData);
         }
         populateModelWithMapData(model, mapData);
@@ -78,6 +82,11 @@ public class MapDataController {
     }
 
 
+    /**
+     * Saves all changes made to the MapData (including nodes) into the database.
+     * It retrieves the working instance from the session, updates its fields from the form,
+     * and then persists the changes.
+     */
     @PostMapping("/mapData/update")
     public String updateMapData(
             @ModelAttribute MapData formMapData,
@@ -88,17 +97,20 @@ public class MapDataController {
 
         MapData tempMapData = (MapData) session.getAttribute("tempMapData");
         if (tempMapData != null) {
+            // Update primary attributes from the submitted form
             tempMapData.setName(formMapData.getName());
             tempMapData.setNorthAngle(formMapData.getNorthAngle());
 
+            // If matrix size has changed, resize the matrix (nodes remain attached)
             if (newRows != null && newCols != null &&
                     (newRows != tempMapData.getMatrix().length || newCols != tempMapData.getMatrix()[0].length)) {
                 tempMapData.resizeMatrix(newRows, newCols);
             }
 
+            // Persist the complete MapData (including any modifications to nodes)
             mapDataService.updateMapData(tempMapData.getId(), tempMapData);
+            // Refresh the session working instance with the updated entity
             session.setAttribute("tempMapData", tempMapData);
-
             populateModelWithMapData(model, tempMapData);
         }
         return "editMapData";

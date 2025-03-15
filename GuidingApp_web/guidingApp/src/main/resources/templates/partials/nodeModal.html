@@ -7,8 +7,8 @@
         <form id="nodeForm" method="post">
             <!-- Hidden field for node ID (used in edit mode) -->
             <input type="hidden" id="nodeId" name="id" value="">
-            <!-- Hidden field for map ID -->
-            <input type="hidden" id="mapId" name="mapId" value="">
+            <!-- Hidden field for map id: note the changed name for nested binding -->
+            <input type="hidden" id="mapId" name="map.id" value="">
             <div class="form-group">
                 <label for="nodeName">Name:</label>
                 <input type="text" id="nodeName" name="name" required>
@@ -25,7 +25,6 @@
                 <label for="yCoord">Y Coordinate:</label>
                 <input type="number" id="yCoord" name="y" required>
             </div>
-            <!-- Additional fields as needed -->
             <div class="modal-buttons">
                 <button type="submit" id="submitButton">Create Node</button>
             </div>

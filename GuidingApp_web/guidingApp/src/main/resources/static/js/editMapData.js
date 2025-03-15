@@ -1,3 +1,13 @@
+window.onload = function() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const tab = urlParams.get('tab');
+    if (tab === 'nodes') {
+        showTab('nodesTab');
+    } else {
+        showTab('generalInfo');
+    }
+};
+
 /**
  * Displays the tab content with the given tabId while hiding the others.
  * @param {string} tabId - The id of the tab content to display.
@@ -9,28 +19,6 @@ function showTab(tabId) {
     }
     document.getElementById(tabId).classList.add('active');
 }
-
-/**
- * Redirects to the node editing page.
- * @param {number} nodeId - The ID of the node to edit.
- */
-function editNode(nodeId) {
-    window.location.href = '/nodes/edit?id=' + nodeId;
-}
-
-/**
- * Redirects to the page to create a new node.
- */
-function addNewNode() {
-    // Assumes the mapId is available in a hidden input in the general info form
-    let mapId = document.querySelector('input[name="id"]').value;
-    window.location.href = '/nodes/new?mapId=' + mapId;
-}
-
-// Set the initial tab when the page loads
-window.onload = function() {
-    showTab('generalInfo');
-};
 
 document.addEventListener("DOMContentLoaded", function() {
     const matrixForm = document.getElementById("matrixModificationForm");
@@ -68,10 +56,8 @@ document.addEventListener("DOMContentLoaded", function() {
         .then(response => response.text())
         .then(html => {
             document.getElementById('modalContainer').innerHTML = html;
-            // Dynamically load nodeModal.js if it's not already included via a <script> tag in the template
-            let script = document.createElement('script');
-            script.src = '/js/nodeModal.js';
-            document.body.appendChild(script);
+
+            attachNodeFormListener();
         })
         .catch(error => console.error('Error loading node modal:', error));
 });
