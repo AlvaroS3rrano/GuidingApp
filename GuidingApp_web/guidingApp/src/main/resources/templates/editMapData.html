@@ -6,7 +6,7 @@
     <link rel="stylesheet" href="/css/navbar.css">
     <link rel="stylesheet" href="/css/editMapData.css">
     <link rel="stylesheet" href="/css/common.css">
-    <link rel="stylesheet" href="/css/nodeModal.css">
+    <link rel="stylesheet" href="/css/modals.css">
     <link rel="stylesheet" href="/css/nodes.css">
     <link rel="stylesheet" href="/css/buttons.css">
 </head>
@@ -100,7 +100,7 @@
                                 <path d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708l-9.5 9.5a.5.5 0 0 1-.168.11l-5 2a.5.5 0 0 1-.65-.65l2-5a.5.5 0 0 1 .11-.168l9.5-9.5zM11.207 2L2 11.207V14h2.793L14 4.793 11.207 2z"/>
                             </svg>
                         </button>
-                        <button class="btn delete-btn" title="Delete">
+                        <button class="btn delete-btn" title="Delete" onclick="confirmDeleteNode({{id}}, {{map.id}})">
                             <!-- Trash SVG icon -->
                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor"
                                  style="width:16px; height:16px;">
@@ -142,6 +142,11 @@
     });
 </script>
 {{/errorMessage}}
+
+<!-- Container for the confirm popup -->
+<div id="confirmContainer"></div>
+
+<script src="/js/confirmModal.js"></script>
 <script src="/js/nodeModal.js"></script>
 <script src="/js/editMapData.js"></script>
 </body>

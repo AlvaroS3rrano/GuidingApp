@@ -41,31 +41,35 @@ function closeNodeModal() {
 
 function attachNodeFormListener() {
     const nodeForm = document.getElementById("nodeForm");
-    if (nodeForm) {
-        nodeForm.addEventListener("submit", function(e) {
-            e.preventDefault(); // prevent default form submission
-            const formData = new FormData(nodeForm);
-            fetch(nodeForm.action, {
-                method: "POST",
-                body: formData,
-                headers: {
-                    "X-Requested-With": "XMLHttpRequest"
+
+    nodeForm.addEventListener("submit", function (e) {
+        e.preventDefault(); // prevent default form submission
+        const formData = new FormData(nodeForm);
+        fetch(nodeForm.action, {
+            method: "POST",
+            body: formData,
+            headers: {
+                "X-Requested-With": "XMLHttpRequest"
+            }
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (!data.success) {
+                    alert(data.errorMessage);
+                } else {
+                    // Redirect to the provided URL, which opens the map edit page in the nodes tab
+                    window.location.href = data.redirectUrl;
                 }
             })
-                .then(response => response.json())
-                .then(data => {
-                    if (!data.success) {
-                        alert(data.errorMessage);
-                    } else {
-                        // Redirect to the provided URL, which opens the map edit page in the nodes tab
-                        window.location.href = data.redirectUrl;
-                    }
-                })
-                .catch(error => {
-                    console.error("Error in node form submission:", error);
-                });
-        });
-    } else {
-        console.error("Node form not found in DOM.");
-    }
+            .catch(error => {
+                console.error("Error in node form submission:", error);
+            });
+    });
+
+    const overlay = document.getElementById('nodeModalOverlay');
+    overlay.addEventListener("click", function (e) {
+        if (e.target === overlay) {
+            closeNodeModal();
+        }
+    });
 }

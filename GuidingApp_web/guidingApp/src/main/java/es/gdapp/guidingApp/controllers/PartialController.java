@@ -9,5 +9,10 @@ public class PartialController {
     public String getNodeModal() {
         return "partials/nodeModal";
     }
+
+    @GetMapping("/partials/confirmModal")
+    public String getConfirmModal() {
+        return "partials/confirmModal";
+    }
 }
 

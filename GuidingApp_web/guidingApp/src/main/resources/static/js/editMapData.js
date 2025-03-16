@@ -62,8 +62,18 @@ document.addEventListener("DOMContentLoaded", function() {
         .catch(error => console.error('Error loading node modal:', error));
 });
 
+document.addEventListener("DOMContentLoaded", function() {
+    // Load the confirm modal partial from the controller endpoint
+    fetch('/partials/confirmModal')
+        .then(response => response.text())
+        .then(html => {
+            document.getElementById('confirmContainer').innerHTML = html;
+        })
+        .catch(error => console.error('Error loading confirm modal:', error));
+});
+
 function discardChanges() {
-    if (confirm("Are you sure you want to discard your changes?")) {
+    openConfirmModal("Are you sure you want to discard your changes?", function() {
         fetch('/mapData/discardChanges', {
             method: "POST",
             headers: {
@@ -81,7 +91,7 @@ function discardChanges() {
             .catch(error => {
                 console.error("Error discarding changes:", error);
             });
-    }
+    });
 }
 
 
