@@ -14,10 +14,18 @@
 {{> general/_navbar }}
 
 <div class="edit-container">
-    <!-- Left side: Matrix SVG preview -->
     <div class="left-side">
-        <h2>Matrix Preview</h2>
-        <div class="matrix-display">
+        <!-- Header containing the title and zoom controls -->
+        <div class="matrix-header">
+            <h2 class="matrix-title">Matrix Preview</h2>
+            <div class="zoom-controls">
+                <button id="zoomInBtn">Zoom In</button>
+                <button id="zoomOutBtn">Zoom Out</button>
+                <button id="resetZoomBtn">Reset</button>
+            </div>
+        </div>
+        <!-- Container for the SVG only -->
+        <div id="matrixContainer" class="matrix-display">
             {{{matrixSVG}}}
         </div>
     </div>
@@ -149,5 +157,6 @@
 <script src="/js/confirmModal.js"></script>
 <script src="/js/nodeModal.js"></script>
 <script src="/js/editMapData.js"></script>
+<script src="/js/matrix.js"></script>
 </body>
 </html>

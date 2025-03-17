@@ -1,4 +1,4 @@
-package es.gdapp.guidingApp.controllers;
+package es.gdapp.guidingApp.controllers.web;
 
 import es.gdapp.guidingApp.models.MapData;
 import es.gdapp.guidingApp.models.Node;

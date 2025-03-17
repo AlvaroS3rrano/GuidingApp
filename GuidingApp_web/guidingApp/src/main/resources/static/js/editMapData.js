@@ -85,7 +85,9 @@ function discardChanges() {
                 if (!data.success) {
                     alert("Error discarding changes.");
                 } else {
-                    window.location.href = data.redirectUrl;
+                    const activeTabElement = document.querySelector('.tab-content.active');
+                    const activeTab = activeTabElement ? activeTabElement.id : "info";
+                    window.location.href = "/mapData/edit/" + data.mapDataId + "?tab=" + activeTab;
                 }
             })
             .catch(error => {

@@ -67,6 +67,7 @@ public class MapData {
         StringBuilder svg = new StringBuilder();
         svg.append("<svg width=\"").append(width)
                 .append("\" height=\"").append(height)
+                .append("\" viewBox=\"0 0 ").append(width).append(" ").append(height)
                 .append("\" xmlns=\"http://www.w3.org/2000/svg\">");
         // Loop through matrix to create SVG rectangles for each cell
         for (int i = 0; i < rows; i++) {

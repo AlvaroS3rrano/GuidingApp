@@ -1,4 +1,4 @@
-package es.gdapp.guidingApp.controllers;
+package es.gdapp.guidingApp.controllers.rest;
 
 import es.gdapp.guidingApp.models.Node;
 import es.gdapp.guidingApp.services.NodeService;

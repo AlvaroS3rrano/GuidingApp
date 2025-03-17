@@ -1,4 +1,4 @@
-package es.gdapp.guidingApp.controllers;
+package es.gdapp.guidingApp.controllers.web;
 
 import es.gdapp.guidingApp.models.MapData;
 import es.gdapp.guidingApp.services.MapDataService;
@@ -121,7 +121,7 @@ public class MapDataController {
             session.setAttribute("tempMapData", tempMapData);
             populateModelWithMapData(model, tempMapData);
         }
-        return "editMapData";
+        return "redirect:/mapData/edit/" + tempMapData.getId() + "?tab=info";
     }
 
     @Transactional
@@ -146,7 +146,7 @@ public class MapDataController {
 
         Map<String, Object> response = new HashMap<>();
         response.put("success", true);
-        response.put("redirectUrl", "/mapData/edit/" + freshMapData.getId() + "?tab=nodes");
+        response.put("mapDataId", freshMapData.getId());
         return response;
     }
 
