@@ -52,8 +52,8 @@ public class MapDataController {
      */
     @PostMapping("/mapData/modifyMatrix")
     @ResponseBody
-    public java.util.Map<String, Object> modifyMatrix(HttpServletRequest request, HttpSession session) {
-        java.util.Map<String, Object> response = new java.util.HashMap<>();
+    public Map<String, Object> modifyMatrix(HttpServletRequest request, HttpSession session) {
+        Map<String, Object> response = new HashMap<>();
         Long id = Long.parseLong(request.getParameter("id"));
         String coordinatesStr = request.getParameter("coordinates"); // Expected format: one coordinate per line "x,y"
         int fillValue = Integer.parseInt(request.getParameter("fillValue"));
@@ -65,14 +65,8 @@ public class MapDataController {
                     .orElseThrow(() -> new RuntimeException("MapData not found with id: " + id));
             session.setAttribute("tempMapData", mapData);
         }
-
-        try {
-            mapData.connectCoordinates(coordinates, fillValue);
-        } catch (RuntimeException e) {
-            response.put("success", false);
-            response.put("errorMessage", e.getMessage());
-            return response;
-        }
+        
+        mapData.connectCoordinates(coordinates, fillValue);
 
         session.setAttribute("tempMapData", mapData);
         response.put("success", true);
@@ -180,7 +174,7 @@ public class MapDataController {
     /**
      * Helper method to populate the model with MapData attributes.
      *
-     * @param model the model to populate
+     * @param model   the model to populate
      * @param mapData the MapData object with the data
      */
     private void populateModelWithMapData(Model model, MapData mapData) {

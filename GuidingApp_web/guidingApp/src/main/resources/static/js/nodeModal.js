@@ -1,5 +1,4 @@
 function openNodeModal(node = null) {
-    console.log("openNodeModal called with node:", node);
     const form = document.getElementById("nodeForm");
     const modalTitle = document.getElementById("modalTitle");
     const submitButton = document.getElementById("submitButton");
@@ -30,6 +29,9 @@ function openNodeModal(node = null) {
     }
     // Display the modal
     document.getElementById("nodeModalOverlay").style.display = "flex";
+    document.getElementById("xCoord").addEventListener("input", checkCoordinates);
+    document.getElementById("yCoord").addEventListener("input", checkCoordinates);
+
 }
 
 /**
@@ -73,3 +75,33 @@ function attachNodeFormListener() {
         }
     });
 }
+
+function checkCoordinates() {
+    const xInput = document.getElementById("xCoord");
+    const yInput = document.getElementById("yCoord");
+    const submitButton = document.getElementById("submitButton");
+    const errorMessage = document.getElementById("coordErrorMessage");
+
+    const x = parseInt(xInput.value, 10);
+    const y = parseInt(yInput.value, 10);
+
+    if (isNaN(x) || isNaN(y)) {
+        submitButton.disabled = true;
+        errorMessage.textContent = "Ingrese ambos valores numéricos.";
+        return;
+    }
+
+    const matrixRows = parseInt(document.getElementById("matrixRows").value, 10);
+    const matrixCols = parseInt(document.getElementById("matrixCols").value, 10);
+
+    // Comprobar que las coordenadas estén dentro de los límites:
+    if (x < 0 || x >= matrixCols || y < 0 || y >= matrixRows) {
+        submitButton.disabled = true;
+        errorMessage.textContent = "El punto no es parte de la matriz.";
+    } else {
+        submitButton.disabled = false;
+        errorMessage.textContent = "";
+    }
+}
+
+

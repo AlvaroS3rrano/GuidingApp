@@ -101,7 +101,7 @@
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
                             </svg>
                         </button>
-                        <button type="button" class="btn edit-btn" title="Edit" onclick='openNodeModal({{{nodeJson}}})'>
+                        <button type="button" class="btn edit-btn" title="Edit" onclick='openNodeModal({{nodeJson}})'>
                             <!-- Pencil SVG icon -->
                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor"
                                  style="width:16px; height:16px;">
@@ -139,17 +139,6 @@
         <div id="modalContainer"></div>
     </div>
 </div>
-
-{{#errorMessage}}
-<script>
-    document.addEventListener("DOMContentLoaded", function () {
-        let errorMessage = "{{errorMessage}}";
-        if (errorMessage.trim() !== "") {
-            alert(errorMessage);
-        }
-    });
-</script>
-{{/errorMessage}}
 
 <!-- Container for the confirm popup -->
 <div id="confirmContainer"></div>

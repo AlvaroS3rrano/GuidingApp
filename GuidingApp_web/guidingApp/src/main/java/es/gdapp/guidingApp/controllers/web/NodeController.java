@@ -59,6 +59,9 @@ public class NodeController {
         if (tempMapData == null) {
             throw new RuntimeException("No MapData available in session. Reload the map edit page.");
         }
+        if (!tempMapData.isPointInMatrix(node.getY(), node.getX())) {
+            throw new RuntimeException("Coordinates (" + node.getX() + ", " + node.getY() + ") are out of matrix bounds.");
+        }
         // Assign a temporary ID if not present (e.g., negative values)
         if (node.getId() == null) {
             node.setId(tempIdGenerator.getAndDecrement());
@@ -87,6 +90,9 @@ public class NodeController {
         MapData tempMapData = (MapData) session.getAttribute("tempMapData");
         if (tempMapData == null || tempMapData.getNodes() == null) {
             throw new RuntimeException("No MapData available in session.");
+        }
+        if (!tempMapData.isPointInMatrix(updatedNode.getY(), updatedNode.getX())) {
+            throw new RuntimeException("Coordinates (" + updatedNode.getX() + ", " + updatedNode.getY() + ") are out of matrix bounds.");
         }
         boolean found = false;
         for (Node node : tempMapData.getNodes()) {
