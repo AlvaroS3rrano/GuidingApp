@@ -25,10 +25,21 @@
                 <label for="yCoord">Y Coordinate:</label>
                 <input type="number" id="yCoord" name="y" required>
             </div>
+
+            <!-- Existing coordinate error message container -->
+            <div id="coordErrorMessage" style="color:red; font-size:0.9em;"></div>
+
+            <!-- Existing hidden fields for matrix dimensions -->
             <input type="hidden" id="matrixRows" value="{{matrixRows}}">
             <input type="hidden" id="matrixCols" value="{{matrixCols}}">
 
-            <div id="coordErrorMessage" style="color:red; font-size:0.9em;"></div>
+            <div class="form-group">
+                <label for="areaCoordinates">Area Coordinates (optional, JSON array, e.g.: [[0,1],[1,1],[1,2]])</label>
+                <textarea id="areaCoordinates" name="area" rows="4" placeholder='[[0,1],[1,1],[1,2]]'></textarea>
+            </div>
+            <div id="areaErrorMessage" style="color:red; font-size:0.9em;"></div>
+
+
 
             <div class="modal-buttons">
                 <button type="submit" class="btn submit-btn" id="submitButton">Create Node</button>

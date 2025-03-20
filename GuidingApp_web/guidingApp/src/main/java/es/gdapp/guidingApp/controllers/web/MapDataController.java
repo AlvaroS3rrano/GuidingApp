@@ -65,7 +65,7 @@ public class MapDataController {
                     .orElseThrow(() -> new RuntimeException("MapData not found with id: " + id));
             session.setAttribute("tempMapData", mapData);
         }
-        
+
         mapData.connectCoordinates(coordinates, fillValue);
 
         session.setAttribute("tempMapData", mapData);
@@ -111,11 +111,14 @@ public class MapDataController {
 
             // Persist the complete MapData (including any modifications to nodes)
             mapDataService.updateMapData(tempMapData.getId(), tempMapData);
+
+            MapData updatedMapData = mapDataService.getMapDataById(tempMapData.getId())
+                    .orElseThrow(() -> new RuntimeException("MapData not found with id: " + tempMapData.getId()));
             // Refresh the session working instance with the updated entity
-            session.setAttribute("tempMapData", tempMapData);
+            session.setAttribute("tempMapData", updatedMapData);
             populateModelWithMapData(model, tempMapData);
         }
-        return "redirect:/mapData/edit/" + tempMapData.getId() + "?tab=info";
+        return "redirect:/mapData/edit/" + tempMapData.getId() + "?tab=generalInfo";
     }
 
     @Transactional

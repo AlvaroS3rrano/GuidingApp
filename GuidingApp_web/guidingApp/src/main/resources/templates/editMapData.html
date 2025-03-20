@@ -90,7 +90,7 @@
             <div id="nodesList">
                 {{#nodes}}
                 <div class="node-item">
-                    <span class="node-beacon">{{beaconId}}</span>
+                    <span class="node-beacon">{{name}}</span>
                     <div class="node-action-buttons">
                         <button class="btn view-btn" title="View">
                             <!-- Eye SVG icon -->
@@ -142,6 +142,8 @@
 
 <!-- Container for the confirm popup -->
 <div id="confirmContainer"></div>
+<!-- Container for the error popup -->
+<div id="errorContainer"></div>
 
 <script src="/js/confirmModal.js"></script>
 <script src="/js/nodeModal.js"></script>

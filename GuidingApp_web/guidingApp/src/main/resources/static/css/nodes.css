@@ -43,3 +43,7 @@
     display: block;
     margin: 20px auto; /* Adjust vertical margin as needed */
 }
+
+#areaCoordinates {
+    resize: none;
+}

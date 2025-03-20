@@ -25,5 +25,10 @@ public class PartialController {
     public String getConfirmModal() {
         return "partials/confirmModal";
     }
+
+    @GetMapping("/partials/errorModal")
+    public String getErrorModal() {
+        return "partials/errorModal";
+    }
 }
 

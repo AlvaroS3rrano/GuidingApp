@@ -76,7 +76,7 @@ public class NodeController {
 
         Map<String, Object> response = new HashMap<>();
         response.put("success", true);
-        response.put("redirectUrl", "/mapData/edit/" + tempMapData.getId() + "?tab=nodes");
+        response.put("redirectUrl", "/mapData/edit/" + tempMapData.getId() + "?tab=nodesTab");
         return response;
     }
 
@@ -111,7 +111,7 @@ public class NodeController {
         session.setAttribute("tempMapData", tempMapData);
         Map<String, Object> response = new HashMap<>();
         response.put("success", true);
-        response.put("redirectUrl", "/mapData/edit/" + tempMapData.getId() + "?tab=nodes");
+        response.put("redirectUrl", "/mapData/edit/" + tempMapData.getId() + "?tab=nodesTab");
         return response;
     }
 
