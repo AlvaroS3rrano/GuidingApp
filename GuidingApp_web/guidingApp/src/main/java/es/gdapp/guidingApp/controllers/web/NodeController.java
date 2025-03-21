@@ -123,7 +123,7 @@ public class NodeController {
         session.setAttribute("tempMapData", tempMapData);
         Map<String, Object> response = new HashMap<>();
         response.put("success", removed);
-        response.put("mapId", tempMapData.getId());
+        response.put("redirectUrl", "/mapData/edit/" + tempMapData.getId() + "?tab=nodesTab");
         return response;
     }
 }

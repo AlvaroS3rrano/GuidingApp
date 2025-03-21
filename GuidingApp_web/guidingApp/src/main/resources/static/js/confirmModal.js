@@ -24,30 +24,6 @@ function openConfirmModal(message, onAccept) {
     });
 }
 
-function confirmDeleteNode(nodeId, mapId) {
-    openConfirmModal("Are you sure you want to delete this node?", function () {
-        fetch('/nodes/delete?id=' + nodeId + '&mapId=' + mapId, {
-            method: "GET",
-            headers: {
-                "X-Requested-With": "XMLHttpRequest"
-            }
-        })
-            .then(response => response.json())
-            .then(data => {
-                if (!data.success) {
-                    alert("Error deleting node.");
-                } else {
-                    // Optionally, refresh the nodes list; here we'll simply reload the page
-                    window.location.href = "/mapData/edit/" + mapId + "?tab=nodes";
-                }
-            })
-            .catch(error => {
-                console.error("Error deleting node:", error);
-            });
-
-    });
-}
-
 function closeConfirmModal() {
     document.getElementById('confirmModalOverlay').style.display = 'none';
     // Clear the onclick handler

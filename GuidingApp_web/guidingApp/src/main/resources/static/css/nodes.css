@@ -18,32 +18,6 @@
     color: #333;
 }
 
-/* Action buttons container */
-.node-action-buttons {
-    display: flex;
-    gap: 0.5rem;
-}
-
-/* Base styling for buttons */
-.btn {
-    background: none;
-    border: none;
-    cursor: pointer;
-    padding: 0.25rem;
-    display: flex;
-    align-items: center;
-}
-
-/* Hover effect for buttons (optional) */
-.btn:hover {
-    opacity: 0.8;
-}
-
-.add-node-btn {
-    display: block;
-    margin: 20px auto; /* Adjust vertical margin as needed */
-}
-
 #areaCoordinates {
     resize: none;
 }

@@ -11,6 +11,7 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.*;
+import java.util.concurrent.atomic.AtomicLong;
 
 @Controller
 public class MapDataController {
@@ -22,10 +23,20 @@ public class MapDataController {
         this.mapDataService = mapDataService;
     }
 
+    private final AtomicLong tempIdGenerator = new AtomicLong(-1);
+
     @GetMapping("/mapData")
     public String getMapDataList(Model model) {
         model.addAttribute("mapDataList", mapDataService.getAllMapData());
         return "mapData";
+    }
+
+    @GetMapping("/mapData/new")
+    public String newMapData(Model model, HttpSession session) {
+        MapData mapData = initializeNewMapData();
+        session.setAttribute("tempMapData", mapData);
+        populateModelWithMapData(model, mapData);
+        return "editMapData";
     }
 
     @GetMapping("/mapData/edit/{id}")
@@ -60,7 +71,7 @@ public class MapDataController {
 
         List<List<Integer>> coordinates = parseCoordinates(coordinatesStr);
         MapData mapData = (MapData) session.getAttribute("tempMapData");
-        if (mapData == null || !mapData.getId().equals(id)) {
+        if (mapData == null || !mapData.getId().equals(id)  && id >= 0) {
             mapData = mapDataService.getMapDataById(id)
                     .orElseThrow(() -> new RuntimeException("MapData not found with id: " + id));
             session.setAttribute("tempMapData", mapData);
@@ -109,16 +120,36 @@ public class MapDataController {
                 });
             }
 
-            // Persist the complete MapData (including any modifications to nodes)
-            mapDataService.updateMapData(tempMapData.getId(), tempMapData);
+            MapData updatedMapData;
 
-            MapData updatedMapData = mapDataService.getMapDataById(tempMapData.getId())
-                    .orElseThrow(() -> new RuntimeException("MapData not found with id: " + tempMapData.getId()));
+            if (tempMapData.getId() == null || tempMapData.getId() < 0) {
+                tempMapData.setId(null);
+                updatedMapData = mapDataService.saveMapData(tempMapData);
+            } else {
+                mapDataService.updateMapData(tempMapData.getId(), tempMapData);
+                updatedMapData = mapDataService.getMapDataById(tempMapData.getId())
+                        .orElseThrow(() -> new RuntimeException("MapData not found with id: " + tempMapData.getId()));
+            }
+
             // Refresh the session working instance with the updated entity
             session.setAttribute("tempMapData", updatedMapData);
             populateModelWithMapData(model, tempMapData);
         }
         return "redirect:/mapData/edit/" + tempMapData.getId() + "?tab=generalInfo";
+    }
+
+    @PostMapping("/mapData/delete")
+    @ResponseBody
+    public Map<String, Object> deleteMapData(@RequestParam("id") Long mapDataId, HttpSession session) {
+        Map<String, Object> response = new HashMap<>();
+        try {
+            mapDataService.deleteMapData(mapDataId);
+            response.put("success", true);
+        } catch (Exception e) {
+            response.put("success", false);
+            response.put("errorMessage", e.getMessage());
+        }
+        return response;
     }
 
     @Transactional
@@ -129,9 +160,16 @@ public class MapDataController {
         if (tempMapData == null) {
             throw new RuntimeException("No MapData available in session.");
         }
-        // Reload the MapData from the database along with its nodes
-        MapData freshMapData = mapDataService.getMapDataById(tempMapData.getId())
-                .orElseThrow(() -> new RuntimeException("MapData not found with id: " + tempMapData.getId()));
+
+        MapData freshMapData;
+
+        if (tempMapData.getId() == null || tempMapData.getId() < 0) {
+            freshMapData = initializeNewMapData();
+        } else {
+            freshMapData = mapDataService.getMapDataById(tempMapData.getId())
+                    .orElseThrow(() -> new RuntimeException("MapData not found with id: " + tempMapData.getId()));
+        }
+
 
         // Force initialization of the nodes collection while the session is still open
         if (freshMapData.getNodes() != null) {
@@ -194,5 +232,18 @@ public class MapDataController {
         model.addAttribute("matrixCols", mapData.getMatrix()[0].length);
         model.addAttribute("nodes", mapData.getNodes());
     }
+
+    private MapData initializeNewMapData() {
+        MapData mapData = new MapData();
+        mapData.setId(tempIdGenerator.getAndDecrement());
+        int defaultRows = 10, defaultCols = 10;
+        int[][] defaultMatrix = new int[defaultRows][defaultCols];
+        mapData.setMatrix(defaultMatrix);
+        mapData.setNodes(new ArrayList<>());
+        mapData.setName("");
+        mapData.setNorthAngle(0);
+        return mapData;
+    }
+
 
 }

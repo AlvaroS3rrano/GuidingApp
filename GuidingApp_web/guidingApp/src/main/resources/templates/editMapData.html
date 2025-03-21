@@ -76,7 +76,7 @@
                     </select>
                 </div>
                 <div class="form-group">
-                    <label for="coordinates">Coordinates (Format: x,y per line):</label>
+                    <label for="coordinates">Coordinates (Format: x,y per centered-btnline):</label>
                     <textarea id="coordinates" name="coordinates" rows="5"
                               placeholder="Example:&#10;0,1&#10;2,1&#10;2,3&#10;0,3" required></textarea>
                 </div>
@@ -91,7 +91,7 @@
                 {{#nodes}}
                 <div class="node-item">
                     <span class="node-beacon">{{name}}</span>
-                    <div class="node-action-buttons">
+                    <div class="action-buttons">
                         <button class="btn view-btn" title="View">
                             <!-- Eye SVG icon -->
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
@@ -124,7 +124,7 @@
                 <p>No nodes available.</p>
                 {{/nodes}}
             </div>
-            <button type="button" class="btn submit-btn add-node-btn" onclick="openNodeModal()">Add New Node</button>
+            <button type="button" class="btn submit-btn centered-btn" onclick="openNodeModal()">Add New Node</button>
         </div>
 
         <!-- Fixed action buttons at the bottom -->

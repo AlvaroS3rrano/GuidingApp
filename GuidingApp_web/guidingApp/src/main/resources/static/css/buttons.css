@@ -1,3 +1,18 @@
+/* Base styling for buttons */
+.btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0.25rem;
+    display: flex;
+    align-items: center;
+}
+
+/* Hover effect for buttons (optional) */
+.btn:hover {
+    opacity: 0.8;
+}
+
 .action-buttons-fixed {
     position: fixed;
     bottom: 0;
@@ -70,4 +85,15 @@
 }
 .tab-content.active {
     display: block;
+}
+
+.centered-btn {
+    display: block;
+    margin: 20px auto;
+}
+
+/* Action buttons container */
+.action-buttons {
+    display: flex;
+    gap: 0.5rem;
 }

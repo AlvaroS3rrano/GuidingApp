@@ -23,16 +23,6 @@ function showTab(tabId) {
 }
 
 document.addEventListener("DOMContentLoaded", function () {
-    // Load the error modal partial from the controller endpoint
-    fetch('/partials/errorModal')
-        .then(response => response.text())
-        .then(html => {
-            document.getElementById('errorContainer').innerHTML = html;
-        })
-        .catch(error => console.error('Error loading error modal:', error));
-});
-
-document.addEventListener("DOMContentLoaded", function () {
     const matrixForm = document.getElementById("matrixModificationForm");
     if (matrixForm) {
         matrixForm.addEventListener("submit", function (e) {
@@ -58,8 +48,8 @@ document.addEventListener("DOMContentLoaded", function () {
                     if (!data.success) {
                         openErrorModal(data.errorMessage);
                     } else {
-                        // If the operation was successful, reload the page to update the view
-                        window.location.reload();
+                        document.getElementById("matrixContainer").innerHTML = data.matrixSVG;
+                        document.getElementById("coordinates").value = "";
                     }
                 })
                 .catch(error => {
@@ -68,27 +58,6 @@ document.addEventListener("DOMContentLoaded", function () {
                 });
         });
     }
-});
-
-document.addEventListener("DOMContentLoaded", function () {
-    // Load the node modal partial from the controller endpoint
-    fetch('/partials/nodeModal')
-        .then(response => response.text())
-        .then(html => {
-            document.getElementById('modalContainer').innerHTML = html;
-            attachNodeFormListener();
-        })
-        .catch(error => console.error('Error loading node modal:', error));
-});
-
-document.addEventListener("DOMContentLoaded", function () {
-    // Load the confirm modal partial from the controller endpoint
-    fetch('/partials/confirmModal')
-        .then(response => response.text())
-        .then(html => {
-            document.getElementById('confirmContainer').innerHTML = html;
-        })
-        .catch(error => console.error('Error loading confirm modal:', error));
 });
 
 function discardChanges() {
@@ -123,6 +92,31 @@ function discardChanges() {
     });
 }
 
+
+function confirmDeleteNode(nodeId, mapId) {
+    openConfirmModal("Are you sure you want to delete this node?", function () {
+        fetch('/nodes/delete?id=' + nodeId + '&mapId=' + mapId, {
+            method: "GET",
+            headers: {
+                "X-Requested-With": "XMLHttpRequest"
+            }
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (!data.success) {
+                    alert("Error deleting node.");
+                } else {
+                    // Optionally, refresh the nodes list; here we'll simply reload the page
+                    window.location.href = data.redirectUrl;
+                }
+            })
+            .catch(error => {
+                console.error("Error deleting node:", error);
+            });
+
+    });
+}
+
 function openErrorModal(message) {
     const errorModalMessage = document.getElementById("errorModalMessage");
     errorModalMessage.textContent = message;
@@ -133,4 +127,35 @@ function closeErrorModal() {
     document.getElementById("errorModalOverlay").style.display = "none";
 }
 
+// LOAD MODALS
 
+document.addEventListener("DOMContentLoaded", function () {
+    // Load the confirmation modal partial from the controller endpoint
+    fetch('/partials/confirmModal')
+        .then(response => response.text())
+        .then(html => {
+            document.getElementById('confirmContainer').innerHTML = html;
+        })
+        .catch(error => console.error('Error loading confirm modal:', error));
+});
+
+document.addEventListener("DOMContentLoaded", function () {
+    // Load the node modal partial from the controller endpoint
+    fetch('/partials/nodeModal')
+        .then(response => response.text())
+        .then(html => {
+            document.getElementById('modalContainer').innerHTML = html;
+            attachNodeFormListener();
+        })
+        .catch(error => console.error('Error loading node modal:', error));
+});
+
+document.addEventListener("DOMContentLoaded", function () {
+    // Load the error modal partial from the controller endpoint
+    fetch('/partials/errorModal')
+        .then(response => response.text())
+        .then(html => {
+            document.getElementById('errorContainer').innerHTML = html;
+        })
+        .catch(error => console.error('Error loading error modal:', error));
+});
