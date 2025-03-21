@@ -1,49 +1,80 @@
 document.addEventListener('DOMContentLoaded', function () {
     let scale = 1;
     const matrixContainer = document.getElementById('matrixContainer');
-
-    // Get the SVG element within the container
     const svgElement = matrixContainer.querySelector('svg');
 
-    // Function to update zoom with dynamic transform origin
-    function updateZoom() {
-        // Calculate the center of the visible area in the container
-        const containerRect = matrixContainer.getBoundingClientRect();
-        const scrollLeft = matrixContainer.scrollLeft;
-        const scrollTop = matrixContainer.scrollTop;
+    // Variables para panning
+    let isPanning = false;
+    let startX = 0, startY = 0;
+    let currentTranslateX = 0, currentTranslateY = 0;
 
-        const visibleCenterX = scrollLeft + matrixContainer.clientWidth / 2;
-        const visibleCenterY = scrollTop + matrixContainer.clientHeight / 2;
-
-        // Set the transform origin relative to the SVG element in pixels.
-        // Note: If your SVG dimensions are different from the container dimensions,
-        // you might need to adjust the computed values accordingly.
-        svgElement.style.transformOrigin = `${visibleCenterX}px ${visibleCenterY}px`;
-
-        // Apply the zoom (scale transformation)
-        svgElement.style.transform = `scale(${scale})`;
+    // Función que aplica la transformación combinada
+    function updateTransform() {
+        svgElement.style.transformOrigin = '0 0'; // Usamos origen superior izquierdo (puedes ajustarlo)
+        svgElement.style.transform = `translate(${currentTranslateX}px, ${currentTranslateY}px) scale(${scale})`;
     }
 
-    // Zoom in button event
+    // Función para actualizar el zoom sin interferir con el panning
+    function updateZoom(newScale) {
+        scale = newScale;
+        updateTransform();
+    }
+
+    // Botón Zoom In
     document.getElementById('zoomInBtn').addEventListener('click', function () {
-        scale += 0.1;
-        updateZoom();
+        updateZoom(scale + 0.1);
     });
 
-    // Zoom out button event
+    // Botón Zoom Out
     document.getElementById('zoomOutBtn').addEventListener('click', function () {
-        if (scale > 0.2) { // Prevent the scale from becoming too small
-            scale -= 0.1;
-            updateZoom();
+        if (scale > 0.2) {
+            updateZoom(scale - 0.1);
         }
     });
 
-    // Reset zoom button event
+    // Botón Reset Zoom
     document.getElementById('resetZoomBtn').addEventListener('click', function () {
-        scale = 1;
-        updateZoom();
+        updateZoom(1);
+        // Opcionalmente reiniciar el panning:
+        currentTranslateX = 0;
+        currentTranslateY = 0;
+        updateTransform();
     });
 
-    // Optionally, update transform origin on scroll if the visible area changes
-    matrixContainer.addEventListener('scroll', updateZoom);
+    // Eventos para panning usando transform combinado
+    matrixContainer.style.cursor = 'grab';
+
+    matrixContainer.addEventListener('mousedown', (e) => {
+        isPanning = true;
+        matrixContainer.style.cursor = 'grabbing';
+        startX = e.clientX;
+        startY = e.clientY;
+    });
+
+    matrixContainer.addEventListener('mousemove', (e) => {
+        if (!isPanning) return;
+        e.preventDefault();
+        const dx = e.clientX - startX;
+        const dy = e.clientY - startY;
+
+        // Acumulamos el desplazamiento
+        currentTranslateX += dx;
+        currentTranslateY += dy;
+
+        updateTransform();
+
+        // Actualizamos la posición inicial para el siguiente movimiento
+        startX = e.clientX;
+        startY = e.clientY;
+    });
+
+    matrixContainer.addEventListener('mouseup', () => {
+        isPanning = false;
+        matrixContainer.style.cursor = 'grab';
+    });
+
+    matrixContainer.addEventListener('mouseleave', () => {
+        isPanning = false;
+        matrixContainer.style.cursor = 'grab';
+    });
 });

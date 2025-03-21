@@ -40,14 +40,6 @@ public class NodeController {
         return "nodes/list";
     }
 
-    // (Optional) For a separate new node form page
-    @GetMapping("/new")
-    public String newNodeForm(@RequestParam("mapId") Long mapId, Model model) {
-        Node node = new Node();
-        model.addAttribute("node", node);
-        return "nodes/form";
-    }
-
     /**
      * Endpoint to create a node via AJAX (from the popup modal) in transient mode.
      * The node is added to the temporary MapData stored in the session.
@@ -101,6 +93,7 @@ public class NodeController {
                 node.setBeaconId(updatedNode.getBeaconId());
                 node.setX(updatedNode.getX());
                 node.setY(updatedNode.getY());
+                node.setArea(updatedNode.getArea());
                 found = true;
                 break;
             }

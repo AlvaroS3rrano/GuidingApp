@@ -10,14 +10,14 @@
 .left-side, .right-side {
     flex: 1;
     padding: 20px;
-    overflow-y: auto; /* Allows scrolling if content overflows */
+    overflow-y: auto; 
 }
 
 .left-side {
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
+    justify-content: flex-start;
     padding: 20px;
     background-color: #f9f9f9;
     border-right: 1px solid #ccc;
@@ -39,15 +39,15 @@
     position: relative;
     z-index: 100;
     text-align: center;
-    padding: 10px 0;
-    background-color: #f9f9f9; /* Optionally add a background so the header is clearly separated */
+    padding: 0;
+    background-color: #f9f9f9;
 }
 
 .matrix-display {
-    width: 800px;  /* Or any width that suits your design */
-    height: 600px; /* Adjust as needed */
+    width: 100%;
+    height: 600px;
     border: 1px solid #ccc;
-    overflow: auto; /* Allows scrolling if the SVG is large */
+    overflow: hidden;
     position: relative;
     background-color: #f9f9f9;
     display: flex;
@@ -85,5 +85,9 @@ form {
     border: 1px solid #ccc;
     border-radius: 5px;
     font-size: 1rem;
+}
+
+.zoom-controls {
+    padding-bottom: 10px;
 }
 
