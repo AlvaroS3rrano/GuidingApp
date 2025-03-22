@@ -2,6 +2,8 @@ package es.gdapp.guidingApp.services;
 
 import es.gdapp.guidingApp.models.MapData;
 import es.gdapp.guidingApp.repositories.MapDataRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.util.Collection;
@@ -17,22 +19,18 @@ public class MapDataService {
         this.mapDataRepository = mapDataRepository;
     }
 
-    // Create or update a MapData entry
     public MapData saveMapData(MapData mapData) {
         return mapDataRepository.save(mapData);
     }
 
-    // Retrieve a MapData entry by its id
     public Optional<MapData> getMapDataById(Long id) {
         return mapDataRepository.findById(id);
     }
 
-    // Retrieve all MapData entries
     public Collection<MapData> getAllMapData() {
         return mapDataRepository.findAll();
     }
 
-    // Update an existing MapData (throws exception if not found)
     public MapData updateMapData(Long id, MapData mapData) {
         if (mapDataRepository.findById(id).isPresent()) {
             // Optionally, you can set the id explicitly before saving
@@ -42,8 +40,11 @@ public class MapDataService {
         throw new NoSuchElementException("MapData not found with id: " + id);
     }
 
-    // Delete a MapData entry by its id
     public void deleteMapData(Long id) {
         mapDataRepository.deleteById(id);
+    }
+
+    public Page<MapData> getMapDataPage(Pageable pageable) {
+        return mapDataRepository.findAll(pageable);
     }
 }

@@ -31,5 +31,13 @@
     color: #333;
 }
 
+.pagination-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 1rem; /* Espacio entre los botones */
+    margin: 20px 0; /* Margen superior e inferior */
+}
+
 
 

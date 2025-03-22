@@ -1,10 +1,16 @@
 package es.gdapp.guidingApp.controllers.web;
 
+import es.gdapp.guidingApp.dto.MapDataDTO;
+import es.gdapp.guidingApp.dto.NodeDTO;
 import es.gdapp.guidingApp.models.MapData;
+import es.gdapp.guidingApp.models.Node;
 import es.gdapp.guidingApp.services.MapDataService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Controller;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.ui.Model;
@@ -12,6 +18,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.Collectors;
 
 @Controller
 public class MapDataController {
@@ -27,7 +34,7 @@ public class MapDataController {
 
     @GetMapping("/mapData")
     public String getMapDataList(Model model) {
-        model.addAttribute("mapDataList", mapDataService.getAllMapData());
+        //model.addAttribute("mapDataList", mapDataService.getAllMapData());
         return "mapData";
     }
 
@@ -55,6 +62,13 @@ public class MapDataController {
         return "editMapData";
     }
 
+    @GetMapping("/mapData/page")
+    @ResponseBody
+    public Page<MapDataDTO> getMapDataPage(@RequestParam("page") int page, @RequestParam("size") int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        Page<MapData> mapDataPage = mapDataService.getMapDataPage(pageable);
+        return mapDataPage.map(this::convertToDTO);
+    }
 
     /**
      * Endpoint to apply matrix modifications.
@@ -243,6 +257,31 @@ public class MapDataController {
         mapData.setName("");
         mapData.setNorthAngle(0);
         return mapData;
+    }
+
+    private MapDataDTO convertToDTO(MapData entity) {
+        MapDataDTO dto = new MapDataDTO();
+        dto.setId(entity.getId());
+        dto.setName(entity.getName());
+        dto.setNorthAngle(entity.getNorthAngle());
+        dto.setMatrix(entity.getMatrix());
+        if (entity.getNodes() != null) {
+            dto.setNodes(entity.getNodes().stream()
+                    .map(this::convertNodeToDTO)
+                    .collect(Collectors.toList()));
+        }
+        return dto;
+    }
+
+    private NodeDTO convertNodeToDTO(Node node) {
+        NodeDTO nodeDTO = new NodeDTO();
+        nodeDTO.setId(node.getId());
+        nodeDTO.setName(node.getName());
+        nodeDTO.setBeaconId(node.getBeaconId());
+        nodeDTO.setX(node.getX());
+        nodeDTO.setY(node.getY());
+        nodeDTO.setArea(node.getArea());
+        return nodeDTO;
     }
 
 

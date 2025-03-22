@@ -1,5 +1,6 @@
 package es.gdapp.guidingApp.models;
 
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import es.gdapp.guidingApp.converters.IntArrayConverter;
 import jakarta.persistence.*;
 import lombok.Data;
@@ -27,6 +28,7 @@ public class MapData {
 
     // One-to-many relationship with Node
     @OneToMany(mappedBy = "map", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonManagedReference
     private List<Node> nodes;
 
     // Custom constructor to initialize the matrix

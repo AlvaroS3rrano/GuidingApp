@@ -1,5 +1,6 @@
 package es.gdapp.guidingApp.models;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import es.gdapp.guidingApp.converters.IntArrayConverter;
@@ -33,6 +34,7 @@ public class Node {
     // Many-to-one relationship with MapData
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "map_id")
+    @JsonBackReference
     private MapData map;
 
     @Convert(converter = IntArrayConverter.class)
