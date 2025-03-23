@@ -2,6 +2,7 @@ package es.gdapp.guidingApp.controllers.web;
 
 import es.gdapp.guidingApp.dto.MapDataDTO;
 import es.gdapp.guidingApp.dto.NodeDTO;
+import es.gdapp.guidingApp.dto.PageWrapperDTO;
 import es.gdapp.guidingApp.models.MapData;
 import es.gdapp.guidingApp.models.Node;
 import es.gdapp.guidingApp.services.MapDataService;
@@ -64,10 +65,19 @@ public class MapDataController {
 
     @GetMapping("/mapData/page")
     @ResponseBody
-    public Page<MapDataDTO> getMapDataPage(@RequestParam("page") int page, @RequestParam("size") int size) {
+    public PageWrapperDTO<MapDataDTO> getMapDataPage(@RequestParam("page") int page, @RequestParam("size") int size) {
         Pageable pageable = PageRequest.of(page, size);
         Page<MapData> mapDataPage = mapDataService.getMapDataPage(pageable);
-        return mapDataPage.map(this::convertToDTO);
+        List<MapDataDTO> content = mapDataPage
+                .stream()
+                .map(this::convertToDTO)
+                .collect(Collectors.toList());
+        return new PageWrapperDTO<>(
+                content,
+                mapDataPage.getTotalPages(),
+                mapDataPage.getTotalElements(),
+                mapDataPage.getNumber()
+        );
     }
 
     /**
@@ -85,7 +95,7 @@ public class MapDataController {
 
         List<List<Integer>> coordinates = parseCoordinates(coordinatesStr);
         MapData mapData = (MapData) session.getAttribute("tempMapData");
-        if (mapData == null || !mapData.getId().equals(id)  && id >= 0) {
+        if (mapData == null || !mapData.getId().equals(id) && id >= 0) {
             mapData = mapDataService.getMapDataById(id)
                     .orElseThrow(() -> new RuntimeException("MapData not found with id: " + id));
             session.setAttribute("tempMapData", mapData);
@@ -110,8 +120,7 @@ public class MapDataController {
             @ModelAttribute MapData formMapData,
             @RequestParam(name = "newRows", required = false) Integer newRows,
             @RequestParam(name = "newCols", required = false) Integer newCols,
-            HttpSession session,
-            Model model) {
+            HttpSession session) {
 
         MapData tempMapData = (MapData) session.getAttribute("tempMapData");
         if (tempMapData != null) {
@@ -134,22 +143,23 @@ public class MapDataController {
                 });
             }
 
-            MapData updatedMapData;
-
             if (tempMapData.getId() == null || tempMapData.getId() < 0) {
                 tempMapData.setId(null);
-                updatedMapData = mapDataService.saveMapData(tempMapData);
-            } else {
-                mapDataService.updateMapData(tempMapData.getId(), tempMapData);
-                updatedMapData = mapDataService.getMapDataById(tempMapData.getId())
-                        .orElseThrow(() -> new RuntimeException("MapData not found with id: " + tempMapData.getId()));
+                mapDataService.saveMapData(tempMapData);
+                return "redirect:/mapData";
             }
+
+            mapDataService.updateMapData(tempMapData.getId(), tempMapData);
+            MapData updatedMapData = mapDataService.getMapDataById(tempMapData.getId())
+                    .orElseThrow(() -> new RuntimeException("MapData not found with id: " + tempMapData.getId()));
+
 
             // Refresh the session working instance with the updated entity
             session.setAttribute("tempMapData", updatedMapData);
-            populateModelWithMapData(model, tempMapData);
+            return "redirect:/mapData/edit/" + updatedMapData.getId() + "?tab=generalInfo";
+        }else{
+            throw new RuntimeException("No MapData available in session");
         }
-        return "redirect:/mapData/edit/" + tempMapData.getId() + "?tab=generalInfo";
     }
 
     @PostMapping("/mapData/delete")

@@ -7,18 +7,15 @@ window.onload = function () {
 
 /**
  * Displays the tab content with the given tabId while hiding the others.
- * @param {string} tabId - The id of the tab content to display.
+ * @param {string} tabName - The id of the tab content to display.
  */
-function showTab(tabId) {
-    let tabs = document.getElementsByClassName('tab-content');
-    for (let i = 0; i < tabs.length; i++) {
-        tabs[i].classList.remove('active');
-    }
-    document.getElementById(tabId).classList.add('active');
+function showTab(tabName) {
+    document.querySelectorAll('.tab-content').forEach(tab => tab.style.display = 'none');
+    document.getElementById(tabName).style.display = 'block';
 
     // Update the URL parameter "tab" without reloading the page.
     const url = new URL(window.location);
-    url.searchParams.set('tab', tabId);
+    url.searchParams.set('tab', tabName);
     window.history.pushState({}, '', url);
 }
 
