@@ -4,6 +4,7 @@ import { View, StyleSheet } from "react-native";
 import { Stack } from "expo-router";
 import { startBeaconScanning, stopBeaconScanning } from "../app/services/beaconScannerService";
 import ErrorBanner from "@/app/components/errorBanner"; 
+import MapDataLogger from "./mapDataLogger";
 
 export default function RootLayout() {
   useEffect(() => {
@@ -21,6 +22,7 @@ export default function RootLayout() {
         <Stack.Screen name="index" options={{ headerTitle: "Show Beacons" }} />
         <Stack.Screen name="showMap" options={{ headerTitle: "Map" }} />
       </Stack>
+      <MapDataLogger />
       <ErrorBanner />
     </View>
   );

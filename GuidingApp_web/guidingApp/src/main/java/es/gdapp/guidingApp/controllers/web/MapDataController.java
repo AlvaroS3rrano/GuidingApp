@@ -1,8 +1,11 @@
 package es.gdapp.guidingApp.controllers.web;
 
+import es.gdapp.guidingApp.dto.EdgeDTO;
 import es.gdapp.guidingApp.dto.MapDataDTO;
 import es.gdapp.guidingApp.dto.NodeDTO;
 import es.gdapp.guidingApp.dto.PageWrapperDTO;
+import es.gdapp.guidingApp.mappers.MapDataMapper;
+import es.gdapp.guidingApp.models.Edge;
 import es.gdapp.guidingApp.models.MapData;
 import es.gdapp.guidingApp.models.Node;
 import es.gdapp.guidingApp.services.MapDataService;
@@ -25,17 +28,17 @@ import java.util.stream.Collectors;
 public class MapDataController {
 
     private final MapDataService mapDataService;
-
-    @Autowired
-    public MapDataController(MapDataService mapDataService) {
-        this.mapDataService = mapDataService;
-    }
-
+    private final MapDataMapper mapDataMapper;
     private final AtomicLong tempIdGenerator = new AtomicLong(-1);
 
+    @Autowired
+    public MapDataController(MapDataService mapDataService, MapDataMapper mapDataMapper) {
+        this.mapDataService = mapDataService;
+        this.mapDataMapper = mapDataMapper;
+    }
+
     @GetMapping("/mapData")
-    public String getMapDataList(Model model) {
-        //model.addAttribute("mapDataList", mapDataService.getAllMapData());
+    public String getMapDataList() {
         return "mapData";
     }
 
@@ -53,7 +56,6 @@ public class MapDataController {
         if (mapData == null || !mapData.getId().equals(id)) {
             mapData = mapDataService.getMapDataById(id)
                     .orElseThrow(() -> new RuntimeException("MapData not found with id: " + id));
-            // Initialize the nodes list if null to prevent errors in the view
             if (mapData.getNodes() == null) {
                 mapData.setNodes(new ArrayList<>());
             }
@@ -70,7 +72,7 @@ public class MapDataController {
         Page<MapData> mapDataPage = mapDataService.getMapDataPage(pageable);
         List<MapDataDTO> content = mapDataPage
                 .stream()
-                .map(this::convertToDTO)
+                .map(mapDataMapper::toMapDataDTO)
                 .collect(Collectors.toList());
         return new PageWrapperDTO<>(
                 content,
@@ -280,6 +282,19 @@ public class MapDataController {
                     .map(this::convertNodeToDTO)
                     .collect(Collectors.toList()));
         }
+        if (entity.getEdges() != null) {
+            dto.setEdges(entity.getEdges().stream()
+                    .map(this::convertEdgeToDTO)
+                    .collect(Collectors.toList()));
+        }
+        return dto;
+    }
+
+    private EdgeDTO convertEdgeToDTO(Edge edge) {
+        EdgeDTO dto = new EdgeDTO();
+        dto.setId(edge.getId());
+        dto.setFromNode(convertNodeToDTO(edge.getFromNode()));
+        dto.setToNode(convertNodeToDTO(edge.getToNode()));
         return dto;
     }
 

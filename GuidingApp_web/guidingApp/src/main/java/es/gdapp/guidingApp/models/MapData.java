@@ -31,6 +31,9 @@ public class MapData {
     @JsonManagedReference
     private List<Node> nodes;
 
+    @OneToMany(mappedBy = "mapData", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Edge> edges;
+
     // Custom constructor to initialize the matrix
     public MapData(String name, double northAngle, int rows, int columns) {
         this.name = name;

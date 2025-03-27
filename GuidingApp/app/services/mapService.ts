@@ -1,8 +1,37 @@
 // mapService.ts
+import axios from 'axios';
 import { generateGeom, updateMatrixWithDoors, Door } from "@/app/classes/geometry";
 import { MapData } from "@/app/classes/mapData";
 import { Node } from "@/app/classes/node";
+import { EdgeDTO, MapDataDTO, NodeDTO} from "@/app/classes/trial"
 
+const API_BASE_URL = 'http://192.168.1.55:8080/api/mapdata';
+
+export class MapService {
+  // Obtiene todos los MapData
+  static async getAllMapData(): Promise<MapDataDTO[]> {
+    try {
+      const response = await axios.get<MapDataDTO[]>(API_BASE_URL);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching all MapData:', error);
+      throw error;
+    }
+  }
+
+  // Obtiene un MapData específico por ID
+  static async getMapDataById(id: number): Promise<MapDataDTO> {
+    try {
+      const response = await axios.get<MapDataDTO>(`${API_BASE_URL}/${id}`);
+      return response.data;
+    } catch (error) {
+      console.error(`Error fetching MapData with id ${id}:`, error);
+      throw error;
+    }
+  }
+}
+
+/*
 // Define your nodes
 const or = new Node(
   "d4fcb04a6573ea399df3adbf06f91b38",
@@ -63,3 +92,5 @@ const mapData: MapData = {
 };
 
 export { mapData, places };
+
+*/

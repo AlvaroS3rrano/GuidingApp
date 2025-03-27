@@ -10,4 +10,5 @@ public class MapDataDTO {
     private double northAngle;
     private int[][] matrix;
     private List<NodeDTO> nodes;
+    private List<EdgeDTO> edges;
 }

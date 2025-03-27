@@ -1,51 +1,41 @@
 package es.gdapp.guidingApp.controllers.rest;
 
+import es.gdapp.guidingApp.dto.MapDataDTO;
+import es.gdapp.guidingApp.mappers.MapDataMapper;
 import es.gdapp.guidingApp.models.MapData;
 import es.gdapp.guidingApp.services.MapDataService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Collection;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/mapdata")
 public class MapDataRestController {
 
     private final MapDataService mapDataService;
+    private final MapDataMapper mapDataMapper;
 
     @Autowired
-    public MapDataRestController(MapDataService mapDataService) {
+    public MapDataRestController(MapDataService mapDataService, MapDataMapper mapDataMapper) {
         this.mapDataService = mapDataService;
+        this.mapDataMapper = mapDataMapper;
     }
 
-    // Retrieve all map data entries
     @GetMapping
-    public Collection<MapData> getAllMapData() {
-        return mapDataService.getAllMapData();
+    public Collection<MapDataDTO> getAllMapData() {
+        return mapDataService.getAllMapData().stream()
+                .map(mapDataMapper::toMapDataDTO)
+                .collect(Collectors.toList());
     }
 
-    // Retrieve a single MapData by id
     @GetMapping("/{id}")
-    public MapData getMapDataById(@PathVariable Long id) {
-        return mapDataService.getMapDataById(id)
+    public MapDataDTO getMapDataById(@PathVariable Long id) {
+        MapData mapData = mapDataService.getMapDataById(id)
                 .orElseThrow(() -> new RuntimeException("MapData not found with id: " + id));
+        return mapDataMapper.toMapDataDTO(mapData);
     }
 
-    // Create a new MapData entry
-    @PostMapping("/{id}")
-    public MapData createMapData(@RequestBody MapData mapData) {
-        return mapDataService.saveMapData(mapData);
-    }
-
-    // Update an existing MapData entry
-    @PutMapping("/{id}")
-    public MapData updateMapData(@PathVariable Long id, @RequestBody MapData mapData) {
-        return mapDataService.updateMapData(id, mapData);
-    }
-
-    // Delete a MapData entry by id
-    @DeleteMapping("/{id}")
-    public void deleteMapData(@PathVariable Long id) {
-        mapDataService.deleteMapData(id);
-    }
 }
+
