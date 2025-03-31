@@ -1,8 +1,5 @@
 // mapService.ts
 import axios from 'axios';
-import { generateGeom, updateMatrixWithDoors, Door } from "@/app/classes/geometry";
-import { MapData } from "@/app/classes/mapData";
-import { Node } from "@/app/classes/node";
 import { EdgeDTO, MapDataDTO, NodeDTO} from "@/app/classes/DTOs"
 
 const API_BASE_URL = 'http://192.168.1.55:8080/api/mapdata';
@@ -26,6 +23,17 @@ export class MapService {
       return response.data;
     } catch (error) {
       console.error(`Error fetching MapData with id ${id}:`, error);
+      throw error;
+    }
+  }
+
+  // (Opcional) Obtiene el MapData asociado a un Node, usando el endpoint del NodeRestController.
+  static async getMapDataByNodeId(nodeId: number): Promise<MapDataDTO> {
+    try {
+      const response = await axios.get<MapDataDTO>(`http://192.168.1.55:8080/api/nodes/${nodeId}/mapdata`);
+      return response.data;
+    } catch (error) {
+      console.error(`Error fetching MapData for node id ${nodeId}:`, error);
       throw error;
     }
   }

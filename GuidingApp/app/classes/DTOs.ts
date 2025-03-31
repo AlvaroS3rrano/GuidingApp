@@ -4,6 +4,7 @@ export interface NodeDTO {
   beaconId: string;
   x: number;
   y: number;
+  comment: string;
   area: number[][];
 }
 
