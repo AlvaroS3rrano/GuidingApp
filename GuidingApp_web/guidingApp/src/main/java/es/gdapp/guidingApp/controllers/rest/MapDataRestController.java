@@ -5,6 +5,8 @@ import es.gdapp.guidingApp.mappers.MapDataMapper;
 import es.gdapp.guidingApp.models.MapData;
 import es.gdapp.guidingApp.services.MapDataService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Collection;
@@ -24,18 +26,18 @@ public class MapDataRestController {
     }
 
     @GetMapping
-    public Collection<MapDataDTO> getAllMapData() {
-        return mapDataService.getAllMapData().stream()
+    public ResponseEntity<Collection<MapDataDTO>> getAllMapData() {
+        Collection<MapDataDTO> mapDataDTOs = mapDataService.getAllMapData().stream()
                 .map(mapDataMapper::toMapDataDTO)
                 .collect(Collectors.toList());
+        return ResponseEntity.ok(mapDataDTOs);
     }
 
     @GetMapping("/{id}")
-    public MapDataDTO getMapDataById(@PathVariable Long id) {
-        MapData mapData = mapDataService.getMapDataById(id)
-                .orElseThrow(() -> new RuntimeException("MapData not found with id: " + id));
-        return mapDataMapper.toMapDataDTO(mapData);
+    public ResponseEntity<MapDataDTO> getMapDataById(@PathVariable Long id) {
+        return mapDataService.getMapDataById(id)
+                .map(mapData -> ResponseEntity.ok(mapDataMapper.toMapDataDTO(mapData)))
+                .orElse(ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body(null));
     }
-
 }
-

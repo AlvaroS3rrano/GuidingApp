@@ -1,45 +1,63 @@
 package es.gdapp.guidingApp.controllers.rest;
 
+import es.gdapp.guidingApp.dto.MapDataDTO;
+import es.gdapp.guidingApp.mappers.MapDataMapper;
 import es.gdapp.guidingApp.models.Node;
 import es.gdapp.guidingApp.services.NodeService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Collection;
+import java.util.NoSuchElementException;
 
 @RestController
 @RequestMapping("/api/nodes")
 public class NodeRestController {
 
     private final NodeService nodeService;
+    private final MapDataMapper mapDataMapper;
 
     @Autowired
-    public NodeRestController(NodeService nodeService) {
+    public NodeRestController(NodeService nodeService, MapDataMapper mapDataMapper) {
         this.nodeService = nodeService;
+        this.mapDataMapper = mapDataMapper;
     }
 
-    // Retrieve all nodes
+    // Obtener todos los nodos
     @GetMapping
-    public Collection<Node> getAllNodes() {
-        return nodeService.getAllNodes();
+    public ResponseEntity<Collection<Node>> getAllNodes() {
+        return ResponseEntity.ok(nodeService.getAllNodes());
     }
 
-    // Retrieve a single node by id
+    // Obtener un nodo por su id
     @GetMapping("/{id}")
-    public Node getNodeById(@PathVariable Long id) {
+    public ResponseEntity<Node> getNodeById(@PathVariable Long id) {
         return nodeService.getNodeById(id)
-                .orElseThrow(() -> new RuntimeException("Node not found with id: " + id));
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.status(HttpStatus.NOT_FOUND).body(null));
     }
 
-    // Create a new node
-    @PostMapping
-    public Node createNode(@RequestBody Node node) {
-        return nodeService.saveNode(node);
+    // Obtener un nodo por beaconId
+    @GetMapping("/beacon/{beaconId}")
+    public ResponseEntity<Node> getNodeByBeaconId(@PathVariable String beaconId) {
+        return nodeService.getNodeByBeaconId(beaconId)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.status(HttpStatus.NOT_FOUND).body(null));
     }
 
-    // Delete a node by id
-    @DeleteMapping("/{id}")
-    public void deleteNode(@PathVariable Long id) {
-        nodeService.deleteNode(id);
+    // Nuevo endpoint: Obtener el MapData asociado a un nodo
+    @GetMapping("/{nodeId}/mapdata")
+    public ResponseEntity<MapDataDTO> getMapDataByNodeId(@PathVariable Long nodeId) {
+        return nodeService.getNodeById(nodeId)
+                .map(node -> {
+                    if (node.getMap() == null) {
+                        return ResponseEntity.status(HttpStatus.NOT_FOUND).<MapDataDTO>body(null);
+                    }
+                    return ResponseEntity.ok(mapDataMapper.toMapDataDTO(node.getMap()));
+                })
+                .orElse(ResponseEntity.status(HttpStatus.NOT_FOUND).body(null));
     }
+
 }

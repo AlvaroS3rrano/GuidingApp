@@ -32,6 +32,11 @@ public class NodeService {
         return nodeRepository.findAll();
     }
 
+    // Retrieve a Node by its beaconId
+    public Optional<Node> getNodeByBeaconId(String beaconId) {
+        return nodeRepository.findByBeaconId(beaconId);
+    }
+
     // Update an existing Node (throws exception if not found)
     public Node updateNode(Long id, Node node) {
         if (nodeRepository.findById(id).isPresent()) {

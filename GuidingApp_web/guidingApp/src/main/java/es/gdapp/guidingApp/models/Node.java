@@ -31,6 +31,8 @@ public class Node {
 
     private Integer y;
 
+    private String comment;
+
     // Many-to-one relationship with MapData
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "map_id")
@@ -52,6 +54,7 @@ public class Node {
             nodeData.put("x", this.x);
             nodeData.put("y", this.y);
             nodeData.put("area", this.area);
+            nodeData.put("comment", this.comment);
             // You can omit the 'map' property to avoid lazy loading issues.
             return new ObjectMapper().writeValueAsString(nodeData);
         } catch (JsonProcessingException e) {

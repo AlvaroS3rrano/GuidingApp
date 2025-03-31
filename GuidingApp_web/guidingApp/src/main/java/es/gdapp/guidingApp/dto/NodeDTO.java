@@ -9,5 +9,6 @@ public class NodeDTO {
     private String beaconId;
     private Integer x;
     private Integer y;
+    private String comment;
     private int[][] area;
 }
