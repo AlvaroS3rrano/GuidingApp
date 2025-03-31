@@ -3,7 +3,7 @@ import axios from 'axios';
 import { generateGeom, updateMatrixWithDoors, Door } from "@/app/classes/geometry";
 import { MapData } from "@/app/classes/mapData";
 import { Node } from "@/app/classes/node";
-import { EdgeDTO, MapDataDTO, NodeDTO} from "@/app/classes/trial"
+import { EdgeDTO, MapDataDTO, NodeDTO} from "@/app/classes/DTOs"
 
 const API_BASE_URL = 'http://192.168.1.55:8080/api/mapdata';
 

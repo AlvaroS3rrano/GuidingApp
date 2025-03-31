@@ -10,6 +10,7 @@ import { Dot } from './geometry'
  * 
  * The Node class also provides methods to add a new Dot to the area and update the sensor.
  */
+
 export class Node {
   // 'id' is a unique identifier for the node.
   public id: string;

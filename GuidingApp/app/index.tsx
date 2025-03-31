@@ -45,6 +45,9 @@ export default function BeaconListScreen() {
       <Link href={"/showMap"} style={styles.button}>
           Map
       </Link>
+      <Link href={"/globalMap"} style={styles.button}>
+          Global map
+      </Link>
     </View>
   );
 }
