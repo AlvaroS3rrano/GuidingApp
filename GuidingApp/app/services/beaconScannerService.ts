@@ -5,6 +5,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { calculateDistance } from "@/resources/distance";
 import requestPermissions from "@/resources/permissions";
 import { EventEmitter } from "events";
+import { NodeService } from "./nodeService";
 
 /**
  * BeaconScannerService - Handles BLE beacon scanning.
@@ -31,6 +32,8 @@ export interface ScannedDevice {
 const TARGET_SERVICE_UUID = "0000fe9a-0000-1000-8000-00805f9b34fb";
 const bleManager = new BleManager();
 let devices: ScannedDevice[] = [];
+let knownBeacons: ScannedDevice[] = [];
+let unknownBeacons: ScannedDevice[] = [];
 
 export const startBeaconScanning = async () => {
   // Request necessary Bluetooth permissions
@@ -95,6 +98,30 @@ export const startBeaconScanning = async () => {
           lastSeen: Date.now(),
         };
 
+        if (newDevice.identifier != null) {
+          const knownIndex = knownBeacons.findIndex(b => b.identifier === newDevice.identifier);
+          const unknownIndex = unknownBeacons.findIndex(b => b.identifier === newDevice.identifier);
+
+          if (knownIndex >= 0) {
+            knownBeacons[knownIndex] = { ...knownBeacons[knownIndex], ...newDevice };
+            console.log(`Beacon ${newDevice.identifier} actualizado en knownBeacons.`);
+          } else if (unknownIndex >= 0) {
+            unknownBeacons[unknownIndex] = { ...unknownBeacons[unknownIndex], ...newDevice };
+            console.log(`Beacon ${newDevice.identifier} actualizado en unknownBeacons.`);
+          } else {
+            try {
+              const node = await NodeService.getNodeByBeaconId(newDevice.identifier);
+              if (node) {
+                knownBeacons.push(newDevice);
+              } else {
+                unknownBeacons.push(newDevice);
+              }
+            } catch (error) {
+              console.log(`Error al procesar el beacon ${newDevice.identifier}`);
+            }
+          }
+        }
+
         // Update the devices list: remove any previous instance of the same device
         devices = devices.filter(device => device.id !== scannedDevice.id);
         devices.push(newDevice);
@@ -106,7 +133,7 @@ export const startBeaconScanning = async () => {
         beaconEventEmitter.emit("update", devices);
 
         // Optionally, determine and store the closest beacon in AsyncStorage
-        const closest = devices.reduce<ScannedDevice | undefined>(
+        const closest = knownBeacons.reduce<ScannedDevice | undefined>(
           (closest, device) => {
             if (device.distance === null) return closest;
             if (!closest || (closest.distance !== null && device.distance < closest.distance)) {

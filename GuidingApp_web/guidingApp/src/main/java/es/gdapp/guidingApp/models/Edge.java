@@ -12,6 +12,8 @@ public class Edge {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    private Integer weight;
+
     @ManyToOne
     @JoinColumn(name = "from_node_id", nullable = false)
     private Node fromNode;

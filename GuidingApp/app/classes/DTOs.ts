@@ -10,6 +10,7 @@ export interface NodeDTO {
 
 export interface EdgeDTO {
   id: number;
+  weight: number;
   fromNode: NodeDTO;
   toNode: NodeDTO;
 }
