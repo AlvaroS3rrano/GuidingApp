@@ -1,8 +1,9 @@
 // mapService.ts
 import axios from 'axios';
 import { EdgeDTO, MapDataDTO, NodeDTO} from "@/app/classes/DTOs"
+import { COMP_IP } from '../constants/google_const';
 
-const API_BASE_URL = 'http://192.168.1.55:8080/api/mapdata';
+const API_BASE_URL = 'http://'+COMP_IP+':8080/api/mapdata';
 
 export class MapService {
   // Obtiene todos los MapData
@@ -28,12 +29,12 @@ export class MapService {
   }
 
   // (Opcional) Obtiene el MapData asociado a un Node, usando el endpoint del NodeRestController.
-  static async getMapDataByNodeId(nodeId: number): Promise<MapDataDTO> {
+  static async getMapDataByNodeId(beaconId: string): Promise<MapDataDTO> {
     try {
-      const response = await axios.get<MapDataDTO>(`http://192.168.1.55:8080/api/nodes/${nodeId}/mapdata`);
+      const response = await axios.get<MapDataDTO>(`http://${COMP_IP}:8080/api/nodes/${beaconId}/mapdata`);
       return response.data;
     } catch (error) {
-      console.error(`Error fetching MapData for node id ${nodeId}:`, error);
+      console.error(`Error fetching MapData for node id ${beaconId}:`, error);
       throw error;
     }
   }

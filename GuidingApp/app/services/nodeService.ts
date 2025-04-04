@@ -1,8 +1,9 @@
 // nodeService.ts
 import axios from 'axios';
 import { NodeDTO } from "@/app/classes/DTOs";
+import { COMP_IP } from '../constants/google_const';
 
-const API_BASE_URL = 'http://192.168.1.55:8080/api/nodes';
+const API_BASE_URL = 'http://'+COMP_IP+':8080/api/nodes';
 
 export class NodeService {
   // Obtiene todos los nodos

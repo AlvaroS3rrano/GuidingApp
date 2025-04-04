@@ -48,9 +48,9 @@ public class NodeRestController {
     }
 
     // Nuevo endpoint: Obtener el MapData asociado a un nodo
-    @GetMapping("/{nodeId}/mapdata")
-    public ResponseEntity<MapDataDTO> getMapDataByNodeId(@PathVariable Long nodeId) {
-        return nodeService.getNodeById(nodeId)
+    @GetMapping("/{beaconId}/mapdata")
+    public ResponseEntity<MapDataDTO> getMapDataByBeaconId(@PathVariable String beaconId) {
+        return nodeService.getNodeByBeaconId(beaconId)
                 .map(node -> {
                     if (node.getMap() == null) {
                         return ResponseEntity.status(HttpStatus.NOT_FOUND).<MapDataDTO>body(null);

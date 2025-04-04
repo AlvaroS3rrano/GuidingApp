@@ -6,6 +6,7 @@ import { calculateDistance } from "@/resources/distance";
 import requestPermissions from "@/resources/permissions";
 import { EventEmitter } from "events";
 import { NodeService } from "./nodeService";
+import { MapService } from "./mapService";
 
 /**
  * BeaconScannerService - Handles BLE beacon scanning.
@@ -34,6 +35,7 @@ const bleManager = new BleManager();
 let devices: ScannedDevice[] = [];
 let knownBeacons: ScannedDevice[] = [];
 let unknownBeacons: ScannedDevice[] = [];
+let previousMapDataId: number | null = null;
 
 export const startBeaconScanning = async () => {
   // Request necessary Bluetooth permissions
@@ -63,7 +65,7 @@ export const startBeaconScanning = async () => {
         }, 5000);
         return;
       }
-
+      
       if (scannedDevice) {
         let identifier = null;
         if (scannedDevice.serviceData) {
@@ -98,9 +100,11 @@ export const startBeaconScanning = async () => {
           lastSeen: Date.now(),
         };
 
+        
         if (newDevice.identifier != null) {
           const knownIndex = knownBeacons.findIndex(b => b.identifier === newDevice.identifier);
           const unknownIndex = unknownBeacons.findIndex(b => b.identifier === newDevice.identifier);
+          
 
           if (knownIndex >= 0) {
             knownBeacons[knownIndex] = { ...knownBeacons[knownIndex], ...newDevice };
@@ -111,6 +115,7 @@ export const startBeaconScanning = async () => {
           } else {
             try {
               const node = await NodeService.getNodeByBeaconId(newDevice.identifier);
+
               if (node) {
                 knownBeacons.push(newDevice);
               } else {
@@ -121,7 +126,7 @@ export const startBeaconScanning = async () => {
             }
           }
         }
-
+        
         // Update the devices list: remove any previous instance of the same device
         devices = devices.filter(device => device.id !== scannedDevice.id);
         devices.push(newDevice);
@@ -144,7 +149,21 @@ export const startBeaconScanning = async () => {
           undefined
         );
         if (closest && closest.identifier) {
-          await AsyncStorage.setItem("closestBeacon", closest.identifier);
+          try {
+            const mapData = await MapService.getMapDataByNodeId(closest.identifier);
+            if (mapData) {
+              // Si el mapData actual es diferente del previo, entonces se emite el evento
+              if (previousMapDataId !== mapData.id) {
+                previousMapDataId = mapData.id;
+                await AsyncStorage.setItem("closestBeacon", closest.identifier);
+                beaconEventEmitter.emit("closestBeacon", mapData.name);
+              }
+            } else {
+              console.log(`No se encontró mapData para el beacon ${closest.identifier}`);
+            }
+          } catch (error) {
+            console.log(`Error al obtener mapData para el beacon ${closest.identifier}:`, error);
+          }
         }
       }
     }
