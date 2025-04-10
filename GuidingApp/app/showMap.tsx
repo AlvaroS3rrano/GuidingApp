@@ -1,12 +1,11 @@
 // showMap.tsx
 import React, { useState, useEffect, useRef } from 'react';
 import { StyleSheet, View, Button, TouchableOpacity, Text } from 'react-native';
+import { useLocalSearchParams } from 'expo-router';
 import Map from './map';
 import SearchBar from './searchBar';
-import { Node } from '@/app/classes/node';
-import { MapData, Path } from '@/app/classes/mapData';
 import { beaconEventEmitter, ScannedDevice } from '@/app/services/beaconScannerService';
-import { mapData, places } from '@/app/services/mapService';
+import { MapDataDTO, NodeDTO, Path } from '@/app/classes/DTOs';
 
 /**
  * ShowMap.tsx
@@ -16,8 +15,20 @@ import { mapData, places } from '@/app/services/mapService';
  * All error handling has been moved to the global ErrorBanner component in _layout.tsx.
  */
 const ShowMap: React.FC = () => {
-  const [origin, setOrigin] = useState('');
-  const [destination, setDestination] = useState('');
+
+  const { mapData } = useLocalSearchParams<{ mapData?: string }>();
+
+  let parsedMapData: MapDataDTO | null = null;
+  if (mapData) {
+    try {
+      parsedMapData = JSON.parse(mapData) as MapDataDTO;
+    } catch (error) {
+      console.error('Error parsing mapData:', error);
+    }
+  }
+
+  const [origin, setOrigin] = useState<NodeDTO | null>(null);
+  const [destination, setDestination] = useState<NodeDTO | null>(null);
   const [closestBeacon, setClosestBeacon] = useState<string | null>(null);
   const [originSuggestion, setOriginSuggestion] = useState<string>('');
   const [searchPressed, setSearchPressed] = useState(false);
@@ -25,10 +36,10 @@ const ShowMap: React.FC = () => {
   const [centerTrigger, setCenterTrigger] = useState(0);
   const [originError, setOriginError] = useState("");
   const [destinationError, setDestinationError] = useState("");
-  const [currentBeacon, setCurrentBeacon] = useState<Node | null>(null);
+  const [currentBeacon, setCurrentBeacon] = useState<NodeDTO | null>(null);
 
   // Ref to debounce beacon updates.
-  const candidateRef = useRef<{ node: Node; timer: NodeJS.Timeout | null } | null>(null);
+  const candidateRef = useRef<{ node: NodeDTO; timer: NodeJS.Timeout | null } | null>(null);
 
   // Subscribe to beacon updates.
   useEffect(() => {
@@ -42,11 +53,13 @@ const ShowMap: React.FC = () => {
         }, devices[0]);
         setClosestBeacon(closest.identifier);
         // Update the recommended origin if a matching node is found.
-        const matchingEntry = Object.entries(places).find(
-          ([, node]) => node.id === closest.identifier
-        );
-        if (matchingEntry) {
-          setOriginSuggestion(matchingEntry[0]);
+        if (parsedMapData && closestBeacon) {
+          const matchingNode = parsedMapData.nodes.find(
+            (node) => node.beaconId === closestBeacon
+          );
+          if (matchingNode) {
+            setOriginSuggestion(matchingNode.name);
+          }
         }
       }
     };
@@ -60,8 +73,8 @@ const ShowMap: React.FC = () => {
 
   // Debounce logic: update current beacon only if the same beacon is received consistently.
   useEffect(() => {
-    const beaconNode = closestBeacon
-      ? (Object.entries(places).find(([, node]) => node.id === closestBeacon)?.[1] || null)
+    const beaconNode = closestBeacon && parsedMapData && parsedMapData.nodes
+      ? (Object.entries(parsedMapData.nodes).find(([, node]) => node.beaconId === closestBeacon)?.[1] || null)
       : null;
     if (beaconNode) {
       if (!candidateRef.current || candidateRef.current.node.id !== beaconNode.id) {
@@ -82,43 +95,53 @@ const ShowMap: React.FC = () => {
       }
       candidateRef.current = null;
     }
-  }, [closestBeacon]);
+  }, [closestBeacon, parsedMapData]);
 
   const isPreview: boolean =
-    origin !== "" && places[origin] !== undefined && (places[origin].id !== (closestBeacon || ''));
+    origin != null && (origin.beaconId != (closestBeacon || ''));
 
   const mapCurrentNode = isPreview ? null : currentBeacon;
 
   const handleSearch = () => {
-    if (origin && !places[origin]) {
+    if (origin === null) {
       setOriginError("The origin location does not exist.");
     } else {
       setOriginError("");
     }
-    if (destination && !places[destination]) {
+    if (destination === null) {
       setDestinationError("The destination location does not exist.");
     } else {
       setDestinationError("");
     }
-    if (places[origin] && places[destination]) {
+    if (origin && destination) {
       setSearchPressed(true);
       if (isPreview) {
-        setNewTrip({ origin: places[origin], destination: places[destination] });
+        setNewTrip({ origin: origin, destination: destination });
       }
     }
   };
 
-  const handleOriginChange = (text: string) => {
-    setOrigin(text);
-    if (places[text]) {
+  const handleOriginChange = (nodeName: string) => {
+    const originNode = parsedMapData 
+      ? parsedMapData.nodes.find((node) => node.name === nodeName)
+      : null;
+    if (originNode) {
+      setOrigin(originNode);
       setOriginError("");
+    } else {
+      setOriginError("Origin node not found");
     }
   };
 
-  const handleDestinationChange = (text: string) => {
-    setDestination(text);
-    if (places[text]) {
+  const handleDestinationChange = (nodeName: string) => {
+    const destinationNode = parsedMapData 
+      ? parsedMapData.nodes.find((node) => node.name === nodeName)
+      : null;
+    if (destinationNode){
+      setDestination(destinationNode);
       setDestinationError("");
+    } else {
+      setDestinationError("Destination node not found");
     }
   };
 
@@ -129,17 +152,21 @@ const ShowMap: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      <Map 
-        mapData={mapData}
-        origin={origin ? places[origin] : null} 
-        destination={destination ? places[destination] : null}
-        current_node={mapCurrentNode}
-        searchPressed={searchPressed}
-        centerTrigger={centerTrigger}
-        isPreview={isPreview}
-        newTrip={newTrip}
-        onCancelSearch={cancelSearch}
-      />
+      {parsedMapData ? (
+        <Map 
+          mapData={parsedMapData}
+          origin={origin} 
+          destination={destination}
+          current_node={ (origin && currentBeacon && !isPreview) ? currentBeacon : origin }
+          searchPressed={searchPressed}
+          centerTrigger={centerTrigger}
+          isPreview={origin != null && (origin.beaconId !== (closestBeacon || ''))}
+          newTrip={newTrip}
+          onCancelSearch={() => setSearchPressed(false)}
+        />
+      ) : (
+        <Text>Map data is not available</Text>
+      )}
       <View style={styles.overlayContainer}>
         {searchPressed ? (
           <View style={styles.cancelButtonContainer}>
@@ -147,8 +174,8 @@ const ShowMap: React.FC = () => {
           </View>
         ) : (
           <SearchBar
-            origin={origin}
-            destination={destination}
+            origin={origin ? origin.name : ''}
+            destination={destination ? destination.name: ''}
             recommendedOrigin={originSuggestion}
             onOriginChange={handleOriginChange}
             onDestinationChange={handleDestinationChange}

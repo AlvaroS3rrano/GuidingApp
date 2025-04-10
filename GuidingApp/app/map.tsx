@@ -33,14 +33,14 @@ import Svg, { Rect, Polygon, Polyline, Circle } from 'react-native-svg';
 import { Magnetometer } from 'expo-sensors';
 import { Dot } from './classes/geometry';
 import { findPathWithDistance, PathResult } from '@/resources/pathFinding';
-import { Node } from '@/app/classes/node';
-import { MapData, Path } from '@/app/classes/mapData';
+import { MapDataDTO, NodeDTO, Path } from './classes/DTOs';
+
 
 type MapaInteriorProps = {
-  mapData: MapData;
-  origin: Node | null;
-  destination: Node | null;
-  current_node: Node | null;
+  mapData: MapDataDTO;
+  origin: NodeDTO | null;
+  destination: NodeDTO | null;
+  current_node: NodeDTO | null;
   searchPressed: boolean;
   centerTrigger: number;
   isPreview: boolean;
@@ -81,8 +81,8 @@ const MapaInterior: React.FC<MapaInteriorProps> = ({
   useEffect(() => {
     if (searchPressed && !isPreview && current_node && destination) {
       if (
-        current_node.sensor.x === destination.sensor.x &&
-        current_node.sensor.y === destination.sensor.y
+        current_node.x === destination.x &&
+        current_node.y === destination.y
       ) {
         Alert.alert(
           "Destination Reached",
@@ -106,7 +106,7 @@ const MapaInterior: React.FC<MapaInteriorProps> = ({
   }, [current_node, destination, searchPressed, isPreview, onCancelSearch]);
 
   // Clone the initial map grid from the mapData prop
-  let updatedPlano: number[][] = JSON.parse(JSON.stringify(mapData.initialMap));
+  let updatedPlano: number[][] = JSON.parse(JSON.stringify(mapData.matrix));
   let pathResult: PathResult | null = null;
   let path: Dot[] = [];
   let arrowAngle = 0;
@@ -117,7 +117,7 @@ const MapaInterior: React.FC<MapaInteriorProps> = ({
     // use current_node as starting point; otherwise, use origin.
     const startNode = (searchPressed && !isPreview && current_node) ? current_node : origin;
     if (startNode) {
-      pathResult = findPathWithDistance(updatedPlano, mapData.graph, startNode, destination);
+      pathResult = findPathWithDistance(updatedPlano, mapData, startNode, destination);
       if (pathResult) {
         path = pathResult.fullPath;
       }
@@ -135,10 +135,10 @@ const MapaInterior: React.FC<MapaInteriorProps> = ({
 
   // Determine which sensor to use for centering
   const sensorForCenter = isPreview
-    ? origin?.sensor || null
+    ? origin || null
     : current_node
-      ? current_node.sensor
-      : origin?.sensor || null;
+      ? current_node
+      : origin || null;
 
   // Calculate cell size based on the grid's width
   const cellSize = width / updatedPlano[0].length;
@@ -262,8 +262,8 @@ const MapaInterior: React.FC<MapaInteriorProps> = ({
           {/* Render the origin point if it exists */}
           {origin && (
             <Circle
-              cx={origin.sensor.x * cellSize + cellSize / 2}
-              cy={(updatedPlano.length - 1 - origin.sensor.y) * cellSize + cellSize / 2}
+              cx={origin.x * cellSize + cellSize / 2}
+              cy={(updatedPlano.length - 1 - origin.y) * cellSize + cellSize / 2}
               r={cellSize / 3}
               fill="red" 
               stroke="black"
@@ -273,8 +273,8 @@ const MapaInterior: React.FC<MapaInteriorProps> = ({
           {/* Render the destination point if it exists */}
           {destination && (
             <Circle
-              cx={destination.sensor.x * cellSize + cellSize / 2}
-              cy={(updatedPlano.length - 1 - destination.sensor.y) * cellSize + cellSize / 2}
+              cx={destination.x * cellSize + cellSize / 2}
+              cy={(updatedPlano.length - 1 - destination.y) * cellSize + cellSize / 2}
               r={cellSize / 3}
               fill="lightgreen"
               stroke="black"
@@ -300,8 +300,8 @@ const MapaInterior: React.FC<MapaInteriorProps> = ({
           )}
           {/* Render the user's sensor as a triangle if not in preview mode */}
           {!isPreview && current_node && (() => {
-            const sensorXPixel = current_node.sensor.x * cellSize;
-            const sensorYPixel = (updatedPlano.length - 1 - current_node.sensor.y) * cellSize;
+            const sensorXPixel = current_node.x * cellSize;
+            const sensorYPixel = (updatedPlano.length - 1 - current_node.y) * cellSize;
             const sensorCenterX = sensorXPixel + cellSize / 2;
             const sensorCenterY = sensorYPixel + cellSize / 2;
             return (

@@ -4,7 +4,7 @@ import { View, StyleSheet } from "react-native";
 import { Stack } from "expo-router";
 import { startBeaconScanning, stopBeaconScanning } from "../app/services/beaconScannerService";
 import ErrorBanner from "@/app/components/errorBanner"; 
-import ClosestBeaconBanner from "@/app/components/closestBeaconBanner"; 
+import ClosestMapBanner from "@/app/components/closestMapBanner"; 
 import MapDataLogger from "./mapDataLogger";
 import 'react-native-get-random-values';
 
@@ -26,7 +26,7 @@ export default function RootLayout() {
       </Stack>
       
       <ErrorBanner />
-      <ClosestBeaconBanner />
+      <ClosestMapBanner />
     </View>
   );
 }

@@ -132,10 +132,14 @@ export const startBeaconScanning = async () => {
         devices.push(newDevice);
 
         // Remove devices not seen in the last 5 seconds
-        devices = devices.filter(device => Date.now() - device.lastSeen < 5000);
+        devices = devices.filter(device => Date.now() - device.lastSeen < 5000)
+        
+        const matchedKnownDevices = devices.filter((device) =>
+          knownBeacons.some((known) => known.identifier === device.identifier)
+        );
 
         // Emit the updated devices list to listeners
-        beaconEventEmitter.emit("update", devices);
+        beaconEventEmitter.emit("update", matchedKnownDevices);
 
         // Optionally, determine and store the closest beacon in AsyncStorage
         const closest = knownBeacons.reduce<ScannedDevice | undefined>(
@@ -155,8 +159,10 @@ export const startBeaconScanning = async () => {
               // Si el mapData actual es diferente del previo, entonces se emite el evento
               if (previousMapDataId !== mapData.id) {
                 previousMapDataId = mapData.id;
-                await AsyncStorage.setItem("closestBeacon", closest.identifier);
-                beaconEventEmitter.emit("closestBeacon", mapData.name);
+                //await AsyncStorage.setItem("closestBeacon", closest.identifier);
+                beaconEventEmitter.emit("closestMapData", mapData);
+              } else {
+                beaconEventEmitter.emit("newMapData", false)
               }
             } else {
               console.log(`No se encontró mapData para el beacon ${closest.identifier}`);

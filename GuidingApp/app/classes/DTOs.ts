@@ -23,3 +23,8 @@ export interface MapDataDTO {
   nodes: NodeDTO[];
   edges: EdgeDTO[];
 }
+
+export interface Path {
+  origin: NodeDTO;
+  destination: NodeDTO;
+}

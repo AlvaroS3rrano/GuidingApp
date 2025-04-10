@@ -1,6 +1,5 @@
 import { Dot } from '@/app/classes/geometry';
-import { Node } from '@/app/classes/node';
-import { Graph, GraphEdge } from '@/app/classes/mapData';
+import { EdgeDTO, MapDataDTO, NodeDTO } from '@/app/classes/DTOs';
 
 type Huristic_Node = {
   point: Dot;
@@ -118,13 +117,13 @@ export function findShortestPath(matrix: number[][], start: Dot, end: Dot, isLas
   return [];
 }
 
-function findPath(graph: Graph, startId: string, endId: string): string[] {
-  const distances: Record<string, number> = {};
-  const previous: Record<string, string | null> = {};
-  const unvisited = new Set<string>();
+function findPath(mapdata: MapDataDTO, startId: number, endId: number): number[] {
+  const distances: Record<number, number> = {};
+  const previous: Record<number, number | null> = {};
+  const unvisited = new Set<number>();
 
   // Inicializa cada nodo con distancia infinita y sin predecesor.
-  graph.nodes.forEach((node) => {
+  mapdata.nodes.forEach((node) => {
     distances[node.id] = Infinity;
     previous[node.id] = null;
     unvisited.add(node.id);
@@ -133,7 +132,7 @@ function findPath(graph: Graph, startId: string, endId: string): string[] {
 
   // Bucle principal de Dijkstra.
   while (unvisited.size > 0) {
-    let currentId: string | null = null;
+    let currentId: number | null = null;
     unvisited.forEach((id) => {
       if (currentId === null || distances[id] < distances[currentId]) {
         currentId = id;
@@ -142,7 +141,7 @@ function findPath(graph: Graph, startId: string, endId: string): string[] {
 
     // Si currentId es nulo, sal del bucle.
     if (currentId === null) break;
-    // Aquí reafirmamos que currentId es un string.
+    
     const curId = currentId;
 
     // Si hemos llegado al destino, sal del bucle.
@@ -151,11 +150,11 @@ function findPath(graph: Graph, startId: string, endId: string): string[] {
     unvisited.delete(curId);
 
     // Obtén todas las aristas salientes del nodo actual.
-    const neighbors = graph.edges.filter((edge: GraphEdge) => edge.from === curId);
+    const neighbors = mapdata.edges.filter((edge: EdgeDTO) => edge.fromNode.id === curId);
 
     // Relaja la distancia de cada vecino.
-    neighbors.forEach((edge: GraphEdge) => {
-      const neighborId = edge.to;
+    neighbors.forEach((edge: EdgeDTO) => {
+      const neighborId = edge.toNode.id;
       if (!unvisited.has(neighborId)) return;
       const alt = distances[curId] + edge.weight;
       if (alt < distances[neighborId]) {
@@ -166,8 +165,8 @@ function findPath(graph: Graph, startId: string, endId: string): string[] {
   }
 
   // Reconstruye el camino desde el destino hacia el inicio.
-  const path: string[] = [];
-  let current: string | null = endId;
+  const path: number[] = [];
+  let current: number | null = endId;
   while (current !== null) {
     path.unshift(current);
     current = previous[current];
@@ -189,13 +188,13 @@ function findPath(graph: Graph, startId: string, endId: string): string[] {
  * @param endId The ID of the destination node.
  * @returns An array of Node objects representing the graph route.
  */
-function findGraphPath(graph: Graph, startId: string, endId: string): Node[] {
-  const pathIds = findPath(graph, startId, endId);
+export function findGraphPath(mapData: MapDataDTO, startId: number, endId: number): NodeDTO[] {
+  const pathIds = findPath(mapData, startId, endId);
   if (pathIds.length === 0) return [];
   // Map each ID to su correspondiente Node y filtra los posibles undefined.
   return pathIds
-    .map((id) => graph.nodes.find((node) => node.id === id))
-    .filter((node): node is Node => node !== undefined);
+    .map((id) => mapData.nodes.find((node) => node.id === id))
+    .filter((node): node is NodeDTO => node !== undefined);
 }
 
 /**
@@ -213,23 +212,22 @@ function findGraphPath(graph: Graph, startId: string, endId: string): Node[] {
  */
 export function findPathWithDistance(
   grid: number[][],
-  graph: Graph,
-  originNode: Node,
-  destinationNode: Node
+  mapData: MapDataDTO,
+  originNode: NodeDTO,
+  destinationNode: NodeDTO
 ): PathResult | null {
   // Compute the graph path (route) from origin to destination using node IDs.
-  const graphPath: Node[] = findGraphPath(graph, originNode.id, destinationNode.id);
+  const graphPath: NodeDTO[] = findGraphPath(mapData, originNode.id, destinationNode.id);
   if (graphPath.length === 0) {
     // If no graph path is found, return null.
     return null;
   }
 
-  // Extract sensor coordinates from the nodes in the graph path.
-  // (Assumes each Node has a "sensor" property of type Dot.)
-  const sensorWaypoints: Dot[] = graphPath.map((node) => node.sensor);
+    // Extrae los waypoints a partir de las propiedades x e y de cada nodo.
+    const sensorWaypoints: Dot[] = graphPath.map((node) => ({ x: node.x, y: node.y }));
+    let fullPath: Dot[] = [];
+    const segments: Segment[] = [];
 
-  let fullPath: Dot[] = [];
-  const segments: Segment[] = []; // Array to store each grid path segment between sensor waypoints
 
   // For each consecutive pair of sensor waypoints, compute the grid path segment.
   for (let i = 0; i < sensorWaypoints.length - 1; i++) {
