@@ -3,18 +3,30 @@ import { TouchableOpacity, Text, StyleSheet, Alert } from 'react-native';
 import { beaconEventEmitter } from '@/app/services/beaconScannerService';
 import { useRouter } from 'expo-router';
 import { MapDataDTO } from '../classes/DTOs';
+import { globalBannerState } from './globalBannerState';
 
 const ClosestMapBanner: React.FC = () => {
-  const [closestMap, setClosestMap] = useState<MapDataDTO | null>(null);
-  const [popupShown, setPopupShown] = useState(false);
-  const [fallbackVisible, setFallbackVisible] = useState(false);
+  // Al montar, reiniciamos el estado para que el popup se pueda volver a mostrar.
+  useEffect(() => {
+    setPopupShown(false);
+    globalBannerState.popupShown = false;
+  }, []);
+
+  const [closestMap, setClosestMap] = useState<MapDataDTO | null>(globalBannerState.closestMap);
+  const [popupShown, setPopupShown] = useState(globalBannerState.popupShown);
+  const [fallbackVisible, setFallbackVisible] = useState(globalBannerState.fallbackVisible);
+
+  // Creamos un ref para popupShown que se actualizará con el estado
+  const popupShownRef = useRef(popupShown);
+  useEffect(() => {
+    popupShownRef.current = popupShown;
+  }, [popupShown]);
 
   const router = useRouter();
-
-  // Ref para almacenar el temporizador de 3 minutos
+  // Ref para almacenar el temporizador de 3 minutos.
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Función que muestra la alerta (solo se muestra la primera vez)
+  // Función que muestra la alerta (sólo se mostrará la primera vez)
   const showClosestMapAlert = (mapData: MapDataDTO) => {
     Alert.alert(
       "Mapped area Detected",
@@ -25,7 +37,7 @@ const ClosestMapBanner: React.FC = () => {
           onPress: () => {
             router.push({
               pathname: '/showMap',
-              params: { mapData: JSON.stringify(mapData) },
+              params: { mapData: JSON.stringify(mapData) }
             });
           },
         },
@@ -34,6 +46,8 @@ const ClosestMapBanner: React.FC = () => {
           onPress: () => {
             setPopupShown(true);
             setFallbackVisible(true);
+            globalBannerState.popupShown = true;
+            globalBannerState.fallbackVisible = true;
           },
           style: "cancel",
         },
@@ -42,33 +56,41 @@ const ClosestMapBanner: React.FC = () => {
     );
   };
 
-  // Función para reiniciar el timer
+  // Reinicia el temporizador de 3 minutos. Mientras se sigan emitiendo eventos,
+  // se reiniciará y el banner se mantendrá.
   const resetTimer = () => {
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
     timeoutRef.current = setTimeout(() => {
-      // Si pasan más de 3 minutos sin reiniciarlo, se oculta el banner
+      // Si pasan 3 minutos sin reiniciarlo, se oculta el banner (y se limpia el estado global).
       setClosestMap(null);
       setFallbackVisible(false);
       setPopupShown(false);
-    }, 180000); // 3 minutos en milisegundos
+      globalBannerState.closestMap = null;
+      globalBannerState.fallbackVisible = false;
+      globalBannerState.popupShown = false;
+    }, 180000); // 180000 ms = 3 minutos
   };
 
   useEffect(() => {
-    // Handler para cuando se detecta un nuevo mapData (nuevo beacon o beacon distinto)
+    // Handler para cuando se detecta un nuevo mapData o se emite periódicamente.
     const closestHandler = (mapData: MapDataDTO) => {
+      console.log(6)
       resetTimer();
       setClosestMap(mapData);
-      // Si aún no se mostró la alerta, se muestra
-      if (!popupShown) {
+      globalBannerState.closestMap = mapData;
+      // Consulta el valor actualizado usando el ref
+      if (!popupShownRef.current) {
         showClosestMapAlert(mapData);
         setPopupShown(true);
         setFallbackVisible(true);
+        globalBannerState.popupShown = true;
+        globalBannerState.fallbackVisible = true;
       }
     };
 
-    // Handler para cuando se recibe "newMapData" (evento periódico que indica que el beacon se sigue detectando)
+    // Handler para el "heartbeat" periódico (nuevo evento con el mismo mapData).
     const newMapDataHandler = (newMapFlag: boolean) => {
-      // No mostramos la alerta de nuevo, solo reiniciamos el timer
+      console.log(5)
       resetTimer();
     };
 
@@ -80,8 +102,9 @@ const ClosestMapBanner: React.FC = () => {
       beaconEventEmitter.off('newMapData', newMapDataHandler);
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
     };
-  }, [popupShown]);
+  }, []); // Ahora no depende de popupShown porque usamos el ref.
 
+  // Al pulsar el ícono (fallback), se muestra la alerta nuevamente.
   const handleFallbackPress = () => {
     if (closestMap) {
       showClosestMapAlert(closestMap);

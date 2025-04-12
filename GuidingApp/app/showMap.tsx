@@ -6,6 +6,7 @@ import Map from './map';
 import SearchBar from './searchBar';
 import { beaconEventEmitter, ScannedDevice } from '@/app/services/beaconScannerService';
 import { MapDataDTO, NodeDTO, Path } from '@/app/classes/DTOs';
+import ClosestMapBanner from "@/app/components/closestMapBanner"; 
 
 /**
  * ShowMap.tsx
@@ -191,7 +192,9 @@ const ShowMap: React.FC = () => {
           <Text style={styles.centerButtonText}>🎯</Text>
         </TouchableOpacity>
       )}
+      
     </View>
+    
   );
 };
 

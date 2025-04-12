@@ -1,7 +1,7 @@
 // nodeService.ts
 import axios from 'axios';
 import { NodeDTO } from "@/app/classes/DTOs";
-import { COMP_IP } from '../constants/google_const';
+import { COMP_IP } from '../constants/consts';
 
 const API_BASE_URL = 'http://'+COMP_IP+':8080/api/nodes';
 

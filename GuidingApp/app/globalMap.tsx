@@ -5,7 +5,7 @@ import MapView, { Marker, Region } from 'react-native-maps';
 import MapViewDirections from 'react-native-maps-directions';
 import Geolocation from '@react-native-community/geolocation';
 import { GooglePlacesAutocomplete } from 'react-native-google-places-autocomplete';
-import { API_KEY } from "@/app/constants/google_const";
+import { API_KEY } from "@/app/constants/consts";
 
 const GlobalMap = () => {
   const [origin, setOrigin] = useState<Region | null>(null);
