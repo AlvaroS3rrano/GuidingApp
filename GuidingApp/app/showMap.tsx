@@ -6,7 +6,6 @@ import Map from './map';
 import SearchBar from './searchBar';
 import { beaconEventEmitter, ScannedDevice } from '@/app/services/beaconScannerService';
 import { MapDataDTO, NodeDTO, Path } from '@/app/classes/DTOs';
-import ClosestMapBanner from "@/app/components/closestMapBanner"; 
 
 /**
  * ShowMap.tsx
@@ -30,6 +29,8 @@ const ShowMap: React.FC = () => {
 
   const [origin, setOrigin] = useState<NodeDTO | null>(null);
   const [destination, setDestination] = useState<NodeDTO | null>(null);
+  const [originString, setOriginString] = useState("");
+  const [destinationString, setDestinationString] = useState("");
   const [closestBeacon, setClosestBeacon] = useState<string | null>(null);
   const [originSuggestion, setOriginSuggestion] = useState<string>('');
   const [searchPressed, setSearchPressed] = useState(false);
@@ -123,23 +124,29 @@ const ShowMap: React.FC = () => {
   };
 
   const handleOriginChange = (nodeName: string) => {
+    setOriginString(nodeName);
     const originNode = parsedMapData 
       ? parsedMapData.nodes.find((node) => node.name === nodeName)
       : null;
     if (originNode) {
       setOrigin(originNode);
       setOriginError("");
+    } else if (nodeName === ""){
+      setOriginError("");
     } else {
-      setOriginError("Origin node not found");
+      setOriginError("Destination node not found");
     }
   };
 
   const handleDestinationChange = (nodeName: string) => {
+    setDestinationString(nodeName)
     const destinationNode = parsedMapData 
       ? parsedMapData.nodes.find((node) => node.name === nodeName)
       : null;
     if (destinationNode){
       setDestination(destinationNode);
+      setDestinationError("");
+    } else if (nodeName === ""){
       setDestinationError("");
     } else {
       setDestinationError("Destination node not found");
@@ -175,8 +182,8 @@ const ShowMap: React.FC = () => {
           </View>
         ) : (
           <SearchBar
-            origin={origin ? origin.name : ''}
-            destination={destination ? destination.name: ''}
+            origin={originString}
+            destination={destinationString}
             recommendedOrigin={originSuggestion}
             onOriginChange={handleOriginChange}
             onDestinationChange={handleDestinationChange}

@@ -3,6 +3,7 @@ import React, { useEffect, useState } from "react";
 import { View, Text, FlatList, StyleSheet } from "react-native";
 import { Link } from "expo-router";
 import { beaconEventEmitter, ScannedDevice } from "@/app/services/beaconScannerService";
+import ClosestMapBanner from "@/app/components/closestMapBanner"; 
 
 /**
  * BeaconListScreen - Displays the list of detected beacons.
@@ -48,6 +49,7 @@ export default function BeaconListScreen() {
       <Link href={"/globalMap"} style={styles.button}>
           Global map
       </Link>
+      <ClosestMapBanner />
     </View>
   );
 }
