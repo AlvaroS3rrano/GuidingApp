@@ -23,6 +23,8 @@ export default function RootLayout() {
       <Stack>
         <Stack.Screen name="index" options={{ headerTitle: "Show Beacons" }} />
         <Stack.Screen name="showMap" options={{ headerTitle: "Map" }} />
+        <Stack.Screen name="globalMap" options={{ headerTitle: "Global Map" }} />
+        <Stack.Screen name="chooseLocation" options={{ headerTitle: "Choose Location" }} />
       </Stack>
       
       <ErrorBanner />

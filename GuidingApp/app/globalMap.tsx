@@ -1,15 +1,25 @@
 // GlobalMap.tsx
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, PermissionsAndroid, Platform, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, PermissionsAndroid, Platform, Dimensions, TouchableOpacity } from 'react-native';
 import MapView, { Marker, Region } from 'react-native-maps';
 import MapViewDirections from 'react-native-maps-directions';
 import Geolocation from '@react-native-community/geolocation';
 import { GooglePlacesAutocomplete } from 'react-native-google-places-autocomplete';
 import { API_KEY } from "@/app/constants/consts";
+import { navigate } from 'expo-router/build/global-state/routing';
+import { useRouter } from 'expo-router';
 
 const GlobalMap = () => {
   const [origin, setOrigin] = useState<Region | null>(null);
   const [destination, setDestination] = useState<{ latitude: number; longitude: number } | null>(null);
+
+  const router = useRouter();
+
+  const onPressLocation = () => {
+    router.push({
+      pathname: '/chooseLocation',
+    });
+  }
 
   useEffect(() => {
     const requestLocationPermission = async () => {
@@ -69,29 +79,6 @@ const GlobalMap = () => {
 
   return (
     <View style={styles.container}>
-      {/* Buscador para el destino */}
-      <GooglePlacesAutocomplete
-        placeholder="¿A dónde quieres ir?"
-        onPress={(data, details = null) => {
-          console.log("Datos seleccionados:", data);
-          console.log("Detalles recibidos:", details);
-          if (details && details.geometry && details.geometry.location) {
-            const { lat, lng } = details.geometry.location;
-            setDestination({ latitude: lat, longitude: lng });
-          } else {
-            console.log("No se recibieron detalles o la ubicación no está presente.");
-          }
-        }}
-        query={{
-          key: API_KEY,
-          language: 'es',
-        }}
-        fetchDetails={true}
-        styles={{
-          container: styles.searchContainer,
-          textInput: styles.searchInput,
-        }}
-      />
       
       <MapView
         style={styles.map}
@@ -125,6 +112,19 @@ const GlobalMap = () => {
           />
         )}
       </MapView>
+      <View>
+        <Text>
+            Where are you going..?
+        </Text>
+        <TouchableOpacity
+          style={styles.inputStyle}
+          onPress={onPressLocation}
+          >
+            <Text>Choose your location</Text>
+
+        </TouchableOpacity>
+
+      </View>
     </View>
   );
 };
@@ -153,6 +153,22 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  bottomCard: {
+    backgroundColor: 'white',
+    width: '100%',
+    padding: 30,
+    borderTopEndRadius: 24,
+    borderTopStartRadius: 24,
+  },
+  inputStyle: {
+    backgroundColor: 'white',
+    borderRadius: 4,
+    borderWidth: 1,
+    alignItems: 'center',
+    height: 48,
+    justifyContent: 'center',
+    marginTop: 16
+  }
 });
 
 export default GlobalMap;
