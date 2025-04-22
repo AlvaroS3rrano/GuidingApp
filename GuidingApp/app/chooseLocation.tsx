@@ -1,46 +1,56 @@
 import React, { useCallback } from 'react';
 import { View, StyleSheet } from 'react-native';
-import { GooglePlacesAutocomplete } from 'expo-google-places-autocomplete';
-import { API_KEY } from './constants/consts';
+import { ScrollView } from 'react-native-gesture-handler';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import AddressInput from './components/AddressInput';
+import CustomBtn from './components/customBtn';
+import { router } from 'expo-router';
 
 const ChooseLocation: React.FC = () => {
-  const onSearchError = useCallback((error: any) => {
-    console.error(error);
-  }, []);
+  
+  const onDone = () => {
+    router.back();
+  };
 
-  const onPlaceSelected = useCallback((place: any) => {
-    console.log(place);
-  }, []);
+  const fetchStartingCoords = (coordinates: { latitude: number, longitude: number }) => {
+    console.log('Starting coordinates:', coordinates);
+    // Aquí puedes guardar las coordenadas o hacer alguna otra operación
+  };
+
+  const fetchDestinationCoords = (coordinates: { latitude: number, longitude: number }) => {
+    console.log('Destination coordinates:', coordinates);
+    // Aquí puedes guardar las coordenadas o hacer alguna otra operación
+  };
 
   return (
-    <View style={styles.container}>
-      <GooglePlacesAutocomplete
-        apiKey={API_KEY}
-        requestConfig={{ countries: ['US'] }}
-        onPlaceSelected={onPlaceSelected}
-        onSearchError={onSearchError}
-      />
-    </View>
+    <GestureHandlerRootView style={styles.container}>
+      <ScrollView
+        keyboardShouldPersistTaps="handled" 
+        style={{ backgroundColor: 'white', flex: 1, padding: 12 }}
+      >
+        <AddressInput 
+          placeholderText="Search starting point"
+          fetchAddress={fetchStartingCoords} 
+        />
+        <View style={{ marginBottom: 16 }} />
+        <AddressInput 
+          placeholderText="Search destination point"
+          fetchAddress={fetchDestinationCoords}  
+        />
+
+        <CustomBtn
+          btnText="Done"
+          btnStyle={{ marginTop: 24 }}
+          onPress={onDone}
+        />
+      </ScrollView>
+    </GestureHandlerRootView>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: 'center',
-    padding: 16,
-  },
-  autocompleteContainer: {
-    flex: 1,
-    zIndex: 1,
-  },
-  textInput: {
-    height: 40,
-    borderColor: '#ccc',
-    borderWidth: 1,
-    borderRadius: 4,
-    paddingLeft: 8,
-    fontSize: 16,
   },
 });
 

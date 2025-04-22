@@ -1,13 +1,11 @@
-// GlobalMap.tsx
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, PermissionsAndroid, Platform, Dimensions, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, PermissionsAndroid, Platform, TouchableOpacity } from 'react-native';
 import MapView, { Marker, Region } from 'react-native-maps';
 import MapViewDirections from 'react-native-maps-directions';
 import Geolocation from '@react-native-community/geolocation';
-import { GooglePlacesAutocomplete } from 'react-native-google-places-autocomplete';
 import { API_KEY } from "@/app/constants/consts";
-import { navigate } from 'expo-router/build/global-state/routing';
 import { useRouter } from 'expo-router';
+import { MaterialIcons } from '@expo/vector-icons'; // Importa íconos
 
 const GlobalMap = () => {
   const [origin, setOrigin] = useState<Region | null>(null);
@@ -63,10 +61,37 @@ const GlobalMap = () => {
         };
         setOrigin(currentRegion);
       },
-      error => console.log(error),
-      { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 }
+      error => {
+        console.log(error)
+      },
+      { 
+        enableHighAccuracy: true,
+        maximumAge: 0 
+      }
     );
   };
+
+  const res = Geolocation.watchPosition(
+    async position => {
+      const { latitude, longitude } = position.coords;
+      const currentRegion = {
+        latitude,
+        longitude,
+        latitudeDelta: 0.01,
+        longitudeDelta: 0.01,
+      };
+    },
+    error => {
+      console.log("Error getting location ", error)
+    },
+    {
+      enableHighAccuracy: true,
+      distanceFilter: 0,
+      interval: 5000,
+      useSignificantChanges: false,
+      maximumAge: 0,
+    }
+  );
 
   // Si no hay origen, mostramos un loading
   if (!origin) {
@@ -112,18 +137,18 @@ const GlobalMap = () => {
           />
         )}
       </MapView>
-      <View>
-        <Text>
-            Where are you going..?
-        </Text>
+      
+      <View style={styles.bottomCard}>
+        <Text style={styles.titleText}>Where are you going..?</Text>
         <TouchableOpacity
           style={styles.inputStyle}
           onPress={onPressLocation}
-          >
-            <Text>Choose your location</Text>
-
+        >
+          <View style={styles.locationButton}>
+            <MaterialIcons name="location-on" size={24} color="black" />
+            <Text style={styles.buttonText}>Choose your location</Text>
+          </View>
         </TouchableOpacity>
-
       </View>
     </View>
   );
@@ -136,39 +161,53 @@ const styles = StyleSheet.create({
   map: {
     flex: 1,
   },
-  searchContainer: {
-    position: 'absolute',
-    top: 10,
-    width: '90%',
-    alignSelf: 'center',
-    zIndex: 1,
-  },
-  searchInput: {
-    height: 44,
-    color: '#5d5d5d',
-    fontSize: 16,
-  },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
   bottomCard: {
-    backgroundColor: 'white',
+    position: 'absolute',  // Esto hace que la tarjeta quede flotante sobre el mapa
+    bottom: 0,             // Asegura que quede al fondo
     width: '100%',
-    padding: 30,
+    padding: 24,
+    paddingBottom: 40,
     borderTopEndRadius: 24,
     borderTopStartRadius: 24,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)', // Fondo semi-transparente para que se vea el mapa detrás
+    elevation: 8, // Sombra
+    shadowColor: 'black',
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.5,
+  },
+  titleText: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    marginBottom: 16,
+    color: '#333',
   },
   inputStyle: {
-    backgroundColor: 'white',
-    borderRadius: 4,
+    backgroundColor: '#f5f5f5',
+    borderRadius: 8,
     borderWidth: 1,
-    alignItems: 'center',
+    borderColor: '#ddd',
     height: 48,
     justifyContent: 'center',
-    marginTop: 16
-  }
+    paddingLeft: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 16,
+  },
+  locationButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  buttonText: {
+    marginLeft: 8,
+    fontSize: 16,
+    color: '#555',
+  },
 });
 
 export default GlobalMap;

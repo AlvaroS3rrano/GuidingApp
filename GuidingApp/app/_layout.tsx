@@ -11,7 +11,7 @@ import 'react-native-get-random-values';
 export default function RootLayout() {
   useEffect(() => {
     // Start beacon scanning when the layout mounts.
-    startBeaconScanning();
+    // startBeaconScanning();
 
     return () => {
       stopBeaconScanning();
