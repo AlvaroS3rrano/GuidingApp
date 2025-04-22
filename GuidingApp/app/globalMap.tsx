@@ -1,23 +1,17 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, PermissionsAndroid, Platform, TouchableOpacity } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import { View, StyleSheet, PermissionsAndroid, Platform, TouchableOpacity, Text, TouchableWithoutFeedback, Keyboard } from 'react-native';
 import MapView, { Marker, Region } from 'react-native-maps';
 import MapViewDirections from 'react-native-maps-directions';
 import Geolocation from '@react-native-community/geolocation';
 import { API_KEY } from "@/app/constants/consts";
-import { useRouter } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons'; // Importa íconos
+import ChooseDestination from './chooseDestination';
 
 const GlobalMap = () => {
   const [origin, setOrigin] = useState<Region | null>(null);
   const [destination, setDestination] = useState<{ latitude: number; longitude: number } | null>(null);
-
-  const router = useRouter();
-
-  const onPressLocation = () => {
-    router.push({
-      pathname: '/chooseLocation',
-    });
-  }
+  const [isSearchVisible, setSearchVisible] = useState(false);  // Estado para controlar la visibilidad del input
+  const searchRef = useRef<View | null>(null);  // Usamos un ref para el componente de búsqueda
 
   useEffect(() => {
     const requestLocationPermission = async () => {
@@ -62,36 +56,16 @@ const GlobalMap = () => {
         setOrigin(currentRegion);
       },
       error => {
-        console.log(error)
+        console.log(error);
       },
-      { 
+      {
         enableHighAccuracy: true,
-        maximumAge: 0 
+        maximumAge: 0,
       }
     );
   };
 
-  const res = Geolocation.watchPosition(
-    async position => {
-      const { latitude, longitude } = position.coords;
-      const currentRegion = {
-        latitude,
-        longitude,
-        latitudeDelta: 0.01,
-        longitudeDelta: 0.01,
-      };
-    },
-    error => {
-      console.log("Error getting location ", error)
-    },
-    {
-      enableHighAccuracy: true,
-      distanceFilter: 0,
-      interval: 5000,
-      useSignificantChanges: false,
-      maximumAge: 0,
-    }
-  );
+  
 
   // Si no hay origen, mostramos un loading
   if (!origin) {
@@ -102,55 +76,76 @@ const GlobalMap = () => {
     );
   }
 
+  const handleOutsidePress = (e: any) => {
+    // Verifica si el toque es fuera del componente de búsqueda usando 'measure'
+    if (searchRef.current) {
+      searchRef.current.measure((fx, fy, width, height, px, py) => {
+        const touchX = e.nativeEvent.pageX;
+        const touchY = e.nativeEvent.pageY;
+
+        // Verifica si las coordenadas del toque están fuera del componente de búsqueda
+        if (touchX < px || touchX > px + width || touchY < py || touchY > py + height) {
+          setSearchVisible(false);  // Oculta el componente de búsqueda si el toque es fuera
+        }
+      });
+    }
+  };
+
   return (
-    <View style={styles.container}>
-      
-      <MapView
-        style={styles.map}
-        initialRegion={origin}
-        showsUserLocation={true}
-      >
-        {/* Marcador para la ubicación de origen */}
-        <Marker
-          coordinate={{ latitude: origin.latitude, longitude: origin.longitude }}
-          title="Estás aquí"
-        />
-        {/* Marcador para el destino, si existe */}
-        {destination && (
-          <Marker
-            coordinate={destination}
-            title="Destino"
-            pinColor="green"
-          />
-        )}
-        {/* Dibujar ruta si se ha seleccionado destino */}
-        {origin && destination && (
-          <MapViewDirections
-            origin={{ latitude: origin.latitude, longitude: origin.longitude }}
-            destination={destination}
-            apikey={API_KEY}
-            strokeWidth={4}
-            strokeColor="blue"
-            onError={(errorMessage) => {
-              console.log('Error en MapViewDirections: ', errorMessage);
-            }}
-          />
-        )}
-      </MapView>
-      
-      <View style={styles.bottomCard}>
-        <Text style={styles.titleText}>Where are you going..?</Text>
-        <TouchableOpacity
-          style={styles.inputStyle}
-          onPress={onPressLocation}
+    <TouchableWithoutFeedback onPress={handleOutsidePress}>
+      <View style={styles.container}>
+        {/* Mostrar MapView */}
+        <MapView
+          style={styles.map}
+          initialRegion={origin}
+          showsUserLocation={true}
         >
-          <View style={styles.locationButton}>
-            <MaterialIcons name="location-on" size={24} color="black" />
-            <Text style={styles.buttonText}>Choose your location</Text>
-          </View>
+          {/* Marcador para la ubicación de origen */}
+          <Marker
+            coordinate={{ latitude: origin.latitude, longitude: origin.longitude }}
+            title="Estás aquí"
+          />
+          {/* Marcador para el destino, si existe */}
+          {destination && (
+            <Marker
+              coordinate={destination}
+              title="Destino"
+              pinColor="green"
+            />
+          )}
+          {/* Dibujar ruta si se ha seleccionado destino */}
+          {origin && destination && (
+            <MapViewDirections
+              origin={{ latitude: origin.latitude, longitude: origin.longitude }}
+              destination={destination}
+              apikey={API_KEY}
+              strokeWidth={4}
+              strokeColor="blue"
+              onError={(errorMessage) => {
+                console.log('Error en MapViewDirections: ', errorMessage);
+              }}
+            />
+          )}
+        </MapView>
+
+        {/* Botón de lupa en la esquina izquierda */}
+        <TouchableOpacity
+          style={styles.searchButton}
+          onPress={() => setSearchVisible(!isSearchVisible)}  // Cambiar la visibilidad del input
+        >
+          <MaterialIcons name="search" size={24} color="black" />
         </TouchableOpacity>
+
+        {/* Componente ChooseDestination */}
+        {isSearchVisible && (
+          <View style={styles.searchContainer} ref={searchRef}>
+            <ChooseDestination
+              isSearchVisible={isSearchVisible} 
+            />
+          </View>
+        )}
       </View>
-    </View>
+    </TouchableWithoutFeedback>
   );
 };
 
@@ -159,54 +154,34 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   map: {
-    flex: 1,
+    flex: 1,  // El mapa ocupa toda la pantalla
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  bottomCard: {
-    position: 'absolute',  // Esto hace que la tarjeta quede flotante sobre el mapa
-    bottom: 0,             // Asegura que quede al fondo
-    width: '100%',
-    padding: 24,
-    paddingBottom: 40,
-    borderTopEndRadius: 24,
-    borderTopStartRadius: 24,
-    backgroundColor: 'rgba(255, 255, 255, 0.9)', // Fondo semi-transparente para que se vea el mapa detrás
-    elevation: 8, // Sombra
+  searchButton: {
+    position: 'absolute',
+    top: 10,
+    left: 10,
+    backgroundColor: 'white',
+    padding: 10,
+    borderRadius: 30,
+    elevation: 5,
+    opacity: 0.8
+  },
+  searchContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 2,  // Asegura que el input se superponga al mapa
+    backgroundColor: 'white',
+    elevation: 8,
     shadowColor: 'black',
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.25,
+    shadowOpacity: 0.2,
     shadowRadius: 3.5,
-  },
-  titleText: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    marginBottom: 16,
-    color: '#333',
-  },
-  inputStyle: {
-    backgroundColor: '#f5f5f5',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#ddd',
-    height: 48,
-    justifyContent: 'center',
-    paddingLeft: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 16,
-  },
-  locationButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  buttonText: {
-    marginLeft: 8,
-    fontSize: 16,
-    color: '#555',
   },
 });
 

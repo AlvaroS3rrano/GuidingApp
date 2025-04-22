@@ -16,7 +16,6 @@ const AddressInput: React.FC<AddressInputProps> = ({ placeholderText, fetchAddre
   const onPlaceSelected = useCallback((place: any) => {
     // Obtenemos las coordenadas del campo 'coordinate'
     const { latitude, longitude } = place.coordinate;
-    console.log('Latitude:', latitude, 'Longitude:', longitude);
 
     // Llamamos a fetchAddress con las coordenadas
     fetchAddress({ latitude, longitude });
