@@ -1,84 +1,224 @@
-// index.tsx
-import React, { useEffect, useState } from "react";
-import { View, Text, FlatList, StyleSheet } from "react-native";
-import { Link } from "expo-router";
-import { beaconEventEmitter, ScannedDevice } from "@/app/services/beaconScannerService";
-import ClosestMapBanner from "@/app/components/closestMapBanner"; 
+import React, { useState, useEffect, useRef } from 'react';
+import { View, StyleSheet, PermissionsAndroid, Platform, TouchableOpacity, Text, TouchableWithoutFeedback } from 'react-native';
+import MapView, { Marker, Region } from 'react-native-maps';
+import Geolocation from '@react-native-community/geolocation';
+import { MapViewRoute } from 'react-native-maps-routes';
+import { MaterialIcons } from '@expo/vector-icons';
+import ChooseDestination from './chooseDestination';
+import ClosestMapBanner from './components/closestMapBanner';  // Import ClosestMapBanner
+import { KEY_2 } from './constants/public_key';
 
-/**
- * BeaconListScreen - Displays the list of detected beacons.
- *
- * This screen subscribes to beacon update events from the BeaconScannerService via an EventEmitter.
- * All error handling has been moved to the global ErrorBanner component in _layout.tsx.
- */
-export default function BeaconListScreen() {
-  const [devices, setDevices] = useState<ScannedDevice[]>([]);
+const GlobalMap = () => {
+  const [origin, setOrigin] = useState<Region | null>(null);
+  const [destination, setDestination] = useState<{ latitude: number; longitude: number } | null>(null);
+  const [isSearchVisible, setSearchVisible] = useState(false);
+  const searchRef = useRef<View | null>(null);
+  const mapRef = useRef<MapView | null>(null);  // Reference to the MapView
 
   useEffect(() => {
-    const updateHandler = (updatedDevices: ScannedDevice[]) => {
-      setDevices(updatedDevices);
+    const requestLocationPermission = async () => {
+      if (Platform.OS === 'android') {
+        try {
+          const granted = await PermissionsAndroid.request(
+            PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
+            {
+              title: 'Location Permission',
+              message: 'This app needs access to your location for outdoor navigation.',
+              buttonNeutral: 'Ask Me Later',
+              buttonNegative: 'Cancel',
+              buttonPositive: 'OK',
+            }
+          );
+          if (granted === PermissionsAndroid.RESULTS.GRANTED) {
+            getCurrentLocation();
+          } else {
+            console.log('Location permission denied');
+          }
+        } catch (err) {
+          console.warn(err);
+        }
+      } else {
+        getCurrentLocation();
+      }
     };
 
-    beaconEventEmitter.on("update", updateHandler);
-
-    return () => {
-      beaconEventEmitter.off("update", updateHandler);
-    };
+    requestLocationPermission();
   }, []);
 
-  const renderItem = ({ item }: { item: ScannedDevice }) => (
-    <View style={styles.deviceContainer}>
-      <Text style={styles.deviceText}>Name: {item.name || "Unknown Device"}</Text>
-      <Text style={styles.deviceText}>ID: {item.id}</Text>
-      <Text style={styles.deviceText}>RSSI: {item.rssi ?? "N/A"}</Text>
-      <Text style={styles.deviceText}>Identifier: {item.identifier}</Text>
-      <Text style={styles.deviceText}>Distance: {item.distance}</Text>
-    </View>
-  );
+  const getCurrentLocation = () => {
+    Geolocation.getCurrentPosition(
+      position => {
+        console.log('Location fetched successfully:', position.coords); // Debugging log
+        const { latitude, longitude } = position.coords;
+        const currentRegion = {
+          latitude,
+          longitude,
+          latitudeDelta: 0.01,
+          longitudeDelta: 0.01,
+        };
+        setOrigin(currentRegion);
+      },
+      error => {
+        console.log('Error fetching location:', error);  // Debugging error
+      },
+      {
+        enableHighAccuracy: true,
+        maximumAge: 0,
+      }
+    );
+  };
+
+  // Function to center the map on the user's current location
+  const centerMapOnUser = () => {
+    if (origin && mapRef.current) {
+      console.log('Centering map to:', origin);  // Debugging log
+      mapRef.current.animateToRegion({
+        latitude: origin.latitude,
+        longitude: origin.longitude,
+        latitudeDelta: 0.01,
+        longitudeDelta: 0.01,
+      });
+    } else {
+      console.log('Origin or mapRef is null, cannot center map.');
+    }
+  };
+
+  const handleOutsidePress = (e: any) => {
+    // Check if the touch is outside the search component
+    if (searchRef.current) {
+      searchRef.current.measure((fx, fy, width, height, px, py) => {
+        const touchX = e.nativeEvent.pageX;
+        const touchY = e.nativeEvent.pageY;
+        if (touchX < px || touchX > px + width || touchY < py || touchY > py + height) {
+          setSearchVisible(false);  // Hide search component if touch is outside
+        }
+      });
+    }
+  };
+
+  // If no origin, show loading
+  if (!origin) {
+    return (
+      <View style={styles.loadingContainer}>
+        <Text>Loading location...</Text>
+      </View>
+    );
+  }
 
   return (
-    <View style={styles.container}>
-      <FlatList
-        data={devices}
-        keyExtractor={(item) => item.id}
-        renderItem={renderItem}
-      />
-      <Link href={"/showMap"} style={styles.button}>
-          Map
-      </Link>
-      <Link href={"/globalMap"} style={styles.button}>
-          Global map
-      </Link>
-      <ClosestMapBanner />
-    </View>
+    <TouchableWithoutFeedback onPress={handleOutsidePress}>
+      <View style={styles.container}>
+        <MapView
+          ref={mapRef}  // Make sure the ref is correctly assigned
+          style={styles.map}
+          initialRegion={origin}
+          showsUserLocation={true}
+          showsMyLocationButton={false}  // Disable the default "center" button
+        >
+          {/* Origin Marker */}
+          <Marker
+            coordinate={{ latitude: origin.latitude, longitude: origin.longitude }}
+            title="You are here"
+          />
+          {/* Destination Marker */}
+          {destination && (
+            <Marker
+              coordinate={destination}
+              title="Destination"
+              pinColor="green"
+            />
+          )}
+          {/* Draw route if destination exists */}
+          {origin && destination && (
+            <MapViewRoute
+              origin={{ latitude: origin.latitude, longitude: origin.longitude }}
+              destination={destination}
+              apiKey={KEY_2}
+              strokeColor="#000"
+              strokeWidth={6}
+              onError={(errorMessage) => {
+                console.log('Error in MapViewDirections: ', errorMessage);
+              }}
+            />
+          )}
+        </MapView>
+
+        {/* Custom Center Button */}
+        <TouchableOpacity
+          style={styles.centerButton}
+          onPress={centerMapOnUser}  // Trigger the centering
+        >
+          <MaterialIcons name="my-location" size={24} color="black" />
+        </TouchableOpacity>
+
+        {/* Search Button */}
+        <TouchableOpacity
+          style={styles.searchButton}
+          onPress={() => setSearchVisible(!isSearchVisible)}
+        >
+          <MaterialIcons name="search" size={24} color="black" />
+        </TouchableOpacity>
+
+        {/* Choose Destination Component */}
+        {isSearchVisible && (
+          <View style={styles.searchContainer} ref={searchRef}>
+            <ChooseDestination
+              isSearchVisible={isSearchVisible}
+              onPress={setDestination}
+            />
+          </View>
+        )}
+        
+        <ClosestMapBanner />
+      </View>
+    </TouchableWithoutFeedback>
   );
-}
+};
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 20,
-    backgroundColor: "#f9f9f9",
   },
-  deviceContainer: {
+  map: {
+    flex: 1,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  searchButton: {
+    position: 'absolute',
+    top: 10,
+    left: 10,
+    backgroundColor: 'white',
     padding: 10,
-    marginVertical: 5,
-    backgroundColor: "#fff",
-    borderRadius: 5,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
+    borderRadius: 30,
+    elevation: 5,
+    opacity: 0.8,
+  },
+  searchContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 2,
+    backgroundColor: 'white',
+    elevation: 8,
+    shadowColor: 'black',
     shadowOpacity: 0.2,
-    shadowRadius: 1,
+    shadowRadius: 3.5,
   },
-  deviceText: {
-    fontSize: 14,
-    color: "#333",
-  },
-  button: {
-    fontSize: 20,
-    textAlign: "center",
-    textDecorationLine: "underline",
-    color: "black",
+  centerButton: {
+    position: 'absolute',
+    bottom: 20,
+    right: 20,
+    backgroundColor: 'white',
+    padding: 10,
+    borderRadius: 15,
+    elevation: 5,
+    opacity: 0.7,
   },
 });
 
+export default GlobalMap;

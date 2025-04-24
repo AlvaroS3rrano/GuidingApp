@@ -144,7 +144,6 @@ export const startBeaconScanning = async () => {
           devices.some((known) => known.identifier === device.identifier)
         );
 
-        // Emit the updated devices list to listeners
         beaconEventEmitter.emit("update", matchedKnownDevices);
 
         const closest = matchedKnownDevices.reduce<ScannedDevice | undefined>(
