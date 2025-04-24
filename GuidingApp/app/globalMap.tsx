@@ -3,9 +3,11 @@ import { View, StyleSheet, PermissionsAndroid, Platform, TouchableOpacity, Text,
 import MapView, { Marker, Region } from 'react-native-maps';
 import MapViewDirections from 'react-native-maps-directions';
 import Geolocation from '@react-native-community/geolocation';
-import { API_KEY } from "@/app/constants/consts";
+import { MapViewRoute } from 'react-native-maps-routes';
+import { API_KEY} from "@/app/constants/consts";
 import { MaterialIcons } from '@expo/vector-icons'; // Importa íconos
 import ChooseDestination from './chooseDestination';
+import { KEY_2 } from './constants/public_key';
 
 const GlobalMap = () => {
   const [origin, setOrigin] = useState<Region | null>(null);
@@ -115,12 +117,12 @@ const GlobalMap = () => {
           )}
           {/* Dibujar ruta si se ha seleccionado destino */}
           {origin && destination && (
-            <MapViewDirections
+            <MapViewRoute
               origin={{ latitude: origin.latitude, longitude: origin.longitude }}
               destination={destination}
-              apikey={API_KEY}
-              strokeWidth={4}
-              strokeColor="blue"
+              apiKey={KEY_2}
+              strokeColor="#000"
+              strokeWidth={6}
               onError={(errorMessage) => {
                 console.log('Error en MapViewDirections: ', errorMessage);
               }}
@@ -141,6 +143,7 @@ const GlobalMap = () => {
           <View style={styles.searchContainer} ref={searchRef}>
             <ChooseDestination
               isSearchVisible={isSearchVisible} 
+              onPress={setDestination}
             />
           </View>
         )}
@@ -154,7 +157,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   map: {
-    flex: 1,  // El mapa ocupa toda la pantalla
+    flex: 1, 
   },
   loadingContainer: {
     flex: 1,

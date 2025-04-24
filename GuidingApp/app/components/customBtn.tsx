@@ -27,15 +27,15 @@ const CustomBtn: React.FC<CustomBtnProps> = ({
 
 const styles = StyleSheet.create({
   button: {
-    backgroundColor: '#3478f6',
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 8,
-    alignItems: 'center',
+    height:34,
     justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'white',
+    paddingHorizontal: 16,
+    borderColor: 'lightgrey',
+    borderWidth: 1,
   },
   buttonText: {
-    color: 'white',
     fontSize: 16,
     fontWeight: '600',
   },

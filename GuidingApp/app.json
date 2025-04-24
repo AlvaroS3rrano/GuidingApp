@@ -9,14 +9,22 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "config": {
+        "googleMapsApiKey": "AIzaSyAv5hSCZvXU2rpbqd32eEJxRy4w3Ab5Lyo"  
+      }
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.as3rrano.GuidingApp"
+      "package": "com.as3rrano.GuidingApp",
+      "config": {
+        "googleMaps": {
+          "apiKey": "AIzaSyAv5hSCZvXU2rpbqd32eEJxRy4w3Ab5Lyo"  
+        }
+      }
     },
     "web": {
       "bundler": "metro",

@@ -26,7 +26,7 @@ const AddressInput: React.FC<AddressInputProps> = ({ placeholderText, fetchAddre
       <GooglePlacesAutocomplete
         placeholder={placeholderText}
         apiKey={API_KEY}
-        requestConfig={{ countries: ['ES'] }}
+        requestConfig={{ countries: ['ES', 'US'] }}
         onPlaceSelected={onPlaceSelected}
         onSearchError={onSearchError}
       />

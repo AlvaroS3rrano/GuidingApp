@@ -5,10 +5,12 @@ import CustomBtn from './components/customBtn';
 
 interface ChooseDestinationProps {
   isSearchVisible: boolean;
+  onPress: (destination: { latitude: number; longitude: number } | null) => void;
 }
 
 const ChooseDestination: React.FC<ChooseDestinationProps> = ({
   isSearchVisible,
+  onPress,
 }) => {
   const [destination, setDestination] = useState<{ latitude: number; longitude: number } | null>(null);
 
@@ -17,6 +19,7 @@ const ChooseDestination: React.FC<ChooseDestinationProps> = ({
   };
 
   const saveDestination = () => {
+    onPress(destination)
     console.log("Destino guardado:", destination);
   };
 
@@ -45,21 +48,13 @@ const ChooseDestination: React.FC<ChooseDestinationProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    position: 'absolute',
-    top: 0, left: 0, right: 0, bottom: 0,  // ocupa toda la pantalla
-    zIndex: 2,
+    flex:1
   },
   searchContainer: {
-    position: 'absolute',
-    top: 0, left: 0, right: 0,
-    backgroundColor: 'white',
-    padding: 20,
-    elevation: 8,
+    
   },
   destinationButtonContainer: {
-    position: 'absolute',
-    bottom: 30, left: 0, right: 0,
-    alignSelf: 'center',
+    
   },
 });
 
