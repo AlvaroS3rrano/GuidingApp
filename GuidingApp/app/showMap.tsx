@@ -19,6 +19,7 @@ const ShowMap: React.FC = () => {
   const { mapData } = useLocalSearchParams<{ mapData?: string }>();
 
   let parsedMapData: MapDataDTO | null = null;
+  const raw = mapData;           
   if (mapData) {
     try {
       parsedMapData = JSON.parse(mapData) as MapDataDTO;
@@ -132,8 +133,10 @@ const ShowMap: React.FC = () => {
       setOrigin(originNode);
       setOriginError("");
     } else if (nodeName === ""){
+      setOrigin(null)
       setOriginError("");
     } else {
+      setOrigin(null)
       setOriginError("Destination node not found");
     }
   };
@@ -147,8 +150,10 @@ const ShowMap: React.FC = () => {
       setDestination(destinationNode);
       setDestinationError("");
     } else if (nodeName === ""){
+      setDestination(null)
       setDestinationError("");
     } else {
+      setDestination(null)
       setDestinationError("Destination node not found");
     }
   };
@@ -161,48 +166,55 @@ const ShowMap: React.FC = () => {
   return (
     <View style={styles.container}>
       {parsedMapData ? (
-        <Map 
-          mapData={parsedMapData}
-          origin={origin} 
-          destination={destination}
-          current_node={ (origin && currentBeacon && !isPreview) ? currentBeacon : origin }
-          searchPressed={searchPressed}
-          centerTrigger={centerTrigger}
-          isPreview={origin != null && (origin.beaconId !== (closestBeacon || ''))}
-          newTrip={newTrip}
-          onCancelSearch={() => setSearchPressed(false)}
-        />
+        <>
+          <Map 
+            mapData={parsedMapData}
+            origin={origin} 
+            destination={destination}
+            current_node={(currentBeacon && !isPreview) ? currentBeacon : origin}
+            searchPressed={searchPressed}
+            centerTrigger={centerTrigger}
+            isPreview={origin != null && (origin.beaconId !== (closestBeacon || ''))}
+            newTrip={newTrip}
+            onCancelSearch={() => setSearchPressed(false)}
+          />
+  
+          <View style={styles.overlayContainer}>
+            {searchPressed ? (
+              <View style={styles.cancelButtonContainer}>
+                <Button title="Cancel" onPress={cancelSearch} />
+              </View>
+            ) : (
+              <SearchBar
+                origin={originString}
+                destination={destinationString}
+                recommendedOrigin={originSuggestion}
+                destinationOptions={parsedMapData.nodes.map(n => n.name)}
+                onOriginChange={handleOriginChange}
+                onDestinationChange={handleDestinationChange}
+                onSearch={handleSearch}
+                buttonTitle={isPreview ? "Preview" : "Search"}
+                originError={originError}
+                destinationError={destinationError}
+              />
+            )}
+          </View>
+  
+          {searchPressed && (
+            <TouchableOpacity 
+              style={styles.centerButton} 
+              onPress={() => setCenterTrigger(prev => prev + 1)}
+            >
+              <Text style={styles.centerButtonText}>🎯</Text>
+            </TouchableOpacity>
+          )}
+        </>
       ) : (
         <Text>Map data is not available</Text>
       )}
-      <View style={styles.overlayContainer}>
-        {searchPressed ? (
-          <View style={styles.cancelButtonContainer}>
-            <Button title="Cancel" onPress={cancelSearch} />
-          </View>
-        ) : (
-          <SearchBar
-            origin={originString}
-            destination={destinationString}
-            recommendedOrigin={originSuggestion}
-            onOriginChange={handleOriginChange}
-            onDestinationChange={handleDestinationChange}
-            onSearch={handleSearch}
-            buttonTitle={isPreview ? "Preview" : "Search"}
-            originError={originError}
-            destinationError={destinationError}
-          />
-        )}
-      </View>
-      {searchPressed && (
-        <TouchableOpacity style={styles.centerButton} onPress={() => setCenterTrigger(prev => prev + 1)}>
-          <Text style={styles.centerButtonText}>🎯</Text>
-        </TouchableOpacity>
-      )}
-      
     </View>
-    
   );
+  
 };
 
 const styles = StyleSheet.create({

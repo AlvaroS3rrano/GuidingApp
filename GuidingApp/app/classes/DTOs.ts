@@ -9,7 +9,7 @@ export interface NamedMatrixDTO {
   name: string;
 
   /** 2D integer array representing the matrix contents */
-  data: number[][];
+  matrix: number[][];
 }
 
 /**
@@ -66,4 +66,23 @@ export interface MapDataDTO {
 export interface Path {
   origin: NodeDTO;
   destination: NodeDTO;
+}
+
+/**
+ * Get the 2D matrix for a specific floor number.
+ *
+ * @param mapData    the full MapDataDTO payload
+ * @param floor      the floorNumber you want
+ * @returns          the matrix for that floor
+ * @throws           if no matrix block exists for the given floor
+ */
+export function getMatrixForFloor(
+  mapData: MapDataDTO,
+  floor: number
+): number[][] {
+  const block = mapData.matrices.find(m => m.floorNumber === floor);
+  if (!block) {
+    throw new Error(`No matrix found for floor ${floor}`);
+  }
+  return block.matrix;
 }

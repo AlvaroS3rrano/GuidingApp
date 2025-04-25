@@ -33,7 +33,7 @@ import Svg, { Rect, Polygon, Polyline, Circle } from 'react-native-svg';
 import { Magnetometer } from 'expo-sensors';
 import { Dot } from './classes/geometry';
 import { findPathWithDistance, PathResult } from '@/resources/pathFinding';
-import { MapDataDTO, NodeDTO, Path } from './classes/DTOs';
+import { getMatrixForFloor, MapDataDTO, NodeDTO, Path } from './classes/DTOs';
 
 
 type MapaInteriorProps = {
@@ -105,8 +105,14 @@ const MapaInterior: React.FC<MapaInteriorProps> = ({
     }
   }, [current_node, destination, searchPressed, isPreview, onCancelSearch]);
 
+
   // Clone the initial map grid from the mapData prop
-  let updatedPlano: number[][] = JSON.parse(JSON.stringify(mapData.matrix));
+  const floor = origin?.floorNumber 
+            ?? current_node?.floorNumber 
+            ?? 0;
+  
+  let matrix = getMatrixForFloor(mapData, floor)
+  let updatedPlano: number[][] = JSON.parse(JSON.stringify(matrix));
   let pathResult: PathResult | null = null;
   let path: Dot[] = [];
   let arrowAngle = 0;
