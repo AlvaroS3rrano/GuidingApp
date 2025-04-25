@@ -1,12 +1,14 @@
 package es.gdapp.guidingApp.models;
 
 import com.fasterxml.jackson.annotation.JsonManagedReference;
-import es.gdapp.guidingApp.converters.IntArrayConverter;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.NoSuchElementException;
+import java.util.Optional;
 
 @Data
 @NoArgsConstructor
@@ -16,68 +18,117 @@ public class MapData {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;  // Unique identifier
+    private Long id;  // Primary key identifier
 
-    private String name;
+    private String name;  // Map name
 
-    private double northAngle;
+    private double northAngle;  // Orientation angle relative to north
 
-    @Convert(converter = IntArrayConverter.class)
-    @Column(columnDefinition = "TEXT")
-    private int[][] matrix;
+    @ElementCollection
+    @CollectionTable(
+            name = "map_data_matrices",
+            joinColumns = @JoinColumn(name = "map_data_id"),
+            uniqueConstraints = @UniqueConstraint(
+                    name = "uc_map_floor",
+                    columnNames = { "map_data_id", "floor_number" }
+            )
+    )
+    private List<NamedMatrix> matrices = new ArrayList<>();  // Embedded list of named matrices
 
-    // One-to-many relationship with Node
     @OneToMany(mappedBy = "map", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonManagedReference
-    private List<Node> nodes;
+    private List<Node> nodes;  // One-to-many relationship with Node entities
 
     @OneToMany(mappedBy = "mapData", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<Edge> edges;
+    private List<Edge> edges;  // One-to-many relationship with Edge entities
 
-    // Custom constructor to initialize the matrix
-    public MapData(String name, double northAngle, int rows, int columns) {
+    /**
+     * Constructs a MapData instance with an initial named matrix.
+     *
+     * @param name        the map's name
+     * @param northAngle  the orientation angle relative to north
+     * @param matrixName  the identifier for the initial matrix block
+     * @param rows        the number of rows in the matrix
+     * @param columns     the number of columns in the matrix
+     */
+    public MapData(String name, double northAngle, String matrixName, int rows, int columns) {
         this.name = name;
         this.northAngle = northAngle;
-        this.matrix = new int[rows][columns];
-        for (int i = 0; i < rows; i++) {
-            for (int j = 0; j < columns; j++) {
-                this.matrix[i][j] = 0;
-            }
-        }
+
+        // Initialize the matrix data (all elements default to 0)
+        int[][] data = new int[rows][columns];
+
+        // Create and add the initial NamedMatrix to the collection
+        NamedMatrix initial = new NamedMatrix(0, matrixName, data);
+        this.matrices.add(initial);
     }
 
-    // Utility method to print the matrix
-    public void printMatrix() {
+    /**
+     * Finds the first NamedMatrix with the specified number.
+     *
+     * @param number the matrix number to search for
+     * @return an Optional containing the NamedMatrix if found, or empty if not
+     */
+    public Optional<NamedMatrix> findMatrixByFloor(int number) {
+        return matrices.stream()
+                .filter(m -> m.getFloorNumber() != null && m.getFloorNumber() == number)
+                .findFirst();
+    }
+
+    /**
+     * Retrieves the NamedMatrix with the specified number or throws an exception if not found.
+     *
+     * @param number the matrix number to retrieve
+     * @return the matching NamedMatrix
+     * @throws NoSuchElementException if no matrix with that number exists
+     */
+    public NamedMatrix getMatrixByFloor(int number) {
+        return findMatrixByFloor(number)
+                .orElseThrow(() ->
+                        new NoSuchElementException("No matrix found with number " + number));
+    }
+
+    /**
+     * Prints the matrix for the specified floor number to standard output.
+     *
+     * @param floorNumber the matrix number to print
+     */
+    public void printMatrix(int floorNumber) {
+        NamedMatrix namedMatrix = getMatrixByFloor(floorNumber);
+        int[][] matrix = namedMatrix.getMatrix();
         for (int[] row : matrix) {
             for (int value : row) {
-                System.out.print(value + " "); // Print each value in the matrix
+                System.out.print(value + " ");
             }
             System.out.println();
         }
     }
 
     /**
-     * Generates an SVG representation of the matrix.
-     * Each cell is represented as a 20x20 pixel square.
-     * Cells with a value of 1 are filled with black, and cells with a value of 0 are filled with white.
+     * Generates an SVG representation of the specified matrix.
+     * Each cell is rendered as a 20x20 pixel square; cells with value 1 are black, others are white.
      *
-     * @return A String containing the SVG markup representing the matrix.
+     * @param floorNumber the matrix number to render
+     * @return a String containing the SVG markup for the matrix
      */
-    public String getMatrixSVG() {
-        int cellSize = 20; // Each cell is 20px square
+    public String getMatrixSVG(int floorNumber) {
+        NamedMatrix namedMatrix = getMatrixByFloor(floorNumber);
+        int[][] matrix = namedMatrix.getMatrix();
+        int cellSize = 20;  // size in pixels for each square cell
         int rows = matrix.length;
         int cols = matrix[0].length;
         int width = cols * cellSize;
         int height = rows * cellSize;
+
         StringBuilder svg = new StringBuilder();
         svg.append("<svg width=\"").append(width)
                 .append("\" height=\"").append(height)
                 .append("\" viewBox=\"0 0 ").append(width).append(" ").append(height)
                 .append("\" xmlns=\"http://www.w3.org/2000/svg\">");
-        // Loop through matrix to create SVG rectangles for each cell
+
         for (int i = 0; i < rows; i++) {
             for (int j = 0; j < cols; j++) {
-                String fill = matrix[i][j] == 1 ? "black" : "white"; // Mark cells with 1 as black
+                String fill = matrix[i][j] == 1 ? "black" : "white";
                 svg.append("<rect x=\"").append(j * cellSize)
                         .append("\" y=\"").append(i * cellSize)
                         .append("\" width=\"").append(cellSize)
@@ -86,98 +137,81 @@ public class MapData {
                         .append("\" stroke=\"gray\"/>");
             }
         }
+
         svg.append("</svg>");
         return svg.toString();
     }
 
     /**
-     * Connects a list of coordinates by drawing horizontal or vertical lines between consecutive points.
-     * Before drawing, it checks each coordinate using isPointInMatrix, and if any coordinate is outside
-     * the matrix, it throws a RuntimeException.
-     * The function also connects the last coordinate with the first to close the shape.
-     * It inverts the Y coordinate to match the matrix orientation (0 at the top) before drawing.
+     * Draws lines between a series of coordinates on the specified matrix, filling values along the path.
+     * Horizontal and vertical segments are supported; the method closes the shape by connecting last to first.
      *
-     * @param coordinates A list of coordinates where each coordinate is a list with two integers [x, givenY].
-     *                    The y value is inverted using the formula: matrix.length - 1 - givenY.
-     * @param fillValue   The value (e.g., 0 or 1) to set in the matrix for the cells along the drawn lines.
-     * @throws RuntimeException if any coordinate is out of the matrix bounds.
+     * @param coordinates a list of [x, y] coordinate pairs (y inverted internally)
+     * @param fillValue   the value to set for each cell along the path (e.g., 0 or 1)
+     * @param floorNumber the matrix number on which to draw
+     * @throws RuntimeException if any coordinate lies outside matrix bounds
      */
-    public void connectCoordinates(List<List<Integer>> coordinates, int fillValue) {
+    public void connectCoordinates(List<List<Integer>> coordinates, int fillValue, int floorNumber) {
+        NamedMatrix namedMatrix = getMatrixByFloor(floorNumber);
+        int[][] matrix = namedMatrix.getMatrix();
         int rows = matrix.length;
 
-        // Validate each coordinate using isPointInMatrix
-        for (List<Integer> coordinate : coordinates) {
-            int x = coordinate.get(0);
-            int y = rows - 1 - coordinate.get(1);  // Invert Y coordinate
-            if (!isPointInMatrix(y, x)) {
-                throw new RuntimeException("Coordinate out of bounds: (" + coordinate.get(0) + ", " + coordinate.get(1) + ")");
+        // Validate all coordinates
+        for (List<Integer> c : coordinates) {
+            int x = c.get(0);
+            int y = rows - 1 - c.get(1);  // invert Y
+            if (!isPointInMatrix(y, x, matrix)) {
+                throw new RuntimeException("Coordinate out of bounds: (" + c.get(0) + ", " + c.get(1) + ")");
             }
         }
 
-        // Process each pair of consecutive coordinates (including last-to-first)
+        // Draw each segment
         for (int i = 0; i < coordinates.size(); i++) {
-            // Get current point and the next point (wrap-around using modulo)
-            List<Integer> current = coordinates.get(i);
+            List<Integer> curr = coordinates.get(i);
             List<Integer> next = coordinates.get((i + 1) % coordinates.size());
-
-            // Invert the Y coordinate for both points to get matrix indices
-            int x1 = current.get(0);
-            int y1 = rows - 1 - current.get(1);
+            int x1 = curr.get(0);
+            int y1 = rows - 1 - curr.get(1);
             int x2 = next.get(0);
             int y2 = rows - 1 - next.get(1);
 
-            // Draw vertical segments if x coordinates are equal
             if (x1 == x2) {
                 for (int y = Math.min(y1, y2); y <= Math.max(y1, y2); y++) {
                     matrix[y][x1] = fillValue;
                 }
-            } else if (y1 == y2) { // Draw horizontal segments if y coordinates are equal
+            } else if (y1 == y2) {
                 for (int x = Math.min(x1, x2); x <= Math.max(x1, x2); x++) {
                     matrix[y1][x] = fillValue;
                 }
             }
-            // (If needed, add handling for non-straight lines.)
         }
     }
 
     /**
-     * Checks if the given point (row, col) exists within the matrix.
+     * Checks if a point is within the bounds of a given matrix.
      *
-     * @param row The row index (after any transformation, if applicable)
-     * @param col The column index
-     * @return true if the point is inside the matrix bounds, false otherwise.
+     * @param row    the row index to validate
+     * @param col    the column index to validate
+     * @param matrix the 2D array to check against
+     * @return true if the row/col are within bounds, false otherwise
      */
-    public boolean isPointInMatrix(int row, int col) {
-        return row >= 0 && row < matrix.length && col >= 0 && col < matrix[0].length;
+    public boolean isPointInMatrix(int row, int col, int[][] matrix) {
+        return row >= 0 && row < matrix.length
+                && col >= 0 && col < matrix[0].length;
     }
 
     /**
-     * Resizes the current matrix to new dimensions while preserving the existing values.
-     * The content of the original matrix is copied into the new matrix with a vertical offset equal to
-     * (newRows - oldRows) and no horizontal offset (col offset = 0). This method assumes that newRows >= oldRows
-     * and newCols >= oldCols.
+     * Resizes the specified matrix, preserving existing values and adding a vertical offset.
+     * Original contents are shifted down by (newRows - oldRows), with no horizontal shift.
      *
-     * For example, if the original matrix is:
-     * {0, 0, 0, 0, 0},
-     * {0, 0, 0, 0, 0},
-     * {0, 1, 1, 1, 0},
-     * {0, 1, 0, 1, 0},
-     * {0, 1, 1, 1, 0}
-     *
-     * and new dimensions are 6 rows and 7 columns, the new matrix will be:
-     * {0, 0, 0, 0, 0, 0, 0},
-     * {0, 0, 0, 0, 0, 0, 0},
-     * {0, 0, 0, 0, 0, 0, 0},
-     * {0, 1, 1, 1, 0, 0, 0},
-     * {0, 1, 0, 1, 0, 0, 0},
-     * {0, 1, 1, 1, 0, 0, 0}
-     *
-     * @param newRows The desired number of rows in the new matrix.
-     * @param newCols The desired number of columns in the new matrix.
+     * @param newRows     the new row count (>= original)
+     * @param newCols     the new column count (>= original)
+     * @param floorNumber the matrix number to resize
      */
-    public void resizeMatrix(int newRows, int newCols) {
-        int oldRows = matrix.length;
-        int oldCols = matrix[0].length;
+    public void resizeMatrix(int newRows, int newCols, int floorNumber) {
+        NamedMatrix namedMatrix = getMatrixByFloor(floorNumber);
+        int[][] oldMatrix = namedMatrix.getMatrix();
+        int oldRows = oldMatrix.length;
+        int oldCols = oldMatrix[0].length;
         // Calculate vertical offset: move the original content down by (newRows - oldRows)
         int rowOffset = newRows - oldRows;
         // Horizontal offset remains 0 to keep the original content aligned to the left
@@ -192,13 +226,11 @@ public class MapData {
                 int newCol = j + colOffset;
                 // Ensure that the new indices are within bounds (newRow >= 0 is added)
                 if (newRow >= 0 && newRow < newRows && newCol < newCols) {
-                    newMatrix[newRow][newCol] = matrix[i][j];
+                    newMatrix[newRow][newCol] = oldMatrix[i][j];
                 }
             }
         }
 
-        // Update the matrix with the new matrix
-        matrix = newMatrix;
+        namedMatrix.setMatrix(newMatrix);
     }
-
 }

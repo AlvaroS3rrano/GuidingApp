@@ -27,11 +27,11 @@ public class Node {
 
     private String beaconId;
 
+    private Integer floor;
+
     private Integer x;
 
     private Integer y;
-
-    private String comment;
 
     // Many-to-one relationship with MapData
     @ManyToOne(fetch = FetchType.LAZY)
@@ -51,10 +51,10 @@ public class Node {
             nodeData.put("id", this.id);
             nodeData.put("name", this.name);
             nodeData.put("beaconId", this.beaconId);
+            nodeData.put("floor", this.floor);
             nodeData.put("x", this.x);
             nodeData.put("y", this.y);
             nodeData.put("area", this.area);
-            nodeData.put("comment", this.comment);
             // You can omit the 'map' property to avoid lazy loading issues.
             return new ObjectMapper().writeValueAsString(nodeData);
         } catch (JsonProcessingException e) {

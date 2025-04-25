@@ -14,6 +14,8 @@ public class Edge {
 
     private Integer weight;
 
+    private String comment;
+
     @ManyToOne
     @JoinColumn(name = "from_node_id", nullable = false)
     private Node fromNode;

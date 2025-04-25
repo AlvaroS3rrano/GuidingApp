@@ -24,7 +24,7 @@ public class NodeServiceTest {
     @Test
     public void testCreateRetrieveUpdateDeleteNode() {
         // Create a MapData first (since Node depends on it)
-        MapData mapData = new MapData("Test Map for Node", 90.0, 4, 4);
+        MapData mapData = new MapData("Test Map for Node", 90.0, "test", 4, 4);
         mapData = mapDataService.saveMapData(mapData);
 
         // Create a new Node and associate it with the MapData

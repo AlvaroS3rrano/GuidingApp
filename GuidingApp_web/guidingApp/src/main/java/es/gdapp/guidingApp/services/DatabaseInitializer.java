@@ -2,6 +2,7 @@ package es.gdapp.guidingApp.services;
 
 import es.gdapp.guidingApp.models.Edge;
 import es.gdapp.guidingApp.models.MapData;
+import es.gdapp.guidingApp.models.NamedMatrix;
 import es.gdapp.guidingApp.models.Node;
 import es.gdapp.guidingApp.repositories.MapDataRepository;
 import es.gdapp.guidingApp.repositories.NodeRepository;
@@ -25,8 +26,8 @@ public class DatabaseInitializer {
     @PostConstruct
     public void init() {
         // Create a new MapData instance with a 5x5 matrix and a north angle of 0.0
-        MapData mapData = new MapData("Default Map", 0.0, 11, 16);
-
+        MapData mapData = new MapData("Default Map", 0.0, "Example", 11, 16);
+        mapData.getMatrices().add(new NamedMatrix(1, "firts floor",10,10 ));
         List<List<Integer>> coordinates = new ArrayList<>();
         coordinates.add(Arrays.asList(0, 0));
         coordinates.add(Arrays.asList(15, 0));
@@ -35,12 +36,13 @@ public class DatabaseInitializer {
         coordinates.add(Arrays.asList(10, 10));
         coordinates.add(Arrays.asList(0, 10));
 
-        mapData.connectCoordinates(coordinates, 1);
+        mapData.connectCoordinates(coordinates, 1, 0);
 
         // Create a couple of Node instances and associate them with the map
         Node node1 = new Node();
         node1.setName("Node A");
         node1.setBeaconId("d4fcb04a6573ea399df3adbf06f91b38");
+        node1.setFloor(0);
         node1.setX(13);
         node1.setY(2);
         node1.setArea(new int[][] { {10, 0}, {15, 0}, {15, 5}, {10, 5} });
@@ -49,6 +51,7 @@ public class DatabaseInitializer {
         Node node2 = new Node();
         node2.setName("Node B");
         node2.setBeaconId("15c210b9f1ea2e121131bba29e8cc90a");
+        node2.setFloor(1);
         node2.setX(3);
         node2.setY(8);
         node2.setArea(new int[][] { {0, 5}, {10, 5}, {10, 10}, {0, 10} });
@@ -57,6 +60,7 @@ public class DatabaseInitializer {
         Node node3 = new Node();
         node3.setName("Node C");
         node3.setBeaconId("530801241127a8aad378170fdbabbd17");
+        node3.setFloor(0);
         node3.setX(5);
         node3.setY(3);
         node3.setArea(new int[][] { {0, 0}, {10, 0}, {10, 5}, {0, 5} });
@@ -70,18 +74,22 @@ public class DatabaseInitializer {
 
         List<Edge> edges = new ArrayList<>();
         Edge edge1 = new Edge(node1, node2);
+        edge1.setComment("de 1 a 2");
         edge1.setWeight(5);
         edge1.setMapData(mapData);
 
         Edge edge2 = new Edge(node2, node1);
+        edge2.setComment("de 2 a 1");
         edge2.setMapData(mapData);
         edge2.setWeight(5);
 
         Edge edge3 = new Edge(node3, node1);
+        edge3.setComment("de 3 a 1");
         edge3.setMapData(mapData);
         edge3.setWeight(5);
 
         Edge edge4 = new Edge(node2, node3);
+        edge4.setComment("de 2 a 3");
         edge4.setMapData(mapData);
         edge4.setWeight(5);
 

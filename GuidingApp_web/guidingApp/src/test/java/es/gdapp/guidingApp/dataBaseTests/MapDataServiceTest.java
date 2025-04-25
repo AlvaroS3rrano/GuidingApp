@@ -2,6 +2,7 @@ package es.gdapp.guidingApp.dataBaseTests;
 
 import es.gdapp.guidingApp.models.Edge;
 import es.gdapp.guidingApp.models.MapData;
+import es.gdapp.guidingApp.models.NamedMatrix;
 import es.gdapp.guidingApp.models.Node;
 import es.gdapp.guidingApp.services.MapDataService;
 import org.junit.jupiter.api.Test;
@@ -24,7 +25,7 @@ public class MapDataServiceTest {
     @Test
     public void testCreateRetrieveUpdateDeleteMapData() {
         // Test original (ya existente)
-        MapData mapData = new MapData("Test Map", 45.0, 3, 3);
+        MapData mapData = new MapData("Test Map", 45.0, "test", 3, 3);
         MapData saved = mapDataService.saveMapData(mapData);
         assertNotNull(saved.getId(), "MapData ID should be set after saving");
 
@@ -50,8 +51,8 @@ public class MapDataServiceTest {
         };
 
         // Crear MapData con atributos completos
-        MapData mapData = new MapData("Full Test Map", 90.0, 3, 3);
-        mapData.setMatrix(customMatrix);
+        MapData mapData = new MapData("Full Test Map", 90.0, "test", 3, 3);
+        mapData.getMatrices().add(new NamedMatrix(1, "custom", customMatrix));
 
         // Crear nodos y asignarles el mapData
         Node node1 = new Node();
@@ -94,10 +95,11 @@ public class MapDataServiceTest {
         assertEquals(90.0, retrieved.getNorthAngle(), "El northAngle debe coincidir");
 
         // Verificar la matriz
-        assertNotNull(retrieved.getMatrix(), "La matriz no debe ser nula");
-        assertEquals(customMatrix.length, retrieved.getMatrix().length, "El número de filas debe coincidir");
+        NamedMatrix matrixByFloor = retrieved.getMatrixByFloor(1);
+        assertNotNull(matrixByFloor.getMatrix(),"La matriz no debe ser nula");
+        assertEquals(customMatrix.length, matrixByFloor.getMatrix().length, "El número de filas debe coincidir");
         for (int i = 0; i < customMatrix.length; i++) {
-            assertArrayEquals(customMatrix[i], retrieved.getMatrix()[i], "La fila " + i + " debe coincidir");
+            assertArrayEquals(customMatrix[i], matrixByFloor.getMatrix()[i], "La fila " + i + " debe coincidir");
         }
 
         // Verificar nodos

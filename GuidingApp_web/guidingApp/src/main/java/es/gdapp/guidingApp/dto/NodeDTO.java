@@ -7,8 +7,8 @@ public class NodeDTO {
     private Long id;
     private String name;
     private String beaconId;
+    private Integer floor;
     private Integer x;
     private Integer y;
-    private String comment;
     private int[][] area;
 }
