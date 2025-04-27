@@ -40,7 +40,7 @@ public class DatabaseInitializer {
 
         // Create a couple of Node instances and associate them with the map
         Node node1 = new Node();
-        node1.setName("Node A");
+        node1.setName("Node 1");
         node1.setBeaconId("d4fcb04a6573ea399df3adbf06f91b38");
         node1.setFloor(0);
         node1.setX(13);
@@ -48,29 +48,39 @@ public class DatabaseInitializer {
         node1.setArea(new int[][] { {10, 0}, {15, 0}, {15, 5}, {10, 5} });
         node1.setMap(mapData);
 
-        Node node2 = new Node();
-        node2.setName("Node B");
-        node2.setBeaconId("15c210b9f1ea2e121131bba29e8cc90a");
-        node2.setFloor(1);
-        node2.setX(3);
-        node2.setY(8);
-        node2.setArea(new int[][] { {0, 5}, {10, 5}, {10, 10}, {0, 10} });
-        node2.setMap(mapData);
+        Node node4 = new Node();
+        node4.setName("Node 4");
+        node4.setBeaconId("15c210b9f1ea2e121131bba29e8cc90a");
+        node4.setFloor(1);
+        node4.setX(3);
+        node4.setY(8);
+        node4.setArea(new int[][] { {0, 5}, {10, 5}, {10, 10}, {0, 10} });
+        node4.setMap(mapData);
 
         Node node3 = new Node();
-        node3.setName("Node C");
+        node3.setName("Node 3");
         node3.setBeaconId("530801241127a8aad378170fdbabbd17");
-        node3.setFloor(0);
+        node3.setFloor(1);
         node3.setX(5);
         node3.setY(3);
         node3.setArea(new int[][] { {0, 0}, {10, 0}, {10, 5}, {0, 5} });
         node3.setMap(mapData);
+
+        Node node2 = new Node();
+        node2.setName("Node 2");
+        node2.setBeaconId("hola");
+        node2.setFloor(0);
+        node2.setX(5);
+        node2.setY(3);
+        node2.setArea(new int[][] { {0, 0}, {10, 0}, {10, 5}, {0, 5} });
+        node2.setMap(mapData);
 
         // Initialize the nodes list in MapData and add nodes
         mapData.setNodes(new ArrayList<>());
         mapData.getNodes().add(node1);
         mapData.getNodes().add(node2);
         mapData.getNodes().add(node3);
+        mapData.getNodes().add(node4);
 
         List<Edge> edges = new ArrayList<>();
         Edge edge1 = new Edge(node1, node2);
@@ -83,13 +93,13 @@ public class DatabaseInitializer {
         edge2.setMapData(mapData);
         edge2.setWeight(5);
 
-        Edge edge3 = new Edge(node3, node1);
-        edge3.setComment("de 3 a 1");
+        Edge edge3 = new Edge(node2, node3);
+        edge3.setComment("de 2 a 3");
         edge3.setMapData(mapData);
         edge3.setWeight(5);
 
-        Edge edge4 = new Edge(node2, node3);
-        edge4.setComment("de 2 a 3");
+        Edge edge4 = new Edge(node3, node4);
+        edge4.setComment("de 3 a 4");
         edge4.setMapData(mapData);
         edge4.setWeight(5);
 

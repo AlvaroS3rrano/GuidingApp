@@ -36,7 +36,7 @@ const ClosestMapBanner: React.FC = () => {
           text: "Accept",
           onPress: () => {
             router.push({
-              pathname: '/showMap',
+              pathname: '/screens/showMapScreen',
               params: { mapData: JSON.stringify(mapData) }
             });
           },

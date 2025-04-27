@@ -19,8 +19,8 @@ export default function RootLayout() {
   return (
     <View style={styles.container}>
       <Stack>
-        <Stack.Screen name="index" options={{ headerShown: false}} />
-        <Stack.Screen name="showMap" options={{ headerTitle: "Map" }} />
+      <Stack.Screen name="index" options={{ headerShown: false }} />
+        <Stack.Screen name="screens/showMapScreen" options={{ headerTitle: "Map" }} />
       </Stack>
       
       <ErrorBanner />

@@ -31,9 +31,9 @@ import React, { useEffect, useState, useRef } from 'react';
 import { View, StyleSheet, Dimensions, Animated, PanResponder, Alert } from 'react-native';
 import Svg, { Rect, Polygon, Polyline, Circle } from 'react-native-svg';
 import { Magnetometer } from 'expo-sensors';
-import { Dot } from './classes/geometry';
-import { findPathWithDistance, PathResult } from '@/resources/pathFinding';
-import { getMatrixForFloor, MapDataDTO, NodeDTO, Path } from './classes/DTOs';
+import { Dot } from '../../classes/geometry';
+import { findPathWithDistance, PathResult } from '@/app/services/pathFindingService';
+import { getMatrixForFloor, MapDataDTO, NodeDTO, Path } from '../../classes/DTOs';
 
 
 type MapaInteriorProps = {
@@ -77,7 +77,7 @@ const MapaInterior: React.FC<MapaInteriorProps> = ({
     return () => Magnetometer.removeAllListeners();
   }, []);
 
-  // NEW: Check if destination is reached and display a prettier alert with two options
+  // Check if destination is reached and display a prettier alert with two options
   useEffect(() => {
     if (searchPressed && !isPreview && current_node && destination) {
       if (
@@ -107,9 +107,7 @@ const MapaInterior: React.FC<MapaInteriorProps> = ({
 
 
   // Clone the initial map grid from the mapData prop
-  const floor = origin?.floorNumber 
-            ?? current_node?.floorNumber 
-            ?? 0;
+  const floor = current_node?.floorNumber ?? 0;
   
   let matrix = getMatrixForFloor(mapData, floor)
   let updatedPlano: number[][] = JSON.parse(JSON.stringify(matrix));

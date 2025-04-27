@@ -2,8 +2,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { StyleSheet, View, Button, TouchableOpacity, Text } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
-import Map from './map';
-import SearchBar from './searchBar';
+import Map from '../components/showMapComponents/map';
+import SearchBar from '../components/showMapComponents/searchBar';
 import { beaconEventEmitter, ScannedDevice } from '@/app/services/beaconScannerService';
 import { MapDataDTO, NodeDTO, Path } from '@/app/classes/DTOs';
 
@@ -14,7 +14,7 @@ import { MapDataDTO, NodeDTO, Path } from '@/app/classes/DTOs';
  * It subscribes to beacon updates from the BeaconScannerService for real-time beacon data.
  * All error handling has been moved to the global ErrorBanner component in _layout.tsx.
  */
-const ShowMap: React.FC = () => {
+const ShowMapScreen: React.FC = () => {
 
   const { mapData } = useLocalSearchParams<{ mapData?: string }>();
 
@@ -171,7 +171,7 @@ const ShowMap: React.FC = () => {
             mapData={parsedMapData}
             origin={origin} 
             destination={destination}
-            current_node={(currentBeacon && !isPreview) ? currentBeacon : origin}
+            current_node={(currentBeacon && !isPreview) ? currentBeacon : null}
             searchPressed={searchPressed}
             centerTrigger={centerTrigger}
             isPreview={origin != null && (origin.beaconId !== (closestBeacon || ''))}
@@ -249,4 +249,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default ShowMap;
+export default ShowMapScreen;

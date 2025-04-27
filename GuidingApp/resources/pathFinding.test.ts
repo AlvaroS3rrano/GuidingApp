@@ -1,8 +1,8 @@
 // pathFinding.test.ts
-import * as pathFindingModule from './pathFinding';
+import * as pathFindingModule from '../app/services/pathFindingService';
 import { Dot } from '@/app/classes/geometry';
 import { EdgeDTO, MapDataDTO, NodeDTO } from '@/app/classes/DTOs';
-import { PathResult } from './pathFinding';
+import { PathResult } from '../app/services/pathFindingService';
 
 const { findGraphPath, findPathWithDistance, findShortestPath } = pathFindingModule;
 

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, TouchableOpacity, Text, StyleSheet } from 'react-native';
-import AddressInput from './components/AddressInput';
-import CustomBtn from './components/customBtn';
+import AddressInput from '../AddressInput';
+import CustomBtn from '../customBtn';
 
 interface ChooseDestinationProps {
   isSearchVisible: boolean;
