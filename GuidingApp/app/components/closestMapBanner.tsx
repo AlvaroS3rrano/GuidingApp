@@ -71,25 +71,32 @@ const ClosestMapBanner: React.FC = () => {
     }, 180000); // 180000 ms = 3 minutos
   };
 
+  const handleMapData = (mapData: MapDataDTO) => {
+    setClosestMap(mapData);
+    globalBannerState.closestMap = mapData;
+    // Consulta el valor actualizado usando el ref
+    if (!popupShownRef.current) {
+      showClosestMapAlert(mapData);
+      setPopupShown(true);
+      setFallbackVisible(true);
+      globalBannerState.popupShown = true;
+      globalBannerState.fallbackVisible = true;
+    }
+  };
+
   useEffect(() => {
     // Handler para cuando se detecta un nuevo mapData o se emite periódicamente.
     const closestHandler = (mapData: MapDataDTO) => {
       resetTimer();
-      setClosestMap(mapData);
-      globalBannerState.closestMap = mapData;
-      // Consulta el valor actualizado usando el ref
-      if (!popupShownRef.current) {
-        showClosestMapAlert(mapData);
-        setPopupShown(true);
-        setFallbackVisible(true);
-        globalBannerState.popupShown = true;
-        globalBannerState.fallbackVisible = true;
-      }
+      handleMapData(mapData)
     };
 
     // Handler para el "heartbeat" periódico (nuevo evento con el mismo mapData).
-    const newMapDataHandler = (newMapFlag: boolean) => {
+    const newMapDataHandler = (mapData: MapDataDTO) => {
       resetTimer();
+      if (globalBannerState.closestMap==null){
+        handleMapData(mapData)
+      }
     };
 
     beaconEventEmitter.on('closestMapData', closestHandler);

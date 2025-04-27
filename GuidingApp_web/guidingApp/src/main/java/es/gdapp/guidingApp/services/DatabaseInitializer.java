@@ -42,7 +42,7 @@ public class DatabaseInitializer {
         Node node1 = new Node();
         node1.setName("Node 1");
         node1.setBeaconId("d4fcb04a6573ea399df3adbf06f91b38");
-        node1.setFloor(0);
+        node1.setFloorNumber(0);
         node1.setX(13);
         node1.setY(2);
         node1.setArea(new int[][] { {10, 0}, {15, 0}, {15, 5}, {10, 5} });
@@ -51,7 +51,7 @@ public class DatabaseInitializer {
         Node node4 = new Node();
         node4.setName("Node 4");
         node4.setBeaconId("15c210b9f1ea2e121131bba29e8cc90a");
-        node4.setFloor(1);
+        node4.setFloorNumber(1);
         node4.setX(3);
         node4.setY(8);
         node4.setArea(new int[][] { {0, 5}, {10, 5}, {10, 10}, {0, 10} });
@@ -60,7 +60,7 @@ public class DatabaseInitializer {
         Node node3 = new Node();
         node3.setName("Node 3");
         node3.setBeaconId("530801241127a8aad378170fdbabbd17");
-        node3.setFloor(1);
+        node3.setFloorNumber(1);
         node3.setX(5);
         node3.setY(3);
         node3.setArea(new int[][] { {0, 0}, {10, 0}, {10, 5}, {0, 5} });
@@ -69,7 +69,7 @@ public class DatabaseInitializer {
         Node node2 = new Node();
         node2.setName("Node 2");
         node2.setBeaconId("hola");
-        node2.setFloor(0);
+        node2.setFloorNumber(0);
         node2.setX(5);
         node2.setY(3);
         node2.setArea(new int[][] { {0, 0}, {10, 0}, {10, 5}, {0, 5} });

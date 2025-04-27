@@ -46,6 +46,7 @@ type MapaInteriorProps = {
   isPreview: boolean;
   newTrip: Path | null;
   onCancelSearch?: () => void;
+  selectedFloor?: number;
 };
 
 const { width, height } = Dimensions.get('window');
@@ -59,6 +60,7 @@ const MapaInterior: React.FC<MapaInteriorProps> = ({
   centerTrigger,
   isPreview,
   onCancelSearch,
+  selectedFloor,
 }) => {
   const [heading, setHeading] = useState(0);
   const map_adjustments = 70;
@@ -107,7 +109,9 @@ const MapaInterior: React.FC<MapaInteriorProps> = ({
 
 
   // Clone the initial map grid from the mapData prop
-  const floor = current_node?.floorNumber ?? 0;
+  const floor = typeof selectedFloor === 'number'
+                ? selectedFloor
+                : current_node?.floorNumber ?? origin?.floorNumber ?? 0;
   
   let matrix = getMatrixForFloor(mapData, floor)
   let updatedPlano: number[][] = JSON.parse(JSON.stringify(matrix));

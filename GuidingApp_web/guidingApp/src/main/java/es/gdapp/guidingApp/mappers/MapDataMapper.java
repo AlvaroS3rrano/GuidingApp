@@ -10,7 +10,7 @@ import org.mapstruct.Mapper;
 
 @Mapper(componentModel = "spring")
 public interface MapDataMapper {
-    MapDataDTO toMapDataDTO(MapData entity);
+    MapDataDTO toMapDataDTO(MapData map);
     NodeDTO toNodeDTO(Node node);
     EdgeDTO toEdgeDTO(Edge edge);
 }

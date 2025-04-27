@@ -7,6 +7,7 @@ import requestPermissions from "@/app/hooks/permissions";
 import { EventEmitter } from "events";
 import { NodeService } from "./nodeService";
 import { MapService } from "./mapService";
+import { MapDataDTO } from "../classes/DTOs";
 
 /**
  * BeaconScannerService - Handles BLE beacon scanning.
@@ -36,7 +37,7 @@ const bleManager = new BleManager();
 let devices: ScannedDevice[] = [];
 const knownMap   = new Map<string, ScannedDevice>();
 const unknownMap = new Map<string, ScannedDevice>();
-let previousMapDataId: number | null = null;
+let previousMapData: MapDataDTO | null = null;
 
 export const startBeaconScanning = async () => {
   // Request necessary Bluetooth permissions
@@ -175,11 +176,12 @@ export const startBeaconScanning = async () => {
                 knownMap.set(closestDevice.identifier, updated);
 
                 // 2) Emite evento según cambio de mapa
-                if (previousMapDataId !== mapData.id) {
-                  previousMapDataId = mapData.id;
+                if (previousMapData && previousMapData.id !== mapData.id) {
+                  previousMapData = mapData;
                   beaconEventEmitter.emit("closestMapData", mapData);
                 } else {
-                  beaconEventEmitter.emit("newMapData", false);
+                  previousMapData = mapData;
+                  beaconEventEmitter.emit("newMapData", mapData);
                 }
               } else {
                 console.log(`No se encontró mapData para el beacon ${closestDevice.identifier}`);
@@ -190,7 +192,7 @@ export const startBeaconScanning = async () => {
 
           // Si ya tenía mapID válido, sólo emites según si cambia
           } else {
-            if (previousMapDataId !== closestDevice.mapID) {
+            if (previousMapData && previousMapData.id !== closestDevice.mapID) {
               try {
                 const mapData = await MapService.getMapDataById(closestDevice.mapID);
                 beaconEventEmitter.emit("closestMapData", mapData);
@@ -198,7 +200,7 @@ export const startBeaconScanning = async () => {
                 console.log(`Error al obtener mapData con id ${closestDevice.mapID}:`, error);
               }
             } else {
-              beaconEventEmitter.emit("newMapData", false);
+              beaconEventEmitter.emit("newMapData", previousMapData);
             }
           }
         }

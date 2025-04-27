@@ -19,7 +19,9 @@ const ShowMapScreen: React.FC = () => {
   const { mapData } = useLocalSearchParams<{ mapData?: string }>();
 
   let parsedMapData: MapDataDTO | null = null;
-  const raw = mapData;           
+  const raw = mapData;    
+  console.log(">>> RAW mapData:", raw);
+         
   if (mapData) {
     try {
       parsedMapData = JSON.parse(mapData) as MapDataDTO;
@@ -163,6 +165,16 @@ const ShowMapScreen: React.FC = () => {
     setSearchPressed(false);
   };
 
+  
+  // Available floors and selected floor
+  const floors = parsedMapData
+    ? Array.from(new Set(parsedMapData.nodes.map(n => n.floorNumber))).sort((a, b) => a - b)
+    : [];
+  console.log(parsedMapData?.nodes)
+  const [selectedFloor, setSelectedFloor] = useState<number>(
+    () => (currentBeacon?.floorNumber ?? origin?.floorNumber) ?? floors[0] ?? 0
+  );
+
   return (
     <View style={styles.container}>
       {parsedMapData ? (
@@ -177,6 +189,7 @@ const ShowMapScreen: React.FC = () => {
             isPreview={origin != null && (origin.beaconId !== (closestBeacon || ''))}
             newTrip={newTrip}
             onCancelSearch={() => setSearchPressed(false)}
+            selectedFloor={selectedFloor}
           />
   
           <View style={styles.overlayContainer}>
@@ -207,6 +220,33 @@ const ShowMapScreen: React.FC = () => {
             >
               <Text style={styles.centerButtonText}>🎯</Text>
             </TouchableOpacity>
+          )}
+
+           {/*  Floor switcher */}
+           {floors.length > 1 && (
+            <View style={styles.floorSwitcher}>
+              <TouchableOpacity
+                disabled={floors.indexOf(selectedFloor) === 0}
+                onPress={() => {
+                  const idx = floors.indexOf(selectedFloor);
+                  setSelectedFloor(floors[idx - 1]);
+                }}
+              >
+                <Text style={styles.arrow}>⬆️</Text>
+              </TouchableOpacity>
+
+              <Text style={styles.floorLabel}>Piso {selectedFloor}</Text>
+
+              <TouchableOpacity
+                disabled={floors.indexOf(selectedFloor) === floors.length - 1}
+                onPress={() => {
+                  const idx = floors.indexOf(selectedFloor);
+                  setSelectedFloor(floors[idx + 1]);
+                }}
+              >
+                <Text style={styles.arrow}>⬇️</Text>
+              </TouchableOpacity>
+            </View>
           )}
         </>
       ) : (
@@ -246,6 +286,23 @@ const styles = StyleSheet.create({
   },
   centerButtonText: {
     fontSize: 24,
+  },
+  floorSwitcher: {
+    position: 'absolute',
+    bottom: 80,           // sobre el botón de centrar
+    left: 0, right: 0,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  arrow: {
+    fontSize: 32,
+    marginHorizontal: 20,
+    opacity: 0.8,
+  },
+  floorLabel: {
+    fontSize: 18,
+    fontWeight: 'bold',
   },
 });
 

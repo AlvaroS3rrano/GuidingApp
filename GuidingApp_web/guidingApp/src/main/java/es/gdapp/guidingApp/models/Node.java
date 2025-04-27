@@ -27,7 +27,7 @@ public class Node {
 
     private String beaconId;
 
-    private Integer floor;
+    private Integer floorNumber;
 
     private Integer x;
 
@@ -51,7 +51,7 @@ public class Node {
             nodeData.put("id", this.id);
             nodeData.put("name", this.name);
             nodeData.put("beaconId", this.beaconId);
-            nodeData.put("floor", this.floor);
+            nodeData.put("floorNumber", this.floorNumber);
             nodeData.put("x", this.x);
             nodeData.put("y", this.y);
             nodeData.put("area", this.area);
