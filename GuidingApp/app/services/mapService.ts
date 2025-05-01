@@ -32,7 +32,6 @@ export class MapService {
   static async getMapDataByNodeId(beaconId: string): Promise<MapDataDTO> {
     try {
       const response = await axios.get<MapDataDTO>(`http://${COMP_IP}:8080/api/nodes/${beaconId}/mapdata`);
-      console.log("response data", response.data)
       return response.data;
     } catch (error) {
       console.error(`Error fetching MapData for node id ${beaconId}:`, error);

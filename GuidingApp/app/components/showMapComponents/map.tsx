@@ -32,7 +32,7 @@ import { View, StyleSheet, Dimensions, Animated, PanResponder, Alert } from 'rea
 import Svg, { Rect, Polygon, Polyline, Circle } from 'react-native-svg';
 import { Magnetometer } from 'expo-sensors';
 import { Dot } from '../../classes/geometry';
-import { findPathWithDistance, PathResult } from '@/app/services/pathFindingService';
+import { getGraphPathByFloor, findFullPathOnFloor } from '@/app/services/pathFindingService';
 import { getMatrixForFloor, MapDataDTO, NodeDTO, Path } from '../../classes/DTOs';
 
 
@@ -44,7 +44,6 @@ type MapaInteriorProps = {
   searchPressed: boolean;
   centerTrigger: number;
   isPreview: boolean;
-  newTrip: Path | null;
   onCancelSearch?: () => void;
   selectedFloor?: number;
 };
@@ -67,16 +66,13 @@ const MapaInterior: React.FC<MapaInteriorProps> = ({
 
   // Set up the magnetometer to track device heading
   useEffect(() => {
-    const subscribe = async () => {
-      Magnetometer.setUpdateInterval(100);
-      Magnetometer.addListener(data => {
+    Magnetometer.setUpdateInterval(100);
+    const sub = Magnetometer.addListener(data => {
         const angle = Math.atan2(data.y, data.x) * (180 / Math.PI);
         const correctedAngle = (angle - map_adjustments + 360) % 360;
         setHeading(correctedAngle);
-      });
-    };
-    subscribe();
-    return () => Magnetometer.removeAllListeners();
+    });
+    return () => sub.remove();
   }, []);
 
   // Check if destination is reached and display a prettier alert with two options
@@ -113,33 +109,51 @@ const MapaInterior: React.FC<MapaInteriorProps> = ({
                 ? selectedFloor
                 : current_node?.floorNumber ?? origin?.floorNumber ?? 0;
   
-  let matrix = getMatrixForFloor(mapData, floor)
-  let updatedPlano: number[][] = JSON.parse(JSON.stringify(matrix));
-  let pathResult: PathResult | null = null;
-  let path: Dot[] = [];
-  let arrowAngle = 0;
+  const anchorNode = React.useMemo(
+    () =>
+      searchPressed && !isPreview && current_node
+        ? current_node
+        : origin!,
+    [searchPressed, isPreview, current_node, origin]
+  );
 
-  // If both origin and destination are defined, compute the path using the graph.
-  if (destination) {
-    // If Search is pressed, not in preview mode and current_node exists,
-    // use current_node as starting point; otherwise, use origin.
-    const startNode = (searchPressed && !isPreview && current_node) ? current_node : origin;
-    if (startNode) {
-      pathResult = findPathWithDistance(updatedPlano, mapData, startNode, destination);
-      if (pathResult) {
-        path = pathResult.fullPath;
-      }
-      // Optionally recalculate the arrow direction based on the new path...
-      if (path.length > 1) {
-        const lastPoint = path[path.length - 1];
-        const secondLastPoint = path[path.length - 2];
-        const dx = lastPoint.x - secondLastPoint.x;
-        const dy = lastPoint.y - secondLastPoint.y;
-        arrowAngle = Math.atan2(dy, dx) * (180 / Math.PI);
-        arrowAngle = -arrowAngle + 90;
-      }
-    }
-  }
+  const graphSequences = React.useMemo(
+    () => destination
+      ? getGraphPathByFloor(mapData, anchorNode, destination)
+      : null,
+    [mapData, anchorNode, destination]
+  );
+  
+  const currentFloorWaypoints = React.useMemo<Dot[]>(
+    () => {
+      if (!graphSequences) return [];
+      const seq = graphSequences.find(s => s.floor === floor);
+      return seq?.nodes.map(w => w.dot) ?? [];
+    },
+    [graphSequences, floor]
+  );
+  
+  const matrix = React.useMemo(
+    () => getMatrixForFloor(mapData, floor),
+    [mapData, floor]
+  );
+  
+  const currentFloorPath = React.useMemo<Dot[]>(
+    () => findFullPathOnFloor(matrix, currentFloorWaypoints) ?? [],
+    [matrix, currentFloorWaypoints]
+  );
+
+  console.log("path",currentFloorPath)
+  // Compute arrowAngle from that floor’s path
+  const arrowAngle = React.useMemo(() => {
+    if (currentFloorPath.length < 2) return 0;
+    const [p,n] = [
+      currentFloorPath[currentFloorPath.length - 1],
+      currentFloorPath[currentFloorPath.length - 2]
+    ];
+    const dx = p.x - n.x, dy = p.y - n.y;
+    return -Math.atan2(dy, dx) * 180/Math.PI + 90;
+  }, [currentFloorPath]);
 
   // Determine which sensor to use for centering
   const sensorForCenter = isPreview
@@ -149,9 +163,9 @@ const MapaInterior: React.FC<MapaInteriorProps> = ({
       : origin || null;
 
   // Calculate cell size based on the grid's width
-  const cellSize = width / updatedPlano[0].length;
-  const mapWidth = cellSize * updatedPlano[0].length;
-  const mapHeight = cellSize * updatedPlano.length;
+  const cellSize = width / matrix[0].length;
+  const mapWidth = cellSize * matrix[0].length;
+  const mapHeight = cellSize * matrix.length;
   // Initially center the map on the screen
   const initialTranslateX = width / 2 - mapWidth / 2;
   const initialTranslateY = height / 2 - mapHeight / 2;
@@ -187,26 +201,45 @@ const MapaInterior: React.FC<MapaInteriorProps> = ({
 
   // Animate the map to center on the sensor when search is pressed or centerTrigger changes
   useEffect(() => {
-    if (searchPressed && sensorForCenter) {
-      const sensorXPixel = sensorForCenter.x * cellSize;
-      const sensorYPixel = (updatedPlano.length - 1 - sensorForCenter.y) * cellSize;
-      const sensorCenterX = sensorXPixel + cellSize / 2;
-      const sensorCenterY = sensorYPixel + cellSize / 2;
-      const newPanX = width / 2 - sensorCenterX;
-      const newPanY = height / 2 - sensorCenterY;
-      Animated.timing(pan, {
-        toValue: { x: newPanX, y: newPanY },
-        duration: 300,
-        useNativeDriver: false,
-      }).start();
-    } else if (!searchPressed) {
-      Animated.timing(pan, {
-        toValue: { x: initialTranslateX, y: initialTranslateY },
-        duration: 300,
-        useNativeDriver: false,
-      }).start();
-    }
-  }, [searchPressed, sensorForCenter, updatedPlano.length, pan, initialTranslateX, initialTranslateY, centerTrigger]);
+    if (searchPressed) {
+      // If we’re on the user’s floor, center on the user
+      if (sensorForCenter && sensorForCenter.floorNumber === floor) {
+        const xPix = sensorForCenter.x * cellSize;
+        const yPix = (matrix.length - 1 - sensorForCenter.y) * cellSize;
+        const centerX = xPix + cellSize / 2;
+        const centerY = yPix + cellSize / 2;
+        Animated.timing(pan, {
+          toValue: { x: width / 2 - centerX, y: height / 2 - centerY },
+          duration: 300,
+          useNativeDriver: false,
+        }).start();
+      } else {
+          // Otherwise (floor without user), reset to the original pan
+          Animated.timing(pan, {
+            toValue: { x: initialTranslateX, y: initialTranslateY },
+          duration: 300,
+            useNativeDriver: false,
+          }).start();
+        }
+      } else {
+        // On canceling search, always reset to initial pan
+        Animated.timing(pan, {
+          toValue: { x: initialTranslateX, y: initialTranslateY },
+          duration: 300,
+          useNativeDriver: false,
+        }).start();
+      }
+    }, [
+      searchPressed,
+      centerTrigger,
+      selectedFloor,        // re-run when you switch floors
+      sensorForCenter,
+      initialTranslateX,
+      initialTranslateY,
+      matrix.length,
+      pan,
+    ]);
+  
 
   // Define color mapping for grid cells
   const colorMapping: Record<number, string> = {
@@ -226,7 +259,7 @@ const MapaInterior: React.FC<MapaInteriorProps> = ({
       >
         <Svg width={mapWidth} height={mapHeight} style={styles.svg}>
           {/* Render the grid */}
-          {updatedPlano.map((row, y) =>
+          {matrix.map((row, y) =>
             row.map((cell, x) => (
               <Rect
                 key={`${x}-${y}`}
@@ -239,12 +272,12 @@ const MapaInterior: React.FC<MapaInteriorProps> = ({
             ))
           )}
           {/* Render the computed path as a polyline if available */}
-          {path.length > 1 && (
+          {currentFloorPath.length > 1 && (
             <Polyline
-              points={path
+              points={currentFloorPath
                 .map(
                   p =>
-                    `${p.x * cellSize + cellSize / 2},${(updatedPlano.length - 1 - p.y) * cellSize + cellSize / 2}`
+                    `${p.x * cellSize + cellSize / 2},${(matrix.length - 1 - p.y) * cellSize + cellSize / 2}`
                 )
                 .join(' ')}
               stroke="orange"
@@ -254,24 +287,24 @@ const MapaInterior: React.FC<MapaInteriorProps> = ({
             />
           )}
           {/* Render the destination arrow */}
-          {path.length > 1 && (
+          {currentFloorPath.length > 1 && (
             <Polygon
               points={` 
-                ${path[path.length - 1].x * cellSize + cellSize / 2},${(updatedPlano.length - 1 - path[path.length - 1].y) * cellSize}
-                ${path[path.length - 1].x * cellSize},${(updatedPlano.length - 1 - path[path.length - 1].y) * cellSize + cellSize}
-                ${path[path.length - 1].x * cellSize + cellSize},${(updatedPlano.length - 1 - path[path.length - 1].y) * cellSize + cellSize}
+                ${currentFloorPath[currentFloorPath.length - 1].x * cellSize + cellSize / 2},${(matrix.length - 1 - currentFloorPath[currentFloorPath.length - 1].y) * cellSize}
+                ${currentFloorPath[currentFloorPath.length - 1].x * cellSize},${(matrix.length - 1 - currentFloorPath[currentFloorPath.length - 1].y) * cellSize + cellSize}
+                ${currentFloorPath[currentFloorPath.length - 1].x * cellSize + cellSize},${(matrix.length - 1 - currentFloorPath[currentFloorPath.length - 1].y) * cellSize + cellSize}
               `}
               fill="orange"
               stroke="black"
               strokeWidth="1"
-              transform={`rotate(${arrowAngle}, ${path[path.length - 1].x * cellSize + cellSize / 2}, ${(updatedPlano.length - 1 - path[path.length - 1].y) * cellSize + cellSize / 2})`}
+              transform={`rotate(${arrowAngle}, ${currentFloorPath[currentFloorPath.length - 1].x * cellSize + cellSize / 2}, ${(matrix.length - 1 - currentFloorPath[currentFloorPath.length - 1].y) * cellSize + cellSize / 2})`}
             />
           )}
           {/* Render the origin point if it exists */}
-          {origin && (
+          {origin?.floorNumber === floor &&(
             <Circle
               cx={origin.x * cellSize + cellSize / 2}
-              cy={(updatedPlano.length - 1 - origin.y) * cellSize + cellSize / 2}
+              cy={(matrix.length - 1 - origin.y) * cellSize + cellSize / 2}
               r={cellSize / 3}
               fill="red" 
               stroke="black"
@@ -279,10 +312,10 @@ const MapaInterior: React.FC<MapaInteriorProps> = ({
             />
           )}
           {/* Render the destination point if it exists */}
-          {destination && (
+          {destination?.floorNumber === floor && (
             <Circle
               cx={destination.x * cellSize + cellSize / 2}
-              cy={(updatedPlano.length - 1 - destination.y) * cellSize + cellSize / 2}
+              cy={(matrix.length - 1 - destination.y) * cellSize + cellSize / 2}
               r={cellSize / 3}
               fill="lightgreen"
               stroke="black"
@@ -290,26 +323,42 @@ const MapaInterior: React.FC<MapaInteriorProps> = ({
             />
           )}
           {/* If a path exists, render the intermediate nodes */}
-          {pathResult && pathResult.nodes.length > 2 && (
-            pathResult.nodes.slice(1, -1).map((p, index) => {
-              const cx = p.x * cellSize + cellSize / 2;
-              const cy = (updatedPlano.length - 1 - p.y) * cellSize + cellSize / 2;
-              const radius = cellSize / 3;
-              return (
-                <Circle
-                  key={`node-${index}`}
-                  cx={cx}
-                  cy={cy}
-                  r={radius}
-                  fill="royalblue"
-                />
-              );
-            })
+          {graphSequences && (
+            graphSequences
+              .find(seq => seq.floor === floor)
+              ?.nodes
+              .filter((wp, idx, arr) => {
+                // Coordenadas actuales
+                const { x, y } = wp.dot;
+                // Comprueba si es el origen o el destino
+                const isOrigin = origin && x === origin.x && y === origin.y;
+                const isDestination = destination && x === destination.x && y === destination.y;
+                // Si es el primero y coincide con el origen, lo quitamos
+                if (idx === 0 && isOrigin) return false;
+                // Si es el último y coincide con el destino, lo quitamos
+                if (idx === arr.length - 1 && isDestination) return false;
+                return true;
+              })
+              .map((wp, idx) => {
+                const { x, y } = wp.dot;
+                const cx = x * cellSize + cellSize / 2;
+                const cy = (matrix.length - 1 - y) * cellSize + cellSize / 2;
+                const radius = cellSize / 3;
+                return (
+                  <Circle
+                    key={`node-${floor}-${idx}`}
+                    cx={cx}
+                    cy={cy}
+                    r={radius}
+                    fill="royalblue"
+                  />
+                );
+              })
           )}
           {/* Render the user's sensor as a triangle if not in preview mode */}
-          {!isPreview && current_node && (() => {
+          {!isPreview && current_node && current_node.floorNumber == floor && (() => {
             const sensorXPixel = current_node.x * cellSize;
-            const sensorYPixel = (updatedPlano.length - 1 - current_node.y) * cellSize;
+            const sensorYPixel = (matrix.length - 1 - current_node.y) * cellSize;
             const sensorCenterX = sensorXPixel + cellSize / 2;
             const sensorCenterY = sensorYPixel + cellSize / 2;
             return (

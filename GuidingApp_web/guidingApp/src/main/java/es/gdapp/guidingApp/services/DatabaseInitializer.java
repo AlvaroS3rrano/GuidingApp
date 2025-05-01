@@ -36,7 +36,15 @@ public class DatabaseInitializer {
         coordinates.add(Arrays.asList(10, 10));
         coordinates.add(Arrays.asList(0, 10));
 
+        List<List<Integer>> coordinates2 = new ArrayList<>();
+        coordinates2.add(Arrays.asList(0,0));
+        coordinates2.add(Arrays.asList(9,0));
+        coordinates2.add(Arrays.asList(9,9));
+        coordinates2.add(Arrays.asList(0,9));
+
+
         mapData.connectCoordinates(coordinates, 1, 0);
+        mapData.connectCoordinates(coordinates2, 1, 1);
 
         // Create a couple of Node instances and associate them with the map
         Node node1 = new Node();
@@ -103,10 +111,22 @@ public class DatabaseInitializer {
         edge4.setMapData(mapData);
         edge4.setWeight(5);
 
+        Edge edge5 = new Edge(node4, node3);
+        edge5.setComment("de 4 a 3");
+        edge5.setMapData(mapData);
+        edge5.setWeight(5);
+
+        Edge edge6 = new Edge(node3, node2);
+        edge6.setComment("de 3 a 2");
+        edge6.setMapData(mapData);
+        edge6.setWeight(5);
+
         edges.add(edge1);
         edges.add(edge2);
         edges.add(edge3);
         edges.add(edge4);
+        edges.add(edge5);
+        edges.add(edge6);
 
         mapData.setEdges(edges);
 

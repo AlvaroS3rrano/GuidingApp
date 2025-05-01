@@ -8,16 +8,11 @@ type Huristic_Node = {
   parent?: Huristic_Node;
 };
 
-export type Segment = {
-  start: Dot;
-  end: Dot;
-};
+interface DotWithFloor {
+  dot: Dot;
+  floor: number;
+}
 
-export type PathResult = {
-  nodes: Dot[];      // Key nodes (waypoints) in order
-  segments: Segment[]; // Segments between key nodes in order
-  fullPath: Dot[];     // The complete path
-};
 
 /**
  * Calculates the shortest path between two points in a matrix while keeping a distance of 1 from walls (value 1).
@@ -198,69 +193,85 @@ export function findGraphPath(mapData: MapDataDTO, startId: number, endId: numbe
 }
 
 /**
- * Computes the complete path on the grid, ensuring that it passes through the sensor points
- * of the nodes determined by the graph's edges.
+ * Returns the graph path of nodes from origin to destination,
+ * grouped by floor in traversal order.
  *
- * @param grid The grid (matrix) representing the map.
- * @param graph The graph containing nodes and edges.
- * @param originNode The origin node.
- * @param destinationNode The destination node.
- * @returns An object containing:
- *          - nodes: The sensor coordinates from the graph path (waypoints).
- *          - segments: An array of grid path segments between each pair of waypoints.
- *          - fullPath: The complete concatenated grid path.
+ * @param mapData - Complete map data
+ * @param originNode - Starting node
+ * @param destinationNode - Destination node
+ * @returns An array of objects each containing a floor number and
+ *          its list of waypoints (DotWithFloor), or null if no path is found
  */
-export function findPathWithDistance(
-  grid: number[][],
+export function getGraphPathByFloor(
   mapData: MapDataDTO,
   originNode: NodeDTO,
   destinationNode: NodeDTO
-): PathResult | null {
-  // Compute the graph path (route) from origin to destination using node IDs.
-  const graphPath: NodeDTO[] = findGraphPath(mapData, originNode.id, destinationNode.id);
+): Array<{ floor: number; nodes: DotWithFloor[] }> | null {
+  // 1. Compute the graph path (node IDs) across the entire map
+  const graphPath = findGraphPath(mapData, originNode.id, destinationNode.id);
   if (graphPath.length === 0) {
-    // If no graph path is found, return null.
     return null;
   }
 
-    // Extrae los waypoints a partir de las propiedades x e y de cada nodo.
-    const sensorWaypoints: Dot[] = graphPath.map((node) => ({ x: node.x, y: node.y }));
-    let fullPath: Dot[] = [];
-    const segments: Segment[] = [];
+  // 2. Convert each node to a waypoint with coordinates and floor number
+  const waypoints: DotWithFloor[] = graphPath.map(node => ({
+    dot: { x: node.x, y: node.y },
+    floor: node.floorNumber!,
+  }));
 
+  // 3. Group waypoints by floor in the order they appear
+  const sequences: Array<{ floor: number; nodes: DotWithFloor[] }> = [];
+  let currentFloor = waypoints[0].floor;
+  let currentNodes: DotWithFloor[] = [];
 
-  // For each consecutive pair of sensor waypoints, compute the grid path segment.
-  for (let i = 0; i < sensorWaypoints.length - 1; i++) {
-    const segmentStart: Dot = sensorWaypoints[i];
-    const segmentEnd: Dot = sensorWaypoints[i + 1];
-    const isLastSegment = (i === sensorWaypoints.length - 2);
-    const segmentPath: Dot[] = findShortestPath(grid, segmentStart, segmentEnd, isLastSegment);
+  for (const waypoint of waypoints) {
+    if (waypoint.floor !== currentFloor) {
+      sequences.push({ floor: currentFloor, nodes: currentNodes });
+      currentFloor = waypoint.floor;
+      currentNodes = [];
+    }
+    currentNodes.push(waypoint);
+  }
+  // Add the last group
+  sequences.push({ floor: currentFloor, nodes: currentNodes });
 
+  return sequences;
+}
+
+/**
+ * Given a single-floor grid and waypoints on that floor,
+ * returns the full path between those waypoints within the grid.
+ *
+ * @param grid - 2D matrix representing the floor
+ * @param floorWaypoints - Array of coordinates (Dot) in traversal order
+ * @returns An array of points (Dot[]) representing the full path,
+ *          or null if any segment has no valid path
+ */
+export function findFullPathOnFloor(
+  grid: number[][],
+  floorWaypoints: Dot[]
+): Dot[] | null {
+  if (floorWaypoints.length < 2) {
+    return floorWaypoints;
+  }
+  let fullPath: Dot[] = [];
+
+  for (let i = 0; i < floorWaypoints.length - 1; i++) {
+    const start = floorWaypoints[i];
+    const end = floorWaypoints[i + 1];
+    const isLastSegment = i === floorWaypoints.length - 2;
+
+    const segmentPath = findShortestPath(grid, start, end, isLastSegment);
     if (segmentPath.length === 0) {
-      // If any segment fails to yield a path, return null.
       return null;
     }
-
-    // Remove the first point of the segment (if not the first segment) to avoid duplicates.
+    // Avoid duplicating the starting point of each segment
     if (i > 0) {
       segmentPath.shift();
     }
-
-    // Save the current segment's path.
-    segments.push({
-      start: segmentStart,
-      end: segmentEnd
-    });
-
-    // Concatenate the segment path into the full path.
     fullPath = fullPath.concat(segmentPath);
   }
 
-  // Return an object containing the waypoints (nodes), the segments, and the complete path.
-  return {
-    nodes: sensorWaypoints,
-    segments: segments,
-    fullPath: fullPath,
-  };
+  return fullPath;
 }
 

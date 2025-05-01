@@ -18,9 +18,7 @@ const ShowMapScreen: React.FC = () => {
 
   const { mapData } = useLocalSearchParams<{ mapData?: string }>();
 
-  let parsedMapData: MapDataDTO | null = null;
-  const raw = mapData;    
-  console.log(">>> RAW mapData:", raw);
+  let parsedMapData: MapDataDTO | null = null;  
          
   if (mapData) {
     try {
@@ -37,7 +35,6 @@ const ShowMapScreen: React.FC = () => {
   const [closestBeacon, setClosestBeacon] = useState<string | null>(null);
   const [originSuggestion, setOriginSuggestion] = useState<string>('');
   const [searchPressed, setSearchPressed] = useState(false);
-  const [newTrip, setNewTrip] = useState<Path | null>(null);
   const [centerTrigger, setCenterTrigger] = useState(0);
   const [originError, setOriginError] = useState("");
   const [destinationError, setDestinationError] = useState("");
@@ -120,9 +117,6 @@ const ShowMapScreen: React.FC = () => {
     }
     if (origin && destination) {
       setSearchPressed(true);
-      if (isPreview) {
-        setNewTrip({ origin: origin, destination: destination });
-      }
     }
   };
 
@@ -170,7 +164,6 @@ const ShowMapScreen: React.FC = () => {
   const floors = parsedMapData
     ? Array.from(new Set(parsedMapData.nodes.map(n => n.floorNumber))).sort((a, b) => a - b)
     : [];
-  console.log(parsedMapData?.nodes)
   const [selectedFloor, setSelectedFloor] = useState<number>(
     () => (currentBeacon?.floorNumber ?? origin?.floorNumber) ?? floors[0] ?? 0
   );
@@ -187,7 +180,6 @@ const ShowMapScreen: React.FC = () => {
             searchPressed={searchPressed}
             centerTrigger={centerTrigger}
             isPreview={origin != null && (origin.beaconId !== (closestBeacon || ''))}
-            newTrip={newTrip}
             onCancelSearch={() => setSearchPressed(false)}
             selectedFloor={selectedFloor}
           />
@@ -232,7 +224,7 @@ const ShowMapScreen: React.FC = () => {
                   setSelectedFloor(floors[idx - 1]);
                 }}
               >
-                <Text style={styles.arrow}>⬆️</Text>
+                <Text style={styles.arrow}>⬇️</Text>
               </TouchableOpacity>
 
               <Text style={styles.floorLabel}>Piso {selectedFloor}</Text>
@@ -244,7 +236,7 @@ const ShowMapScreen: React.FC = () => {
                   setSelectedFloor(floors[idx + 1]);
                 }}
               >
-                <Text style={styles.arrow}>⬇️</Text>
+                <Text style={styles.arrow}>⬆️</Text>
               </TouchableOpacity>
             </View>
           )}
