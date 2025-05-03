@@ -143,7 +143,6 @@ const MapaInterior: React.FC<MapaInteriorProps> = ({
     [matrix, currentFloorWaypoints]
   );
 
-  console.log("path",currentFloorPath)
   // Compute arrowAngle from that floor’s path
   const arrowAngle = React.useMemo(() => {
     if (currentFloorPath.length < 2) return 0;
