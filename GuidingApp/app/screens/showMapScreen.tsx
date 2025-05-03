@@ -6,6 +6,8 @@ import Map from '../components/showMapComponents/map';
 import SearchBar from '../components/showMapComponents/searchBar';
 import { beaconEventEmitter, ScannedDevice } from '@/app/services/beaconScannerService';
 import { MapDataDTO, NodeDTO, Path } from '@/app/classes/DTOs';
+import InfoBanner from '../components/showMapComponents/infoBanner';
+import { MaterialIcons } from '@expo/vector-icons';
 
 /**
  * ShowMap.tsx
@@ -101,8 +103,6 @@ const ShowMapScreen: React.FC = () => {
 
   const isPreview: boolean =
     origin != null && (origin.beaconId != (closestBeacon || ''));
-
-  const mapCurrentNode = isPreview ? null : currentBeacon;
 
   const handleSearch = () => {
     if (origin === null) {
@@ -210,7 +210,7 @@ const ShowMapScreen: React.FC = () => {
               style={styles.centerButton} 
               onPress={() => setCenterTrigger(prev => prev + 1)}
             >
-              <Text style={styles.centerButtonText}>🎯</Text>
+              <MaterialIcons name="my-location" size={24} color="black" />
             </TouchableOpacity>
           )}
 
@@ -238,6 +238,7 @@ const ShowMapScreen: React.FC = () => {
               >
                 <Text style={styles.arrow}>⬆️</Text>
               </TouchableOpacity>
+              <InfoBanner/>
             </View>
           )}
         </>

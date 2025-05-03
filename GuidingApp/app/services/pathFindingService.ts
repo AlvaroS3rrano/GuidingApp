@@ -10,6 +10,7 @@ type Huristic_Node = {
 
 interface DotWithFloor {
   dot: Dot;
+  node_id: number;
   floor: number;
 }
 
@@ -216,6 +217,7 @@ export function getGraphPathByFloor(
   // 2. Convert each node to a waypoint with coordinates and floor number
   const waypoints: DotWithFloor[] = graphPath.map(node => ({
     dot: { x: node.x, y: node.y },
+    node_id: node.id,
     floor: node.floorNumber!,
   }));
 

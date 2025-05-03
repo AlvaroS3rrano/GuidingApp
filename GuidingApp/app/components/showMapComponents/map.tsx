@@ -34,6 +34,7 @@ import { Magnetometer } from 'expo-sensors';
 import { Dot } from '../../classes/geometry';
 import { getGraphPathByFloor, findFullPathOnFloor } from '@/app/services/pathFindingService';
 import { getMatrixForFloor, MapDataDTO, NodeDTO, Path } from '../../classes/DTOs';
+import { beaconEventEmitter } from '@/app/services/beaconScannerService';
 
 
 type MapaInteriorProps = {
@@ -61,6 +62,7 @@ const MapaInterior: React.FC<MapaInteriorProps> = ({
   onCancelSearch,
   selectedFloor,
 }) => {
+  const [lastComment, setLastComment] = useState<string | null>(null);
   const [heading, setHeading] = useState(0);
   const map_adjustments = 70;
 
@@ -123,6 +125,37 @@ const MapaInterior: React.FC<MapaInteriorProps> = ({
       : null,
     [mapData, anchorNode, destination]
   );
+
+  const seq = graphSequences?.find(s => s.floor === floor);
+  let edgeComment: string | null = null;
+
+  if (searchPressed && current_node && seq) {
+    // Build an array of node IDs and find the index of the current node
+    const ids = seq.nodes.map(n => n.node_id);
+    const idx = ids.indexOf(current_node.id);
+    const nextId = ids[idx + 1];
+
+    if (nextId) {
+      // Find the corresponding edge in your map data
+      const edge = mapData.edges.find(e =>
+        (e.fromNode.id === current_node.id && e.toNode.id === nextId) ||
+        (e.fromNode.id === nextId && e.toNode.id === current_node.id)
+      );
+      edgeComment = edge?.comment ?? null; 
+    }
+  }
+
+  useEffect(() => {
+    setLastComment(edgeComment);
+  }, [edgeComment]);
+
+  useEffect(() => {
+    if (lastComment) {
+      beaconEventEmitter.emit("info", lastComment);
+    } else {
+      beaconEventEmitter.emit("updateInfo");
+    }
+  }, [lastComment]);
   
   const currentFloorWaypoints = React.useMemo<Dot[]>(
     () => {
