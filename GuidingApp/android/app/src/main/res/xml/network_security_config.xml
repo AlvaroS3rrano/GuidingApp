@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+  <!-- allow your specific host with user‐installed or self‐signed certs -->
+  <domain-config cleartextTrafficPermitted="true">
+    <domain includeSubdomains="true">192.168.1.25</domain>
+    <trust-anchors>
+      <certificates src="system" />
+      <certificates src="user" />
+    </trust-anchors>
+  </domain-config>
+  <!-- optionally allow cleartext everywhere for debug -->
+  <base-config cleartextTrafficPermitted="true" />
+</network-security-config>

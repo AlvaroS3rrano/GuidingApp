@@ -89,6 +89,30 @@ public class MapData {
     }
 
     /**
+     * Inserta o actualiza un NamedMatrix en esta MapData.
+     * Si ya existe uno con el mismo floorNumber lo sobreescribe,
+     * en caso contrario lo añade.
+     *
+     * @param floorNumber  el identificador de piso (floorNumber)
+     * @param matrixName   el nombre para el NamedMatrix
+     * @param matrix       la matriz a insertar (filas x columnas)
+     */
+    public void putMatrix(int floorNumber, String matrixName, int[][] matrix) {
+        // Busca si ya existe un NamedMatrix con ese número
+        Optional<NamedMatrix> existing = findMatrixByFloor(floorNumber);
+        if (existing.isPresent()) {
+            // Actualiza la matriz y opcionalmente el nombre
+            NamedMatrix nm = existing.get();
+            nm.setMatrix(matrix);
+            nm.setName(matrixName);
+        } else {
+            // Lo crea y añade a la lista
+            NamedMatrix nm = new NamedMatrix(floorNumber, matrixName, matrix);
+            this.matrices.add(nm);
+        }
+    }
+
+    /**
      * Prints the matrix for the specified floor number to standard output.
      *
      * @param floorNumber the matrix number to print

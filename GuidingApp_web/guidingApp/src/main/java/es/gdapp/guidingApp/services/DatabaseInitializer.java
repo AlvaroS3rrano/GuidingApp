@@ -28,40 +28,61 @@ public class DatabaseInitializer {
         // Create a new MapData instance with a 5x5 matrix and a north angle of 0.0
         MapData mapData = new MapData("Default Map", 70.0, "Example", 11, 16);
         mapData.getMatrices().add(new NamedMatrix(1, "firts floor",10,10 ));
-        List<List<Integer>> coordinates = new ArrayList<>();
-        coordinates.add(Arrays.asList(0, 0));
-        coordinates.add(Arrays.asList(15, 0));
-        coordinates.add(Arrays.asList(15, 5));
-        coordinates.add(Arrays.asList(10, 5));
-        coordinates.add(Arrays.asList(10, 10));
-        coordinates.add(Arrays.asList(0, 10));
+        int[][] grid = {
+                {0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0},
+                {0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0},
+                {0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0},
+                {0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0},
+                {0, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0},
+                {0, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0},
+                {0, 1, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0},
+                {0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0},
+                {0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0},
+                {0, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0},
+                {0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0},
+                {0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0},
+                {0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0},
+                {0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0},
+                {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+        };
 
-        List<List<Integer>> coordinates2 = new ArrayList<>();
-        coordinates2.add(Arrays.asList(0,0));
-        coordinates2.add(Arrays.asList(9,0));
-        coordinates2.add(Arrays.asList(9,9));
-        coordinates2.add(Arrays.asList(0,9));
+        int[][] grid2 = {
+                {0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0},
+                {0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0},
+                {0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0},
+                {0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0},
+                {0, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0},
+                {0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0},
+                {0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0},
+                {0, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0},
+                {0, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0},
+                {0, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0},
+                {0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0},
+                {0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0},
+                {0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0},
+                {0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0},
+                {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+        };
 
-
-        mapData.connectCoordinates(coordinates, 1, 0);
-        mapData.connectCoordinates(coordinates2, 1, 1);
+        mapData.putMatrix(0, "First floor", grid);
+        mapData.putMatrix(1, "Second floor", grid2);
 
         // Create a couple of Node instances and associate them with the map
         Node node1 = new Node();
         node1.setName("Node 1");
         node1.setBeaconId("d4fcb04a6573ea399df3adbf06f91b38");
         node1.setFloorNumber(0);
-        node1.setX(13);
-        node1.setY(2);
-        node1.setArea(new int[][] { {10, 0}, {15, 0}, {15, 5}, {10, 5} });
+        node1.setX(14);
+        node1.setY(4);
+        node1.setArea(new int[][] { {11, 2}, {17, 2}, {17, 5}, {11, 5} });
         node1.setMap(mapData);
 
         Node node4 = new Node();
         node4.setName("Node 4");
         node4.setBeaconId("15c210b9f1ea2e121131bba29e8cc90a");
         node4.setFloorNumber(1);
-        node4.setX(3);
-        node4.setY(8);
+        node4.setX(6);
+        node4.setY(12);
         node4.setArea(new int[][] { {0, 5}, {10, 5}, {10, 10}, {0, 10} });
         node4.setMap(mapData);
 
@@ -69,8 +90,8 @@ public class DatabaseInitializer {
         node3.setName("Node 3");
         node3.setBeaconId("530801241127a8aad378170fdbabbd17");
         node3.setFloorNumber(1);
-        node3.setX(5);
-        node3.setY(3);
+        node3.setX(6);
+        node3.setY(9);
         node3.setArea(new int[][] { {0, 0}, {10, 0}, {10, 5}, {0, 5} });
         node3.setMap(mapData);
 
@@ -78,8 +99,8 @@ public class DatabaseInitializer {
         node2.setName("Node 2");
         node2.setBeaconId("hola");
         node2.setFloorNumber(0);
-        node2.setX(5);
-        node2.setY(3);
+        node2.setX(6);
+        node2.setY(7);
         node2.setArea(new int[][] { {0, 0}, {10, 0}, {10, 5}, {0, 5} });
         node2.setMap(mapData);
 
@@ -92,7 +113,7 @@ public class DatabaseInitializer {
 
         List<Edge> edges = new ArrayList<>();
         Edge edge1 = new Edge(node1, node2);
-        edge1.setComment("de 1 a 2");
+        edge1.setComment("From the entrance hall, proceed to the stairs");
         edge1.setWeight(5);
         edge1.setMapData(mapData);
 

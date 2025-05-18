@@ -1,2 +1,2 @@
 export const API_KEY = "AIzaSyAv5hSCZvXU2rpbqd32eEJxRy4w3Ab5Lyo"
-export const COMP_IP = "192.168.1.21"
+export const COMP_IP = "5b9d-80-24-194-95.ngrok-free.app"
