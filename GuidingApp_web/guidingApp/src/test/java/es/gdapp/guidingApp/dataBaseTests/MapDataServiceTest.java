@@ -25,7 +25,7 @@ public class MapDataServiceTest {
     @Test
     public void testCreateRetrieveUpdateDeleteMapData() {
         // Test original (ya existente)
-        MapData mapData = new MapData("Test Map", 45.0, "test", 3, 3);
+        MapData mapData = new MapData("Test Map", 70.0, "test", 3, 3);
         MapData saved = mapDataService.saveMapData(mapData);
         assertNotNull(saved.getId(), "MapData ID should be set after saving");
 

@@ -64,7 +64,7 @@ const MapaInterior: React.FC<MapaInteriorProps> = ({
 }) => {
   const [lastComment, setLastComment] = useState<string | null>(null);
   const [heading, setHeading] = useState(0);
-  const map_adjustments = 70;
+  const map_adjustments = mapData.northAngle;
 
   // Set up the magnetometer to track device heading
   useEffect(() => {

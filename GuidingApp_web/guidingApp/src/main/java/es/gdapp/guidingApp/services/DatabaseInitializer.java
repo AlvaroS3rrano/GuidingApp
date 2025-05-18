@@ -26,7 +26,7 @@ public class DatabaseInitializer {
     @PostConstruct
     public void init() {
         // Create a new MapData instance with a 5x5 matrix and a north angle of 0.0
-        MapData mapData = new MapData("Default Map", 0.0, "Example", 11, 16);
+        MapData mapData = new MapData("Default Map", 70.0, "Example", 11, 16);
         mapData.getMatrices().add(new NamedMatrix(1, "firts floor",10,10 ));
         List<List<Integer>> coordinates = new ArrayList<>();
         coordinates.add(Arrays.asList(0, 0));
