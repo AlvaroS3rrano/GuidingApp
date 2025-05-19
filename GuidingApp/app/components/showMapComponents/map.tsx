@@ -29,6 +29,12 @@
 
 import React, { useEffect, useState, useRef } from 'react';
 import { View, StyleSheet, Dimensions, Animated, PanResponder, Alert } from 'react-native';
+import {
+  PanGestureHandler,
+  PinchGestureHandler,
+  State,
+  GestureHandlerStateChangeEvent,
+} from 'react-native-gesture-handler';
 import Svg, { Rect, Polygon, Polyline, Circle } from 'react-native-svg';
 import { Magnetometer } from 'expo-sensors';
 import { Dot } from '../../classes/geometry';
@@ -194,83 +200,69 @@ const MapaInterior: React.FC<MapaInteriorProps> = ({
       ? current_node
       : origin || null;
 
-  // Calculate cell size based on the grid's width
+   // Determine floor matrix and dimensions
+
   const cellSize = width / matrix[0].length;
   const mapWidth = cellSize * matrix[0].length;
   const mapHeight = cellSize * matrix.length;
-  // Initially center the map on the screen
-  const initialTranslateX = width / 2 - mapWidth / 2;
-  const initialTranslateY = height / 2 - mapHeight / 2;
+  const initialX = width / 2 - mapWidth / 2;
+  const initialY = height / 2 - mapHeight / 2;
 
-  // Set up animated values for panning the map
-  const pan = useRef(new Animated.ValueXY({ x: initialTranslateX, y: initialTranslateY })).current;
-  const panValue = useRef({ x: initialTranslateX, y: initialTranslateY });
-  useEffect(() => {
-    const id = pan.addListener((value) => {
-      panValue.current = value;
-    });
-    return () => {
-      pan.removeListener(id);
-    };
-  }, [pan]);
+  // Pan & Pinch shared refs
+  const pan = useRef(new Animated.ValueXY({ x: initialX, y: initialY })).current;
+  const scale = useRef(new Animated.Value(1)).current;
+  const baseScale = useRef(new Animated.Value(1)).current;
+  const lastScale = useRef(1);
+  const panRef = useRef<any>();
+  const pinchRef = useRef<any>();
 
-  // Configure PanResponder for touch gestures
-  const panResponder = useRef(
-    PanResponder.create({
-      onMoveShouldSetPanResponder: () => true,
-      onPanResponderGrant: () => {
-        pan.extractOffset();
-      },
-      onPanResponderMove: Animated.event(
-        [null, { dx: pan.x, dy: pan.y }],
-        { useNativeDriver: false }
-      ),
-      onPanResponderRelease: () => {
-        pan.flattenOffset();
-      },
-    })
-  ).current;
+  // Pan gesture
+  const onPanEvent = Animated.event(
+    [{ nativeEvent: { translationX: pan.x, translationY: pan.y } }],
+    { useNativeDriver: false }
+  );
+  const onPanStateChange = (event: GestureHandlerStateChangeEvent) => {
+    if (event.nativeEvent.oldState === State.ACTIVE) {
+      pan.extractOffset();
+    }
+  };
 
-  // Animate the map to center on the sensor when search is pressed or centerTrigger changes
-  useEffect(() => {
-    if (searchPressed) {
-      // If we’re on the user’s floor, center on the user
-      if (sensorForCenter && sensorForCenter.floorNumber === floor) {
-        const xPix = sensorForCenter.x * cellSize;
-        const yPix = (matrix.length - 1 - sensorForCenter.y) * cellSize;
-        const centerX = xPix + cellSize / 2;
-        const centerY = yPix + cellSize / 2;
-        Animated.timing(pan, {
-          toValue: { x: width / 2 - centerX, y: height / 2 - centerY },
-          duration: 300,
-          useNativeDriver: false,
-        }).start();
-      } else {
-          // Otherwise (floor without user), reset to the original pan
-          Animated.timing(pan, {
-            toValue: { x: initialTranslateX, y: initialTranslateY },
-          duration: 300,
-            useNativeDriver: false,
-          }).start();
-        }
-      } else {
-        // On canceling search, always reset to initial pan
-        Animated.timing(pan, {
-          toValue: { x: initialTranslateX, y: initialTranslateY },
-          duration: 300,
-          useNativeDriver: false,
-        }).start();
-      }
-    }, [
-      searchPressed,
-      centerTrigger,
-      selectedFloor,        // re-run when you switch floors
-      sensorForCenter,
-      initialTranslateX,
-      initialTranslateY,
-      matrix.length,
-      pan,
-    ]);
+  // Pinch gesture
+  const onPinchEvent = Animated.event(
+    [{ nativeEvent: { scale } }],
+    { useNativeDriver: false }
+  );
+  const onPinchStateChange = (event: GestureHandlerStateChangeEvent) => {
+    if (event.nativeEvent.oldState === State.ACTIVE) {
+      const gestureScale = (event.nativeEvent as any).scale as number;
+      lastScale.current *= gestureScale;
+      baseScale.setValue(lastScale.current);
+      scale.setValue(1);
+    }
+  };
+
+  
+
+  // Centering logic
+  const centerMap = () => {
+    pan.flattenOffset();
+    let toX = initialX;
+    let toY = initialY;
+    if (sensorForCenter && sensorForCenter.floorNumber === floor) {
+      const px = sensorForCenter.x * cellSize;
+      const py = (matrix.length - 1 - sensorForCenter.y) * cellSize;
+      toX = width / 2 - (px + cellSize / 2);
+      toY = height / 2 - (py + cellSize / 2);
+    }
+    Animated.timing(pan, {
+      toValue: { x: toX, y: toY },
+      duration: 300,
+      useNativeDriver: false,
+    }).start();
+  };
+
+  // Optionally auto-center on search or centerTrigger
+  useEffect(() => { centerMap(); }, [searchPressed, centerTrigger]);
   
 
   // Define color mapping for grid cells
@@ -284,131 +276,150 @@ const MapaInterior: React.FC<MapaInteriorProps> = ({
 
   return (
     <View style={styles.container}>
-      {/* Animated.View handles panning and touch gestures */}
-      <Animated.View
-        style={{ transform: pan.getTranslateTransform() }}
-        {...panResponder.panHandlers}
+      <PanGestureHandler
+        ref={panRef}
+        onGestureEvent={onPanEvent}
+        onHandlerStateChange={onPanStateChange}
+        simultaneousHandlers={pinchRef}
       >
-        <Svg width={mapWidth} height={mapHeight} style={styles.svg}>
-          {/* Render the grid */}
-          {matrix.map((row, y) =>
-            row.map((cell, x) => (
-              <Rect
-                key={`${x}-${y}`}
-                x={x * cellSize}
-                y={y * cellSize}
-                width={cellSize}
-                height={cellSize}
-                fill={colorMapping[cell] || 'transparent'}
-              />
-            ))
-          )}
-          {/* Render the computed path as a polyline if available */}
-          {currentFloorPath.length > 1 && (
-            <Polyline
-              points={currentFloorPath
-                .map(
-                  p =>
-                    `${p.x * cellSize + cellSize / 2},${(matrix.length - 1 - p.y) * cellSize + cellSize / 2}`
-                )
-                .join(' ')}
-              stroke="orange"
-              strokeWidth="3"
-              fill="none"
-              strokeLinecap="round"
-            />
-          )}
-          {/* Render the destination arrow */}
-          {currentFloorPath.length > 1 && (
-            <Polygon
-              points={` 
-                ${currentFloorPath[currentFloorPath.length - 1].x * cellSize + cellSize / 2},${(matrix.length - 1 - currentFloorPath[currentFloorPath.length - 1].y) * cellSize}
-                ${currentFloorPath[currentFloorPath.length - 1].x * cellSize},${(matrix.length - 1 - currentFloorPath[currentFloorPath.length - 1].y) * cellSize + cellSize}
-                ${currentFloorPath[currentFloorPath.length - 1].x * cellSize + cellSize},${(matrix.length - 1 - currentFloorPath[currentFloorPath.length - 1].y) * cellSize + cellSize}
-              `}
-              fill="orange"
-              stroke="black"
-              strokeWidth="1"
-              transform={`rotate(${arrowAngle}, ${currentFloorPath[currentFloorPath.length - 1].x * cellSize + cellSize / 2}, ${(matrix.length - 1 - currentFloorPath[currentFloorPath.length - 1].y) * cellSize + cellSize / 2})`}
-            />
-          )}
-          {/* Render the origin point if it exists */}
-          {origin?.floorNumber === floor &&(
-            <Circle
-              cx={origin.x * cellSize + cellSize / 2}
-              cy={(matrix.length - 1 - origin.y) * cellSize + cellSize / 2}
-              r={cellSize / 3}
-              fill="red" 
-              stroke="black"
-              strokeWidth={2}
-            />
-          )}
-          {/* Render the destination point if it exists */}
-          {destination?.floorNumber === floor && (
-            <Circle
-              cx={destination.x * cellSize + cellSize / 2}
-              cy={(matrix.length - 1 - destination.y) * cellSize + cellSize / 2}
-              r={cellSize / 3}
-              fill="lightgreen"
-              stroke="black"
-              strokeWidth={2}
-            />
-          )}
-          {/* If a path exists, render the intermediate nodes */}
-          {graphSequences && (
-            graphSequences
-              .find(seq => seq.floor === floor)
-              ?.nodes
-              .filter((wp, idx, arr) => {
-                // Coordenadas actuales
-                const { x, y } = wp.dot;
-                // Comprueba si es el origen o el destino
-                const isOrigin = origin && x === origin.x && y === origin.y;
-                const isDestination = destination && x === destination.x && y === destination.y;
-                // Si es el primero y coincide con el origen, lo quitamos
-                if (idx === 0 && isOrigin) return false;
-                // Si es el último y coincide con el destino, lo quitamos
-                if (idx === arr.length - 1 && isDestination) return false;
-                return true;
-              })
-              .map((wp, idx) => {
-                const { x, y } = wp.dot;
-                const cx = x * cellSize + cellSize / 2;
-                const cy = (matrix.length - 1 - y) * cellSize + cellSize / 2;
-                const radius = cellSize / 3;
+        <PinchGestureHandler
+          ref={pinchRef}
+          onGestureEvent={onPinchEvent}
+          onHandlerStateChange={onPinchStateChange}
+          simultaneousHandlers={panRef}
+        >
+          <Animated.View
+            style={{
+              width: mapWidth,
+              height: mapHeight,
+              transform: [
+                ...pan.getTranslateTransform(),
+                { scale: Animated.multiply(baseScale, scale) },
+              ],
+            }}
+          >
+            <Svg width={mapWidth} height={mapHeight} style={styles.svg}>
+              {/* Render the grid */}
+              {matrix.map((row, y) =>
+                row.map((cell, x) => (
+                  <Rect
+                    key={`${x}-${y}`}
+                    x={x * cellSize}
+                    y={y * cellSize}
+                    width={cellSize}
+                    height={cellSize}
+                    fill={colorMapping[cell] || 'transparent'}
+                  />
+                ))
+              )}
+              {/* Render the computed path as a polyline if available */}
+              {currentFloorPath.length > 1 && (
+                <Polyline
+                  points={currentFloorPath
+                    .map(
+                      p =>
+                        `${p.x * cellSize + cellSize / 2},${(matrix.length - 1 - p.y) * cellSize + cellSize / 2}`
+                    )
+                    .join(' ')}
+                  stroke="orange"
+                  strokeWidth="3"
+                  fill="none"
+                  strokeLinecap="round"
+                />
+              )}
+              {/* Render the destination arrow */}
+              {currentFloorPath.length > 1 && (
+                <Polygon
+                  points={` 
+                    ${currentFloorPath[currentFloorPath.length - 1].x * cellSize + cellSize / 2},${(matrix.length - 1 - currentFloorPath[currentFloorPath.length - 1].y) * cellSize}
+                    ${currentFloorPath[currentFloorPath.length - 1].x * cellSize},${(matrix.length - 1 - currentFloorPath[currentFloorPath.length - 1].y) * cellSize + cellSize}
+                    ${currentFloorPath[currentFloorPath.length - 1].x * cellSize + cellSize},${(matrix.length - 1 - currentFloorPath[currentFloorPath.length - 1].y) * cellSize + cellSize}
+                  `}
+                  fill="orange"
+                  stroke="black"
+                  strokeWidth="1"
+                  transform={`rotate(${arrowAngle}, ${currentFloorPath[currentFloorPath.length - 1].x * cellSize + cellSize / 2}, ${(matrix.length - 1 - currentFloorPath[currentFloorPath.length - 1].y) * cellSize + cellSize / 2})`}
+                />
+              )}
+              {/* Render the origin point if it exists */}
+              {origin?.floorNumber === floor &&(
+                <Circle
+                  cx={origin.x * cellSize + cellSize / 2}
+                  cy={(matrix.length - 1 - origin.y) * cellSize + cellSize / 2}
+                  r={cellSize / 3}
+                  fill="red" 
+                  stroke="black"
+                  strokeWidth={2}
+                />
+              )}
+              {/* Render the destination point if it exists */}
+              {destination?.floorNumber === floor && (
+                <Circle
+                  cx={destination.x * cellSize + cellSize / 2}
+                  cy={(matrix.length - 1 - destination.y) * cellSize + cellSize / 2}
+                  r={cellSize / 3}
+                  fill="lightgreen"
+                  stroke="black"
+                  strokeWidth={2}
+                />
+              )}
+              {/* If a path exists, render the intermediate nodes */}
+              {graphSequences && (
+                graphSequences
+                  .find(seq => seq.floor === floor)
+                  ?.nodes
+                  .filter((wp, idx, arr) => {
+                    // Coordenadas actuales
+                    const { x, y } = wp.dot;
+                    // Comprueba si es el origen o el destino
+                    const isOrigin = origin && x === origin.x && y === origin.y;
+                    const isDestination = destination && x === destination.x && y === destination.y;
+                    // Si es el primero y coincide con el origen, lo quitamos
+                    if (idx === 0 && isOrigin) return false;
+                    // Si es el último y coincide con el destino, lo quitamos
+                    if (idx === arr.length - 1 && isDestination) return false;
+                    return true;
+                  })
+                  .map((wp, idx) => {
+                    const { x, y } = wp.dot;
+                    const cx = x * cellSize + cellSize / 2;
+                    const cy = (matrix.length - 1 - y) * cellSize + cellSize / 2;
+                    const radius = cellSize / 3;
+                    return (
+                      <Circle
+                        key={`node-${floor}-${idx}`}
+                        cx={cx}
+                        cy={cy}
+                        r={radius}
+                        fill="royalblue"
+                      />
+                    );
+                  })
+              )}
+              {/* Render the user's sensor as a triangle if not in preview mode */}
+              {!isPreview && current_node && current_node.floorNumber == floor && (() => {
+                const sensorXPixel = current_node.x * cellSize;
+                const sensorYPixel = (matrix.length - 1 - current_node.y) * cellSize;
+                const sensorCenterX = sensorXPixel + cellSize / 2;
+                const sensorCenterY = sensorYPixel + cellSize / 2;
                 return (
-                  <Circle
-                    key={`node-${floor}-${idx}`}
-                    cx={cx}
-                    cy={cy}
-                    r={radius}
-                    fill="royalblue"
+                  <Polygon
+                    points={`
+                      ${sensorCenterX},${sensorYPixel}
+                      ${sensorXPixel},${sensorYPixel + cellSize}
+                      ${sensorXPixel + cellSize},${sensorYPixel + cellSize}
+                    `}
+                    fill="#00FF00"
+                    stroke="black"
+                    strokeWidth="2"
+                    transform={`rotate(${heading}, ${sensorCenterX}, ${sensorCenterY})`}
                   />
                 );
-              })
-          )}
-          {/* Render the user's sensor as a triangle if not in preview mode */}
-          {!isPreview && current_node && current_node.floorNumber == floor && (() => {
-            const sensorXPixel = current_node.x * cellSize;
-            const sensorYPixel = (matrix.length - 1 - current_node.y) * cellSize;
-            const sensorCenterX = sensorXPixel + cellSize / 2;
-            const sensorCenterY = sensorYPixel + cellSize / 2;
-            return (
-              <Polygon
-                points={`
-                  ${sensorCenterX},${sensorYPixel}
-                  ${sensorXPixel},${sensorYPixel + cellSize}
-                  ${sensorXPixel + cellSize},${sensorYPixel + cellSize}
-                `}
-                fill="#00FF00"
-                stroke="black"
-                strokeWidth="2"
-                transform={`rotate(${heading}, ${sensorCenterX}, ${sensorCenterY})`}
-              />
-            );
-          })()}
-        </Svg>
-      </Animated.View>
+              })()}
+            </Svg>
+          </Animated.View>
+        </PinchGestureHandler>
+      </PanGestureHandler>
     </View>
   );
 };

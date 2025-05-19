@@ -205,14 +205,12 @@ const ShowMapScreen: React.FC = () => {
             )}
           </View>
   
-          {searchPressed && (
-            <TouchableOpacity 
-              style={styles.centerButton} 
-              onPress={() => setCenterTrigger(prev => prev + 1)}
-            >
-              <MaterialIcons name="my-location" size={24} color="black" />
-            </TouchableOpacity>
-          )}
+          <TouchableOpacity
+            style={styles.centerButton}
+            onPress={() => setCenterTrigger(prev => prev + 1)}
+          >
+            <MaterialIcons name="my-location" size={24} color="black" />
+          </TouchableOpacity>
 
            {/*  Floor switcher */}
            {floors.length > 1 && (
