@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, StyleSheet, PermissionsAndroid, Platform, TouchableOpacity, Text, TouchableWithoutFeedback } from 'react-native';
+import { View, StyleSheet, PermissionsAndroid, Platform, TouchableOpacity, Text, TouchableWithoutFeedback, Image } from 'react-native';
 import MapView, { Marker, Region } from 'react-native-maps';
 import Geolocation from '@react-native-community/geolocation';
 import { MapViewRoute } from 'react-native-maps-routes';
@@ -115,18 +115,19 @@ const GlobalMapScreen = () => {
           showsUserLocation={true}
           showsMyLocationButton={false}  // Disable the default "center" button
         >
-          {/* Origin Marker */}
-          <Marker
-            coordinate={{ latitude: origin.latitude, longitude: origin.longitude }}
-            title="You are here"
-          />
           {/* Destination Marker */}
           {destination && (
             <Marker
               coordinate={destination}
               title="Destination"
-              pinColor="green"
-            />
+              anchor={{ x: 0.5, y: 1 }}
+            >
+              <Image
+                source={require('../../assets/images/race_flag.png')}
+                style={{ width: 52, height: 52 }}
+                resizeMode="contain"
+              />
+            </Marker>
           )}
           {/* Draw route if destination exists */}
           {origin && destination && (
