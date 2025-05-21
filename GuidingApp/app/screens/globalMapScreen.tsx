@@ -113,6 +113,7 @@ const GlobalMapScreen = () => {
           style={styles.map}
           initialRegion={origin}
           showsUserLocation={true}
+          showsCompass={false}
           showsMyLocationButton={false}  // Disable the default "center" button
         >
           {/* Destination Marker */}
@@ -165,6 +166,7 @@ const GlobalMapScreen = () => {
           <View style={styles.searchContainer} ref={searchRef}>
             <ChooseDestination
               isSearchVisible={isSearchVisible}
+              destination={destination} 
               onPress={setDestination}
             />
           </View>
