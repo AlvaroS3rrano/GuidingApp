@@ -57,13 +57,11 @@ const ShowMapScreen: React.FC = () => {
         }, devices[0]);
         setClosestBeacon(closest.identifier);
         // Update the recommended origin if a matching node is found.
-        if (parsedMapData && closestBeacon) {
+        if (parsedMapData) {
           const matchingNode = parsedMapData.nodes.find(
-            (node) => node.beaconId === closestBeacon
+            node => node.beaconId === closest.identifier
           );
-          if (matchingNode) {
-            setOriginSuggestion(matchingNode.name);
-          }
+           setOriginSuggestion(matchingNode?.name ?? '');
         }
       }
     };
@@ -122,34 +120,51 @@ const ShowMapScreen: React.FC = () => {
 
   const handleOriginChange = (nodeName: string) => {
     setOriginString(nodeName);
-    const originNode = parsedMapData 
-      ? parsedMapData.nodes.find((node) => node.name === nodeName)
-      : null;
+
+    if (nodeName === "") {
+      // User cleared the field: reset origin and error, then suggest based on beacon
+      setOrigin(null);
+      setOriginError("");
+      if (parsedMapData && closestBeacon) {
+        const suggested = parsedMapData.nodes.find(n => n.beaconId === closestBeacon);
+        setOriginSuggestion(suggested?.name ?? "");
+      }
+      return;
+    }
+
+    // User typed something: remove auto-suggestion and lookup by name
+    setOriginSuggestion("");
+    const originNode = parsedMapData?.nodes.find(n => n.name === nodeName) || null;
     if (originNode) {
+      // Valid node name: update origin and clear errors
       setOrigin(originNode);
       setOriginError("");
-    } else if (nodeName === ""){
-      setOrigin(null)
-      setOriginError("");
     } else {
-      setOrigin(null)
-      setOriginError("Destination node not found");
+      // No match: clear origin and set error message
+      setOrigin(null);
+      setOriginError("Origin node not found");
     }
   };
 
   const handleDestinationChange = (nodeName: string) => {
-    setDestinationString(nodeName)
-    const destinationNode = parsedMapData 
-      ? parsedMapData.nodes.find((node) => node.name === nodeName)
-      : null;
-    if (destinationNode){
+    setDestinationString(nodeName);
+
+    if (nodeName === "") {
+      // User cleared the field: reset destination and error
+      setDestination(null);
+      setDestinationError("");
+      return;
+    }
+
+    // User typed something: lookup by name
+    const destinationNode = parsedMapData?.nodes.find(n => n.name === nodeName) || null;
+    if (destinationNode) {
+      // Valid node name: update destination and clear errors
       setDestination(destinationNode);
       setDestinationError("");
-    } else if (nodeName === ""){
-      setDestination(null)
-      setDestinationError("");
     } else {
-      setDestination(null)
+      // No match: clear destination and set error message
+      setDestination(null);
       setDestinationError("Destination node not found");
     }
   };

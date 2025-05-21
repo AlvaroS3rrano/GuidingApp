@@ -80,7 +80,7 @@ export function findShortestPath(matrix: number[][], start: Dot, end: Dot, isLas
       }
 
       return isLastSegment
-        ? (path.length > 2 ? path.slice(0, -1) : [])
+        ? (path.length > 2 ? path: [])
         : path;
 
     }

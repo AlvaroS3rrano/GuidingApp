@@ -69,7 +69,7 @@ public class DatabaseInitializer {
 
         // Create a couple of Node instances and associate them with the map
         Node node1 = new Node();
-        node1.setName("Node 1");
+        node1.setName("Entrance Hall");
         node1.setBeaconId("d4fcb04a6573ea399df3adbf06f91b38");
         node1.setFloorNumber(0);
         node1.setX(14);
@@ -78,7 +78,7 @@ public class DatabaseInitializer {
         node1.setMap(mapData);
 
         Node node4 = new Node();
-        node4.setName("Node 4");
+        node4.setName("Class 103");
         node4.setBeaconId("15c210b9f1ea2e121131bba29e8cc90a");
         node4.setFloorNumber(1);
         node4.setX(6);

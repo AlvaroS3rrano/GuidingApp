@@ -35,12 +35,13 @@ import {
   State,
   GestureHandlerStateChangeEvent,
 } from 'react-native-gesture-handler';
-import Svg, { Rect, Polygon, Polyline, Circle } from 'react-native-svg';
+import Svg, { Rect, Polygon, Polyline, Circle, G, Image as SvgImage  } from 'react-native-svg';
 import { Magnetometer } from 'expo-sensors';
 import { Dot } from '../../classes/geometry';
 import { getGraphPathByFloor, findFullPathOnFloor } from '@/app/services/pathFindingService';
 import { getMatrixForFloor, MapDataDTO, NodeDTO, Path } from '../../classes/DTOs';
 import { beaconEventEmitter } from '@/app/services/beaconScannerService';
+import { MAP_COLORS } from '../../constants/colors';
 
 
 type MapaInteriorProps = {
@@ -117,20 +118,16 @@ const MapaInterior: React.FC<MapaInteriorProps> = ({
                 ? selectedFloor
                 : current_node?.floorNumber ?? origin?.floorNumber ?? 0;
   
-  const anchorNode = React.useMemo(
-    () =>
-      searchPressed && !isPreview && current_node
-        ? current_node
-        : origin!,
-    [searchPressed, isPreview, current_node, origin]
-  );
+  const startNode = React.useMemo(() => {
+    if (searchPressed && !isPreview && current_node) return current_node;
+    if (origin) return origin;
+    return null;
+  }, [searchPressed, isPreview, current_node, origin]);
 
-  const graphSequences = React.useMemo(
-    () => destination
-      ? getGraphPathByFloor(mapData, anchorNode, destination)
-      : null,
-    [mapData, anchorNode, destination]
-  );
+  const graphSequences = React.useMemo(() => {
+    if (!startNode || !destination) return null;
+    return getGraphPathByFloor(mapData, startNode, destination);
+  }, [mapData, startNode, destination]);
 
   const seq = graphSequences?.find(s => s.floor === floor);
   let edgeComment: string | null = null;
@@ -144,8 +141,8 @@ const MapaInterior: React.FC<MapaInteriorProps> = ({
     if (nextId) {
       // Find the corresponding edge in your map data
       const edge = mapData.edges.find(e =>
-        (e.fromNode.id === current_node.id && e.toNode.id === nextId) ||
-        (e.fromNode.id === nextId && e.toNode.id === current_node.id)
+        (e.fromNode.id === current_node.id && e.toNode.id === nextId)
+        
       );
       edgeComment = edge?.comment ?? null; 
     }
@@ -263,16 +260,7 @@ const MapaInterior: React.FC<MapaInteriorProps> = ({
 
   // Optionally auto-center on search or centerTrigger
   useEffect(() => { centerMap(); }, [searchPressed, centerTrigger]);
-  
 
-  // Define color mapping for grid cells
-  const colorMapping: Record<number, string> = {
-    0: 'transparent',
-    1: 'black',
-    2: 'blue',
-    3: 'red',
-    4: 'orange'
-  };
 
   return (
     <View style={styles.container}>
@@ -308,7 +296,7 @@ const MapaInterior: React.FC<MapaInteriorProps> = ({
                     y={y * cellSize}
                     width={cellSize}
                     height={cellSize}
-                    fill={colorMapping[cell] || 'transparent'}
+                     fill={MAP_COLORS.grid[cell] ?? MAP_COLORS.grid[0]}
                   />
                 ))
               )}
@@ -316,53 +304,83 @@ const MapaInterior: React.FC<MapaInteriorProps> = ({
               {currentFloorPath.length > 1 && (
                 <Polyline
                   points={currentFloorPath
+                    .slice(0,-1)
                     .map(
                       p =>
                         `${p.x * cellSize + cellSize / 2},${(matrix.length - 1 - p.y) * cellSize + cellSize / 2}`
                     )
                     .join(' ')}
-                  stroke="orange"
+                  stroke={MAP_COLORS.path}
                   strokeWidth="3"
                   fill="none"
                   strokeLinecap="round"
                 />
               )}
               {/* Render the destination arrow */}
-              {currentFloorPath.length > 1 && (
-                <Polygon
-                  points={` 
-                    ${currentFloorPath[currentFloorPath.length - 1].x * cellSize + cellSize / 2},${(matrix.length - 1 - currentFloorPath[currentFloorPath.length - 1].y) * cellSize}
-                    ${currentFloorPath[currentFloorPath.length - 1].x * cellSize},${(matrix.length - 1 - currentFloorPath[currentFloorPath.length - 1].y) * cellSize + cellSize}
-                    ${currentFloorPath[currentFloorPath.length - 1].x * cellSize + cellSize},${(matrix.length - 1 - currentFloorPath[currentFloorPath.length - 1].y) * cellSize + cellSize}
-                  `}
-                  fill="orange"
-                  stroke="black"
-                  strokeWidth="1"
-                  transform={`rotate(${arrowAngle}, ${currentFloorPath[currentFloorPath.length - 1].x * cellSize + cellSize / 2}, ${(matrix.length - 1 - currentFloorPath[currentFloorPath.length - 1].y) * cellSize + cellSize / 2})`}
-                />
-              )}
+              {currentFloorPath.length > 1 && (() => {
+                const end = currentFloorPath[currentFloorPath.length - 2];
+                const cellX = end.x * cellSize;
+                const cellY = (matrix.length - 1 - end.y) * cellSize;
+                const cx = cellX + cellSize / 2;
+                const cy = cellY + cellSize / 2;
+                const size = cellSize * 0.5;  // tamaño de la flecha (ajusta si quieres)
+
+                const points = `
+                  ${cx},${cy - size}
+                  ${cx - size},${cy + size}
+                  ${cx + size},${cy + size}
+                `.trim();
+
+                return (
+                  <Polygon
+                    points={points}
+                    fill={MAP_COLORS.path}
+                     stroke={MAP_COLORS.path}
+                    strokeWidth={1}
+                    transform={`rotate(${arrowAngle}, ${cx}, ${cy})`}
+                  />
+                );
+              })()}
               {/* Render the origin point if it exists */}
               {origin?.floorNumber === floor &&(
                 <Circle
                   cx={origin.x * cellSize + cellSize / 2}
                   cy={(matrix.length - 1 - origin.y) * cellSize + cellSize / 2}
                   r={cellSize / 3}
-                  fill="red" 
-                  stroke="black"
+                  fill={MAP_COLORS.origin} 
+                  stroke={MAP_COLORS.darkStroke}
                   strokeWidth={2}
                 />
               )}
               {/* Render the destination point if it exists */}
-              {destination?.floorNumber === floor && (
-                <Circle
-                  cx={destination.x * cellSize + cellSize / 2}
-                  cy={(matrix.length - 1 - destination.y) * cellSize + cellSize / 2}
-                  r={cellSize / 3}
-                  fill="lightgreen"
-                  stroke="black"
-                  strokeWidth={2}
-                />
-              )}
+              {destination?.floorNumber === floor && (() => {
+                const cx = destination.x * cellSize + cellSize / 2;
+                const cy = (matrix.length - 1 - destination.y) * cellSize + cellSize / 2;
+                const iconSize = cellSize*2; // o el tamaño que prefieras
+
+                return (
+                  <G>
+                    {/* El círculo sigue aquí */}
+                    <Circle
+                      cx={cx}
+                      cy={cy}
+                      r={cellSize / 3}
+                      fill={MAP_COLORS.circle}
+                      stroke={MAP_COLORS.darkStroke}
+                      strokeWidth={2}
+                    />
+                    {/* Y la bandera encima */}
+                    <SvgImage
+                      x={cx - iconSize / 3}
+                      y={cy - iconSize + 3}
+                      width={iconSize}
+                      height={iconSize}
+                      href={require('../../../assets/images/race_flag.png')}
+                      preserveAspectRatio="xMidYMid slice"
+                    />
+                  </G>
+                );
+              })()}
               {/* If a path exists, render the intermediate nodes */}
               {graphSequences && (
                 graphSequences
@@ -391,7 +409,7 @@ const MapaInterior: React.FC<MapaInteriorProps> = ({
                         cx={cx}
                         cy={cy}
                         r={radius}
-                        fill="royalblue"
+                        fill={MAP_COLORS.waypoint}
                       />
                     );
                   })
@@ -409,8 +427,8 @@ const MapaInterior: React.FC<MapaInteriorProps> = ({
                       ${sensorXPixel},${sensorYPixel + cellSize}
                       ${sensorXPixel + cellSize},${sensorYPixel + cellSize}
                     `}
-                    fill="#00FF00"
-                    stroke="black"
+                    fill={MAP_COLORS.userArrow}
+                    stroke={MAP_COLORS.darkStroke}
                     strokeWidth="2"
                     transform={`rotate(${heading}, ${sensorCenterX}, ${sensorCenterY})`}
                   />
