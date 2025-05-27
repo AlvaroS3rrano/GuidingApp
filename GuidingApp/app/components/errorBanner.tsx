@@ -1,7 +1,7 @@
-// errorBanner.tsx
 import React, { useState, useEffect } from 'react';
 import { TouchableOpacity, Text, StyleSheet, Alert } from 'react-native';
 import { beaconEventEmitter } from '@/app/services/beaconScannerService';
+import { Ionicons } from '@expo/vector-icons';
 
 /**
  * ErrorBanner component listens for error events from the beacon scanner.
@@ -47,7 +47,7 @@ const ErrorBanner: React.FC = () => {
 
   return (
     <TouchableOpacity style={styles.errorIcon} onPress={handlePress}>
-      <Text style={styles.errorIconText}>⚠️</Text>
+      <Text style={styles.errorIconText}><Ionicons name="warning" size={24} color="black" /></Text>
     </TouchableOpacity>
   );
 };
@@ -57,19 +57,19 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 10,
     right: 10,
-    backgroundColor: 'yellow',
-    borderRadius: 15,
-    width: 30,
-    height: 30,
-    justifyContent: 'center',
-    alignItems: 'center',
-    zIndex: 9999,
+    backgroundColor: 'white',
+    padding: 10,
+    borderRadius: 30,
+    elevation: 5,
+    opacity: 0.8,
+    justifyContent:'center',
+    alignItems:'center',
+    zIndex: 20,
   },
   errorIconText: {
-    fontSize: 18,
-    position: 'absolute',
-    top: -0.5,
-  }
+    fontSize: 24,
+    color: 'black',
+  },
 });
 
 export default ErrorBanner;

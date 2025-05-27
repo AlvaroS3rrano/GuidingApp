@@ -1,32 +1,3 @@
-/**
- * Map.tsx
- *
- * This file defines the MapaInterior component, which renders the interactive map.
- *
- * Key functionalities:
- * - Renders a grid-based map using an SVG, where each cell’s color is determined by its type.
- * - Computes and displays the shortest path (as a polyline) between the origin and destination.
- * - Draws an arrow (polygon) at the destination.
- * - Displays the user's current sensor position as a triangle, rotated according to the device's heading.
- * - Enables smooth panning (dragging) of the map using touch gestures via Animated and PanResponder.
- * - When the Search button is pressed, animates the map so that the user's sensor (or origin sensor in preview mode)
- *   moves to the center of the screen.
- * - When Cancel is pressed, the map animates back to its original centered position.
- * - A center button (triggered by centerTrigger) re-centers the map accordingly.
- * - NEW: When the current sensor position reaches the destination (and in search mode, not preview),
- *   a prettier alert is shown with "Cancel" and "OK". If "OK" is pressed, it calls the cancel callback.
- *
- * Props:
- * - origin: Node selected as origin.
- * - destination: Node selected as destination.
- * - current_node: User's current sensor position from the beacon.
- * - searchPressed: Flag indicating that Search mode is active.
- * - centerTrigger: A number that increments when the center button is pressed.
- * - isPreview: Flag indicating preview mode.
- * - newTrip: The new trip path (if any).
- * - onCancelSearch: Callback to cancel the search (triggered when OK is pressed in the alert).
- */
-
 import React, { useEffect, useState, useRef } from 'react';
 import { View, StyleSheet, Dimensions, Animated, PanResponder, Alert } from 'react-native';
 import {
@@ -42,6 +13,7 @@ import { getGraphPathByFloor, findFullPathOnFloor } from '@/app/services/pathFin
 import { getMatrixForFloor, MapDataDTO, NodeDTO, Path } from '../../classes/DTOs';
 import { beaconEventEmitter } from '@/app/services/beaconScannerService';
 import { MAP_COLORS } from '../../constants/colors';
+import DestinationAlert from '../DestinationAlert';
 
 
 type MapaInteriorProps = {
@@ -84,33 +56,14 @@ const MapaInterior: React.FC<MapaInteriorProps> = ({
     return () => sub.remove();
   }, []);
 
-  // Check if destination is reached and display a prettier alert with two options
-  useEffect(() => {
-    if (searchPressed && !isPreview && current_node && destination) {
-      if (
-        current_node.x === destination.x &&
-        current_node.y === destination.y
-      ) {
-        Alert.alert(
-          "Destination Reached",
-          "You have arrived at your destination!",
-          [
-            {
-              text: "Cancel",
-              style: "cancel",
-            },
-            {
-              text: "OK",
-              onPress: () => {
-                if (onCancelSearch) onCancelSearch();
-              },
-            },
-          ],
-          { cancelable: true }
-        );
-      }
-    }
-  }, [current_node, destination, searchPressed, isPreview, onCancelSearch]);
+  // Check if destination is reached
+ const shouldShowAlert =
+    searchPressed &&
+    !isPreview &&
+    current_node !== null &&
+    destination !== null &&
+    current_node.x === destination.x &&
+    current_node.y === destination.y;
 
 
   // Clone the initial map grid from the mapData prop
@@ -264,6 +217,9 @@ const MapaInterior: React.FC<MapaInteriorProps> = ({
 
   return (
     <View style={styles.container}>
+
+      {shouldShowAlert && <DestinationAlert onCancelSearch={onCancelSearch} />}
+      
       <PanGestureHandler
         ref={panRef}
         onGestureEvent={onPanEvent}

@@ -1,4 +1,3 @@
-// app/_layout.tsx
 import 'react-native-gesture-handler';
 
 import { useEffect } from "react";

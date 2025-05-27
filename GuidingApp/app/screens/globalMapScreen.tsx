@@ -1,17 +1,19 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, StyleSheet, PermissionsAndroid, Platform, TouchableOpacity, Text, TouchableWithoutFeedback, Image } from 'react-native';
+import { View, StyleSheet, PermissionsAndroid, Platform, TouchableOpacity, Text, TouchableWithoutFeedback, Image, Modal } from 'react-native';
 import MapView, { Marker, Region } from 'react-native-maps';
 import Geolocation from '@react-native-community/geolocation';
 import { MapViewRoute } from 'react-native-maps-routes';
 import { MaterialIcons } from '@expo/vector-icons';
 import ChooseDestination from '../components/globalMapComponents/chooseDestination';
-import ClosestMapBanner from '../components/closestMapBanner';  // Import ClosestMapBanner
+import ClosestMapBanner from '../components/closestMapBanner';
 import { KEY_2 } from '../constants/public_key';
+import DestinationAlert from '../components/DestinationAlert';
 
 const GlobalMapScreen = () => {
   const [origin, setOrigin] = useState<Region | null>(null);
   const [destination, setDestination] = useState<{ latitude: number; longitude: number } | null>(null);
   const [isSearchVisible, setSearchVisible] = useState(false);
+  const [hasApproachAlerted, setHasApproachAlerted] = useState(false);
   const searchRef = useRef<View | null>(null);
   const mapRef = useRef<MapView | null>(null);  // Reference to the MapView
 
@@ -83,18 +85,38 @@ const GlobalMapScreen = () => {
     }
   };
 
-  const handleOutsidePress = (e: any) => {
-    // Check if the touch is outside the search component
-    if (searchRef.current) {
-      searchRef.current.measure((fx, fy, width, height, px, py) => {
-        const touchX = e.nativeEvent.pageX;
-        const touchY = e.nativeEvent.pageY;
-        if (touchX < px || touchX > px + width || touchY < py || touchY > py + height) {
-          setSearchVisible(false);  // Hide search component if touch is outside
-        }
-      });
-    }
+   // Simple Haversine formula to get meters between two coords
+  const getDistanceInMeters = (
+    lat1: number, lon1: number,
+    lat2: number, lon2: number
+  ) => {
+    const toRad = (v: number) => (v * Math.PI) / 180;
+    const R = 6371000; // Earth radius in meters
+    const dLat = toRad(lat2 - lat1);
+    const dLon = toRad(lon2 - lon1);
+    const a =
+      Math.sin(dLat / 2) ** 2 +
+      Math.cos(toRad(lat1)) *
+        Math.cos(toRad(lat2)) *
+        Math.sin(dLon / 2) ** 2;
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
   };
+
+  useEffect(() => {
+    if (origin && destination && !hasApproachAlerted) {
+      const dist = getDistanceInMeters(
+        origin.latitude,
+        origin.longitude,
+        destination.latitude,
+        destination.longitude
+      );
+      // If within 5 m, trigger alert
+      if (dist <= 5) {
+        setHasApproachAlerted(true);
+      }
+    }
+  }, [origin, destination, hasApproachAlerted]);
 
   // If no origin, show loading
   if (!origin) {
@@ -106,75 +128,87 @@ const GlobalMapScreen = () => {
   }
 
   return (
-    <TouchableWithoutFeedback onPress={handleOutsidePress}>
-      <View style={styles.container}>
-        <MapView
-          ref={mapRef}  // Make sure the ref is correctly assigned
-          style={styles.map}
-          initialRegion={origin}
-          showsUserLocation={true}
-          showsCompass={false}
-          showsMyLocationButton={false}  // Disable the default "center" button
-        >
-          {/* Destination Marker */}
-          {destination && (
-            <Marker
-              coordinate={destination}
-              title="Destination"
-              anchor={{ x: 0.5, y: 1 }}
-            >
-              <Image
-                source={require('../../assets/images/race_flag.png')}
-                style={{ width: 52, height: 52 }}
-                resizeMode="contain"
-              />
-            </Marker>
-          )}
-          {/* Draw route if destination exists */}
-          {origin && destination && (
-            <MapViewRoute
-              origin={{ latitude: origin.latitude, longitude: origin.longitude }}
-              destination={destination}
-              apiKey={KEY_2}
-              strokeColor="#000"
-              strokeWidth={6}
-              onError={(errorMessage) => {
-                console.log('Error in MapViewDirections: ', errorMessage);
-              }}
-            />
-          )}
-        </MapView>
+    <View style={styles.container}>
 
-        {/* Custom Center Button */}
-        <TouchableOpacity
-          style={styles.centerButton}
-          onPress={centerMapOnUser}  // Trigger the centering
-        >
-          <MaterialIcons name="my-location" size={24} color="black" />
-        </TouchableOpacity>
+      <Modal
+        transparent
+        visible={isSearchVisible}
+        animationType="fade"
+      >
+        <View style={styles.modalWrapper}>
+          <TouchableWithoutFeedback onPress={() => setSearchVisible(false)}>
+            <View style={styles.modalOverlay} />
+          </TouchableWithoutFeedback>
 
-        {/* Search Button */}
-        <TouchableOpacity
-          style={styles.searchButton}
-          onPress={() => setSearchVisible(!isSearchVisible)}
-        >
-          <MaterialIcons name="search" size={24} color="black" />
-        </TouchableOpacity>
-
-        {/* Choose Destination Component */}
-        {isSearchVisible && (
-          <View style={styles.searchContainer} ref={searchRef}>
+          <View style={styles.searchContainer}>
             <ChooseDestination
               isSearchVisible={isSearchVisible}
-              destination={destination} 
+              destination={destination}
               onPress={setDestination}
             />
           </View>
+        </View>
+      </Modal>
+
+      {hasApproachAlerted && (
+        <DestinationAlert onCancelSearch={() => setDestination(null)} />
+      )}
+      
+      <MapView
+        ref={mapRef}  // Make sure the ref is correctly assigned
+        style={styles.map}
+        initialRegion={origin}
+        showsUserLocation={true}
+        showsCompass={false}
+        showsMyLocationButton={false}  // Disable the default "center" button
+      >
+        {/* Destination Marker */}
+        {destination && (
+          <Marker
+            coordinate={destination}
+            title="Destination"
+            anchor={{ x: 0.5, y: 1 }}
+          >
+            <Image
+              source={require('../../assets/images/race_flag.png')}
+              style={{ width: 52, height: 52 }}
+              resizeMode="contain"
+            />
+          </Marker>
         )}
-        
-        <ClosestMapBanner />
-      </View>
-    </TouchableWithoutFeedback>
+        {/* Draw route if destination exists */}
+        {origin && destination && (
+          <MapViewRoute
+            origin={{ latitude: origin.latitude, longitude: origin.longitude }}
+            destination={destination}
+            apiKey={KEY_2}
+            strokeColor="#000"
+            strokeWidth={6}
+            onError={(errorMessage) => {
+              console.log('Error in MapViewDirections: ', errorMessage);
+            }}
+          />
+        )}
+      </MapView>
+
+      {/* Custom Center Button */}
+      <TouchableOpacity
+        style={styles.centerButton}
+        onPress={centerMapOnUser}  // Trigger the centering
+      >
+        <MaterialIcons name="my-location" size={24} color="black" />
+      </TouchableOpacity>
+
+      {/* Search Button */}
+      <TouchableOpacity
+        style={styles.searchButton}
+        onPress={() => setSearchVisible(!isSearchVisible)}
+      >
+        <MaterialIcons name="search" size={24} color="black" />
+      </TouchableOpacity>
+      
+      <ClosestMapBanner />
+    </View>
   );
 };
 
@@ -189,6 +223,16 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+   modalWrapper: {
+    flex: 1,
+    justifyContent: 'flex-start', // o 'center' si quieres centrar verticalmente
+  },
+  modalOverlay: {
+    position: 'absolute',
+    top: 0, left: 0, right: 0, bottom: 0,
+    // opcional: oscurecer el fondo
+    backgroundColor: 'rgba(0,0,0,0.3)',
   },
   searchButton: {
     position: 'absolute',
@@ -205,7 +249,7 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
     right: 0,
-    zIndex: 2,
+    zIndex: 300,
     backgroundColor: 'white',
     elevation: 8,
     shadowColor: 'black',

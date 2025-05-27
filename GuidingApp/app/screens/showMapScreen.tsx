@@ -185,6 +185,7 @@ const ShowMapScreen: React.FC = () => {
 
   return (
     <View style={styles.container}>
+      
       {parsedMapData ? (
         <>
           <Map 
