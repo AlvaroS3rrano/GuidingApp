@@ -25,7 +25,7 @@ public class MapDataServiceTest {
     @Test
     public void testCreateRetrieveUpdateDeleteMapData() {
         // Test original (ya existente)
-        MapData mapData = new MapData("Test Map", 70.0, "test", 3, 3);
+        MapData mapData = new MapData("Test Map", 70.0, 40.335722, -3.876528, "test", 3, 3);
         MapData saved = mapDataService.saveMapData(mapData);
         assertNotNull(saved.getId(), "MapData ID should be set after saving");
 
@@ -51,7 +51,7 @@ public class MapDataServiceTest {
         };
 
         // Crear MapData con atributos completos
-        MapData mapData = new MapData("Full Test Map", 90.0, "test", 3, 3);
+        MapData mapData = new MapData("Full Test Map", 90.0, 40.335722, -3.876528, "test", 3, 3);
         mapData.getMatrices().add(new NamedMatrix(1, "custom", customMatrix));
 
         // Crear nodos y asignarles el mapData

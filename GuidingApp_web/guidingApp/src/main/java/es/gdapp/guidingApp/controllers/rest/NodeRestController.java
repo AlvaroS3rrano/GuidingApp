@@ -1,7 +1,8 @@
 package es.gdapp.guidingApp.controllers.rest;
 
 import es.gdapp.guidingApp.dto.MapDataDTO;
-import es.gdapp.guidingApp.mappers.MapDataMapper;
+import es.gdapp.guidingApp.dto.NodeMapDataSearchResultDTO;
+import es.gdapp.guidingApp.mappers.DataMapper;
 import es.gdapp.guidingApp.models.Node;
 import es.gdapp.guidingApp.services.NodeService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -10,19 +11,19 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Collection;
-import java.util.NoSuchElementException;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/nodes")
 public class NodeRestController {
 
     private final NodeService nodeService;
-    private final MapDataMapper mapDataMapper;
+    private final DataMapper dataMapper;
 
     @Autowired
-    public NodeRestController(NodeService nodeService, MapDataMapper mapDataMapper) {
+    public NodeRestController(NodeService nodeService, DataMapper dataMapper) {
         this.nodeService = nodeService;
-        this.mapDataMapper = mapDataMapper;
+        this.dataMapper = dataMapper;
     }
 
     // Obtener todos los nodos
@@ -52,12 +53,24 @@ public class NodeRestController {
     public ResponseEntity<MapDataDTO> getMapDataByBeaconId(@PathVariable String beaconId) {
         return nodeService.getNodeByBeaconId(beaconId)
                 .map(node -> {
-                    if (node.getMap() == null) {
+                    if (node.getMapData() == null) {
                         return ResponseEntity.status(HttpStatus.NOT_FOUND).<MapDataDTO>body(null);
                     }
-                    return ResponseEntity.ok(mapDataMapper.toMapDataDTO(node.getMap()));
+                    return ResponseEntity.ok(dataMapper.toMapDataDTO(node.getMapData()));
                 })
                 .orElse(ResponseEntity.status(HttpStatus.NOT_FOUND).body(null));
+    }
+
+    @GetMapping("/search")
+    public ResponseEntity<List<NodeMapDataSearchResultDTO>> searchNodes(
+            @RequestParam("q") String query,
+            @RequestParam(name = "limit", required = false, defaultValue = "10") int limit
+    ) {
+        List<NodeMapDataSearchResultDTO> results = nodeService.searchByText(query, limit);
+        if (results.isEmpty()) {
+            return ResponseEntity.noContent().build();
+        }
+        return ResponseEntity.ok(results);
     }
 
 }

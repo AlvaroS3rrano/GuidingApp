@@ -8,6 +8,8 @@ public class NodeDTO {
     private String name;
     private String beaconId;
     private Integer floorNumber;
+    private boolean isExit;
+    private boolean isEntrance;
     private Integer x;
     private Integer y;
     private int[][] area;

@@ -17,7 +17,7 @@ public class MapDataTests {
     public void setup() {
         // Initialize a 5x5 map for testing,
         // using "initial" as the matrixName and floorNumber = 0
-        mapData = new MapData("TestMap", 0.0, "initial", 5, 5);
+        mapData = new MapData("TestMap", 0.0, 40.335722, -3.876528, "initial", 5, 5);
     }
 
     @Test

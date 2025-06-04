@@ -9,7 +9,7 @@ import es.gdapp.guidingApp.models.Node;
 import org.mapstruct.Mapper;
 
 @Mapper(componentModel = "spring")
-public interface MapDataMapper {
+public interface DataMapper {
     MapDataDTO toMapDataDTO(MapData map);
     NodeDTO toNodeDTO(Node node);
     EdgeDTO toEdgeDTO(Edge edge);

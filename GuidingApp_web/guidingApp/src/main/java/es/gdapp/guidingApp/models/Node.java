@@ -29,15 +29,19 @@ public class Node {
 
     private Integer floorNumber;
 
+    private boolean isExit;
+
+    private boolean isEntrance;
+
     private Integer x;
 
     private Integer y;
 
     // Many-to-one relationship with MapData
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "map_id")
+    @JoinColumn(name = "map_data_id")
     @JsonBackReference
-    private MapData map;
+    private MapData mapData;
 
     @Convert(converter = IntArrayConverter.class)
     @Column(columnDefinition = "TEXT")
@@ -52,6 +56,8 @@ public class Node {
             nodeData.put("name", this.name);
             nodeData.put("beaconId", this.beaconId);
             nodeData.put("floorNumber", this.floorNumber);
+            nodeData.put("isExit", this.isExit);
+            nodeData.put("isEntrance", this.isEntrance);
             nodeData.put("x", this.x);
             nodeData.put("y", this.y);
             nodeData.put("area", this.area);

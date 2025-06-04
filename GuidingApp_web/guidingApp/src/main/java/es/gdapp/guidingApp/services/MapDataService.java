@@ -28,7 +28,8 @@ public class MapDataService {
     }
 
     public Collection<MapData> getAllMapData() {
-        return mapDataRepository.findAll();
+        Collection<MapData> res = mapDataRepository.findAll();
+        return res;
     }
 
     public MapData updateMapData(Long id, MapData mapData) {

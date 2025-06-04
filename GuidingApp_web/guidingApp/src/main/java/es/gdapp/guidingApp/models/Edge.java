@@ -21,7 +21,7 @@ public class Edge {
     private Node fromNode;
 
     @ManyToOne
-    @JoinColumn(name = "map_id", nullable = false)
+    @JoinColumn(name = "map_data_id", nullable = false)
     private MapData mapData;
 
 

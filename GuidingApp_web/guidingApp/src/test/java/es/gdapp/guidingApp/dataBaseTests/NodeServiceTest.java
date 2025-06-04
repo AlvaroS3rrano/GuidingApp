@@ -24,7 +24,7 @@ public class NodeServiceTest {
     @Test
     public void testCreateRetrieveUpdateDeleteNode() {
         // Create a MapData first (since Node depends on it)
-        MapData mapData = new MapData("Test Map for Node", 90.0, "test", 4, 4);
+        MapData mapData = new MapData("Test Map for Node", 90.0, 40.335722, -3.876528, "test", 4, 4);
         mapData = mapDataService.saveMapData(mapData);
 
         // Create a new Node and associate it with the MapData
@@ -34,7 +34,7 @@ public class NodeServiceTest {
         node.setX(1);
         node.setY(2);
         node.setArea(new int[][] {{1, 0}, {0, 1}});
-        node.setMap(mapData);
+        node.setMapData(mapData);
 
         Node saved = nodeService.saveNode(node);
         assertNotNull(saved.getId(), "Node ID should be set after saving");

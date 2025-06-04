@@ -24,6 +24,10 @@ public class MapData {
 
     private double northAngle;  // Orientation angle relative to north
 
+    private double latitude;
+
+    private double longitude;
+
     @ElementCollection
     @CollectionTable(
             name = "map_data_matrices",
@@ -35,25 +39,25 @@ public class MapData {
     )
     private List<NamedMatrix> matrices = new ArrayList<>();  // Embedded list of named matrices
 
-    @OneToMany(mappedBy = "map", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "mapData", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonManagedReference
     private List<Node> nodes;  // One-to-many relationship with Node entities
 
     @OneToMany(mappedBy = "mapData", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Edge> edges;  // One-to-many relationship with Edge entities
 
-    /**
-     * Constructs a MapData instance with an initial named matrix.
-     *
-     * @param name        the map's name
-     * @param northAngle  the orientation angle relative to north
-     * @param matrixName  the identifier for the initial matrix block
-     * @param rows        the number of rows in the matrix
-     * @param columns     the number of columns in the matrix
-     */
-    public MapData(String name, double northAngle, String matrixName, int rows, int columns) {
+
+    public MapData(
+            String name, double northAngle, double latitude,
+            double longitude, String matrixName, int rows, int columns
+    ) {
         this.name = name;
         this.northAngle = northAngle;
+        this.latitude = latitude;
+        this.longitude = longitude;
+
+        // Initialize the list of matrices
+        this.matrices = new ArrayList<>();
 
         // Initialize the matrix data (all elements default to 0)
         int[][] data = new int[rows][columns];

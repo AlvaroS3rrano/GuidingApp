@@ -1,4 +1,18 @@
 /**
+ * Result of a search query, combining node data, its associated map data, and a relevance score.
+ */
+export interface NodeMapDataSearchResultDTO {
+  /** Node information that matched the search query */
+  node: NodeDTO;
+
+  /** Map data associated with the matched node */
+  mapData: MapDataDTO;
+
+  /** Number of keyword matches in node name and map name */
+  score: number;
+}
+
+/**
  * Represents a named matrix block as returned by the API
  */
 export interface NamedMatrixDTO {
@@ -16,18 +30,31 @@ export interface NamedMatrixDTO {
  * Node information as returned by the API
  */
 export interface NodeDTO {
+  /** Unique identifier for this node */
   id: number;
+
+  /** Human-readable name of the node */
   name: string;
+
+  /** Beacon identifier associated with this node */
   beaconId: string;
 
   /** Floor number where this node resides */
   floorNumber: number;
 
-  /** Coordinates (e.g., for rendering) */
+  /** Whether this node represents an exit point */
+  isExit: boolean;
+
+  /** Whether this node represents an entrance point */
+  isEntrance: boolean;
+
+  /** X-coordinate (e.g., for rendering on a map) */
   x: number;
+
+  /** Y-coordinate (e.g., for rendering on a map) */
   y: number;
 
-  /** Optional area matrix for zone visualization */
+  /** Optional 2D area definition for zone visualization */
   area: number[][];
 }
 
@@ -35,10 +62,19 @@ export interface NodeDTO {
  * Edge connecting two nodes, with metadata
  */
 export interface EdgeDTO {
+  /** Unique identifier for this edge */
   id: number;
+
+  /** Weight or cost associated with traversing this edge */
   weight: number;
+
+  /** Optional comment or description for this edge */
   comment: string;
+
+  /** Source node of the edge */
   fromNode: NodeDTO;
+
+  /** Destination node of the edge */
   toNode: NodeDTO;
 }
 
@@ -46,25 +82,39 @@ export interface EdgeDTO {
  * Full map data payload as returned by the API
  */
 export interface MapDataDTO {
+  /** Unique identifier for the map */
   id: number;
+
+  /** Human-readable name of the map */
   name: string;
+
+  /** North‐reference angle for map orientation */
   northAngle: number;
 
-  /** List of named matrix blocks (floors) */
+  /** Geographic latitude of the map origin */
+  latitude: number;
+
+  /** Geographic longitude of the map origin */
+  longitude: number;
+
+  /** List of named matrix blocks (each representing a floor) */
   matrices: NamedMatrixDTO[];
 
-  /** All nodes in the map */
+  /** All nodes present on this map */
   nodes: NodeDTO[];
 
-  /** All edges in the map */
+  /** All edges connecting nodes on this map */
   edges: EdgeDTO[];
 }
 
 /**
- * Path between two nodes, for routing
+ * Path between two nodes, used for routing calculations
  */
 export interface Path {
+  /** Starting node of the path */
   origin: NodeDTO;
+
+  /** Ending node of the path */
   destination: NodeDTO;
 }
 

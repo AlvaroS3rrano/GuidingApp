@@ -1,20 +1,34 @@
 package es.gdapp.guidingApp.services;
 
+import es.gdapp.guidingApp.dto.MapDataDTO;
+import es.gdapp.guidingApp.dto.NodeDTO;
+import es.gdapp.guidingApp.dto.NodeMapDataSearchResultDTO;
 import es.gdapp.guidingApp.models.Node;
 import es.gdapp.guidingApp.repositories.NodeRepository;
+import es.gdapp.guidingApp.services.auxiliarClasses.PairScore;
+import jakarta.persistence.criteria.Join;
+import jakarta.persistence.criteria.JoinType;
+import jakarta.persistence.criteria.Predicate;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
+import es.gdapp.guidingApp.mappers.DataMapper;
 
-import java.util.Collection;
-import java.util.NoSuchElementException;
-import java.util.Optional;
+
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 public class NodeService {
 
     private final NodeRepository nodeRepository;
+    private final DataMapper dataMapper;
 
-    public NodeService(NodeRepository nodeRepository) {
+    @Autowired
+    public NodeService(NodeRepository nodeRepository, DataMapper dataMapper) {
         this.nodeRepository = nodeRepository;
+        this.dataMapper = dataMapper;
     }
 
     // Create or update a Node entry
@@ -50,4 +64,84 @@ public class NodeService {
     public void deleteNode(Long id) {
         nodeRepository.deleteById(id);
     }
+
+    private Specification<Node> buildContainsSpecification(List<String> keywords) {
+        return (root, query, cb) -> {
+            root.fetch("mapData", JoinType.LEFT);
+            query.distinct(true);
+
+            Join<Object, Object> joinMapData = root.join("mapData", JoinType.LEFT);
+
+            List<Predicate> orPreds = new ArrayList<>();
+            for (String keyword : keywords) {
+                if (!StringUtils.hasText(keyword)) continue;
+                String pattern = "%" + keyword + "%";
+                Predicate pNode = cb.like(cb.lower(root.get("name")), pattern);
+                Predicate pMap  = cb.like(cb.lower(joinMapData.get("name")), pattern);
+                orPreds.add(cb.or(pNode, pMap));
+            }
+            return cb.or(orPreds.toArray(new Predicate[0]));
+        };
+    }
+
+    public List<NodeMapDataSearchResultDTO> searchByText(String inputText, int maxResults) {
+        if (!StringUtils.hasText(inputText)) {
+            return Collections.emptyList();
+        }
+
+        String[] parts = inputText.trim().toLowerCase().split("\\s+");
+        List<String> keywords = Arrays.stream(parts)
+                .filter(s -> s.trim().length() > 0)
+                .collect(Collectors.toList());
+
+        if (keywords.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        List<Node> candidates = nodeRepository.findAll(buildContainsSpecification(keywords));
+
+        List<PairScore> scoredList = new ArrayList<>();
+        for (Node node : candidates) {
+            int count = 0;
+            String nodeName = node.getName() != null ? node.getName().toLowerCase() : "";
+            String mapName  = (node.getMapData() != null && node.getMapData().getName() != null)
+                    ? node.getMapData().getName().toLowerCase()
+                    : "";
+
+            for (String kw : keywords) {
+                if (nodeName.contains(kw)) count++;
+                if (mapName.contains(kw))  count++;
+            }
+            scoredList.add(new PairScore(node, count));
+        }
+
+        List<Node> ordered = scoredList.stream()
+                .sorted((a, b) -> {
+                    int cmp = Integer.compare(b.getScore(), a.getScore());
+                    if (cmp != 0) return cmp;
+                    return a.getNode().getId().compareTo(b.getNode().getId());
+                })
+                .map(ps -> ps.getNode())
+                .collect(Collectors.toList());
+
+        if (ordered.size() > maxResults) {
+            ordered = ordered.subList(0, maxResults);
+        }
+
+        List<NodeMapDataSearchResultDTO> resultsDTO = new ArrayList<>();
+        for (Node node : ordered) {
+            NodeDTO nodeDto = dataMapper.toNodeDTO(node);
+            MapDataDTO mapDto = dataMapper.toMapDataDTO(node.getMapData());
+            int sc = scoredList.stream()
+                    .filter(x -> x.getNode().getId().equals(node.getId()))
+                    .findFirst()
+                    .map(x -> x.getScore())
+                    .orElse(0);
+
+            resultsDTO.add(new NodeMapDataSearchResultDTO(nodeDto, mapDto, sc));
+        }
+
+        return resultsDTO;
+    }
+
 }

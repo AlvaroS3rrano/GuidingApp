@@ -1,6 +1,6 @@
 // nodeService.ts
 import axios from 'axios';
-import { NodeDTO } from "@/app/classes/DTOs";
+import { NodeDTO, NodeMapDataSearchResultDTO } from "@/app/classes/DTOs";
 import { COMP_IP } from '../constants/consts';
 
 const apiClient = axios.create({ baseURL: `https://${COMP_IP}/api/nodes` });
@@ -33,6 +33,18 @@ export class NodeService {
       return response.data;
     } catch (e) {
       console.error(`Error fetching beacon ${beaconId}:`, e);
+      throw e;
+    }
+  }
+
+  static async searchNodes(query: string, limit: number = 5): Promise<NodeMapDataSearchResultDTO[]> {
+    try {
+      const response = await apiClient.get<NodeMapDataSearchResultDTO[]>('/search', {
+        params: { q: query, limit }
+      });
+      return response.data;
+    } catch (e) {
+      console.error(`Error searching nodes with query="${query}" and limit=${limit}:`, e);
       throw e;
     }
   }

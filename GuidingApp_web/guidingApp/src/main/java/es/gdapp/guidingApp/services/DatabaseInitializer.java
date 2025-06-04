@@ -26,7 +26,7 @@ public class DatabaseInitializer {
     @PostConstruct
     public void init() {
         // Create a new MapData instance with a 5x5 matrix and a north angle of 0.0
-        MapData mapData = new MapData("Default Map", 70.0, "Example", 11, 16);
+        MapData mapData = new MapData("Default Map", 70.0, 40.335722, -3.876528, "Example", 11, 16);
         mapData.getMatrices().add(new NamedMatrix(1, "firts floor",10,10 ));
         int[][] grid = {
                 {0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0},
@@ -75,7 +75,10 @@ public class DatabaseInitializer {
         node1.setX(14);
         node1.setY(4);
         node1.setArea(new int[][] { {11, 2}, {17, 2}, {17, 5}, {11, 5} });
-        node1.setMap(mapData);
+        node1.setExit(true);
+        node1.setEntrance(true);
+        node1.setMapData(mapData);
+
 
         Node node4 = new Node();
         node4.setName("Class 103");
@@ -84,7 +87,7 @@ public class DatabaseInitializer {
         node4.setX(6);
         node4.setY(12);
         node4.setArea(new int[][] { {0, 5}, {10, 5}, {10, 10}, {0, 10} });
-        node4.setMap(mapData);
+        node4.setMapData(mapData);
 
         Node node3 = new Node();
         node3.setName("Node 3");
@@ -93,7 +96,7 @@ public class DatabaseInitializer {
         node3.setX(6);
         node3.setY(9);
         node3.setArea(new int[][] { {0, 0}, {10, 0}, {10, 5}, {0, 5} });
-        node3.setMap(mapData);
+        node3.setMapData(mapData);
 
         Node node2 = new Node();
         node2.setName("Node 2");
@@ -102,7 +105,7 @@ public class DatabaseInitializer {
         node2.setX(6);
         node2.setY(7);
         node2.setArea(new int[][] { {0, 0}, {10, 0}, {10, 5}, {0, 5} });
-        node2.setMap(mapData);
+        node2.setMapData(mapData);
 
         // Initialize the nodes list in MapData and add nodes
         mapData.setNodes(new ArrayList<>());
