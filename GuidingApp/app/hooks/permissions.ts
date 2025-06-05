@@ -2,17 +2,17 @@ import { PermissionsAndroid, Platform, Permission } from 'react-native';
 
 const requestPermissions = async () => {
   try {
-    // Define los permisos básicos
+    // Define the basic permissions
     const permissions: Permission[] = [
       PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
     ];
 
-    // Verificar si BLUETOOTH_ADMIN está disponible
+    // Check if BLUETOOTH_ADMIN is available
     if (PermissionsAndroid.PERMISSIONS.BLUETOOTH_ADMIN) {
       permissions.push(PermissionsAndroid.PERMISSIONS.BLUETOOTH_ADMIN);
     }
 
-    // Agregar permisos adicionales para Android 12 (API 31) o superior
+    // Add additional permissions for Android 12 (API 31) or above
     if (Platform.OS === 'android' && Platform.Version >= 31) {
       permissions.push(
         PermissionsAndroid.PERMISSIONS.BLUETOOTH_SCAN,
@@ -20,22 +20,21 @@ const requestPermissions = async () => {
       );
     }
 
-    console.log(permissions)
-    // Solicitar permisos
+    // Request permissions
     const granted = await PermissionsAndroid.requestMultiple(permissions);
 
-     // Filtrar permisos denegados
+    // Filter out denied permissions
     const deniedPermissions = Object.entries(granted)
       .filter(([permission, status]) => status !== PermissionsAndroid.RESULTS.GRANTED)
       .map(([permission]) => permission);
 
     if (deniedPermissions.length === 0) {
-      console.log('Todos los permisos necesarios fueron otorgados');
+      console.log('All required permissions were granted');
     } else {
-      console.log('Los siguientes permisos fueron denegados:', deniedPermissions);
+      console.log('The following permissions were denied:', deniedPermissions);
     }
   } catch (error) {
-    console.warn('Error al solicitar permisos:', error);
+    console.warn('Error requesting permissions:', error);
   }
 
   return true;

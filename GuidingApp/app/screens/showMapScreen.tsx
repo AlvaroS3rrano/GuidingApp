@@ -1,5 +1,5 @@
 // showMap.tsx
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useContext } from 'react';
 import { StyleSheet, View, Button, TouchableOpacity, Text } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import Map from '../components/showMapComponents/map';
@@ -8,6 +8,7 @@ import { beaconEventEmitter, ScannedDevice } from '@/app/services/beaconScannerS
 import { MapDataDTO, NodeDTO, Path } from '@/app/classes/DTOs';
 import InfoBanner from '../components/showMapComponents/infoBanner';
 import { MaterialIcons } from '@expo/vector-icons';
+import { AppContext} from '../AppContext';
 
 /**
  * ShowMap.tsx
@@ -44,6 +45,8 @@ const ShowMapScreen: React.FC = () => {
 
   // Ref to debounce beacon updates.
   const candidateRef = useRef<{ node: NodeDTO; timer: NodeJS.Timeout | null } | null>(null);
+
+  const { targetNode, setTargetNode, targetMapData, setTargetMapData } = useContext(AppContext);
 
   // Subscribe to beacon updates.
   useEffect(() => {

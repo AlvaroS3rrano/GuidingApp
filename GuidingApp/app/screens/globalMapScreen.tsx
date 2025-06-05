@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { View, StyleSheet, PermissionsAndroid, Platform, TouchableOpacity, Text, TouchableWithoutFeedback, Image, Modal } from 'react-native';
+import React, { useState, useEffect, useRef, useContext } from 'react';
+import { View, StyleSheet, TouchableOpacity, Text, TouchableWithoutFeedback, Image, Modal } from 'react-native';
 import MapView, { Marker, Region } from 'react-native-maps';
 import Geolocation from '@react-native-community/geolocation';
 import { MapViewRoute } from 'react-native-maps-routes';
@@ -8,6 +8,7 @@ import ChooseDestination from '../components/globalMapComponents/chooseDestinati
 import ClosestMapBanner from '../components/closestMapBanner';
 import { KEY_2 } from '../constants/public_key';
 import DestinationAlert from '../components/DestinationAlert';
+import { AppContext} from '../AppContext';
 
 const GlobalMapScreen = () => {
   const [origin, setOrigin] = useState<Region | null>(null);
@@ -17,34 +18,23 @@ const GlobalMapScreen = () => {
   const searchRef = useRef<View | null>(null);
   const mapRef = useRef<MapView | null>(null);  // Reference to the MapView
 
-  useEffect(() => {
-    const requestLocationPermission = async () => {
-      if (Platform.OS === 'android') {
-        try {
-          const granted = await PermissionsAndroid.request(
-            PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
-            {
-              title: 'Location Permission',
-              message: 'This app needs access to your location for outdoor navigation.',
-              buttonNeutral: 'Ask Me Later',
-              buttonNegative: 'Cancel',
-              buttonPositive: 'OK',
-            }
-          );
-          if (granted === PermissionsAndroid.RESULTS.GRANTED) {
-            getCurrentLocation();
-          } else {
-            console.log('Location permission denied');
-          }
-        } catch (err) {
-          console.warn(err);
-        }
-      } else {
-        getCurrentLocation();
-      }
-    };
+  const { targetNode, setTargetNode, targetMapData, setTargetMapData } = useContext(AppContext);
 
-    requestLocationPermission();
+  useEffect(() => {
+    if (targetMapData) {
+      // Si targetMapData ya no es null, extraemos latitude/longitude y asignamos a `destination`
+      setDestination({
+        latitude: targetMapData.latitude,
+        longitude: targetMapData.longitude,
+      });
+    } else {
+      // Si targetMapData vuelve a ser null, dejamos destination a null
+      setDestination(null);
+    }
+  }, [targetMapData]);
+
+  useEffect(() => {
+    getCurrentLocation();
   }, []);
 
   const getCurrentLocation = () => {
@@ -143,8 +133,6 @@ const GlobalMapScreen = () => {
           <View style={styles.searchContainer}>
             <ChooseDestination
               isSearchVisible={isSearchVisible}
-              destination={destination}
-              onPress={setDestination}
             />
           </View>
         </View>
