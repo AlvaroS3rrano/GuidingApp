@@ -1,5 +1,14 @@
+// ChooseDestination.tsx
 import React, { useState, useEffect, useContext, useRef } from 'react';
-import { View, StyleSheet, TextInput, FlatList, TouchableOpacity, Text, ActivityIndicator,} from 'react-native';
+import {
+  View,
+  StyleSheet,
+  TextInput,
+  FlatList,
+  TouchableOpacity,
+  Text,
+  ActivityIndicator,
+} from 'react-native';
 import { NodeMapDataSearchResultDTO } from '@/app/classes/DTOs';
 import { AppContext } from '@/app/AppContext';
 import { NodeService } from '@/app/services/nodeService';
@@ -8,101 +17,59 @@ interface ChooseDestinationProps {
   isSearchVisible: boolean;
 }
 
-const ChooseDestination: React.FC<ChooseDestinationProps> = ({
-  isSearchVisible,
-}) => {
-  // ----------------------------
-  // 1. Contexto global
-  // ----------------------------
-  const {
-    targetNode,
-    targetMapData,
-    setTargetNode,
-    setTargetMapData,
-  } = useContext(AppContext);
+const ChooseDestination: React.FC<ChooseDestinationProps> = ({ isSearchVisible }) => {
+  const { targetNode, targetMapData, setTargetNode, setTargetMapData } = useContext(AppContext);
 
-  // ----------------------------
-  // 2. Estados locales
-  // ----------------------------
-  const [query, setQuery] = useState<string>(''); // texto en el TextInput
+  const [query, setQuery] = useState<string>('');
   const [suggestions, setSuggestions] = useState<NodeMapDataSearchResultDTO[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
-
-  /**
-   * shouldSearch controla si en el useEffect lanzamos la llamada
-   * a NodeService.searchNodes. Solo se busca cuando el usuario escribe texto no vacío
-   * (y no tras una selección).
-   */
   const [shouldSearch, setShouldSearch] = useState<boolean>(false);
 
-  // Ref para inicializar el input solo la primera vez a partir del contexto
-  const initializedFromContext = useRef<boolean>(false);
-
-  // ----------------------------
-  // 3. Inicializar input si ya existe targetNode/targetMapData al montar
-  // ----------------------------
   useEffect(() => {
-    if (!initializedFromContext.current) {
-      if (targetNode && targetMapData) {
-        const textoInicial = `${targetNode.name}, ${targetMapData.name}`;
-        setQuery(textoInicial);
-        setSuggestions([]);
-        setShouldSearch(false);
-      }
-      initializedFromContext.current = true;
-    }
-  }, []);
+  if (targetNode && targetMapData) {
+    setQuery(`${targetNode.name}, ${targetMapData.name}`);
+    setSuggestions([]);
+    setShouldSearch(false);
+  } else {
+    // Si se limpian en contexto, dejamos el input vacío
+    setQuery('');
+    setSuggestions([]);
+    setShouldSearch(false);
+  }
+}, [targetNode, targetMapData]);
 
-  // ----------------------------
-  // 4. Efecto para buscar sugerencias cuando cambien `query` y `shouldSearch`
-  // ----------------------------
+  // Fetch suggestions when query changes and search is enabled
   useEffect(() => {
-    if (!shouldSearch) {
-      return;
-    }
-
+    if (!shouldSearch) return;
     if (query.trim().length === 0) {
       setSuggestions([]);
       setShouldSearch(false);
       return;
     }
 
-    let isCancelled = false;
-
+    let cancelled = false;
     const fetchSuggestions = async () => {
       setLoading(true);
       try {
         const results = await NodeService.searchNodes(query, 5);
-        if (!isCancelled) {
-          setSuggestions(results);
-        }
-      } catch (error) {
-        console.error('Error buscando nodos:', error);
-        if (!isCancelled) {
-          setSuggestions([]);
-        }
+        if (!cancelled) setSuggestions(results);
+      } catch {
+        if (!cancelled) setSuggestions([]);
       } finally {
-        if (!isCancelled) {
-          setLoading(false);
-        }
+        if (!cancelled) setLoading(false);
       }
     };
 
     fetchSuggestions();
-
     return () => {
-      isCancelled = true;
+      cancelled = true;
     };
   }, [query, shouldSearch]);
 
-  // ----------------------------
-  // 5. onChangeText: controla cuándo activar/desactivar la búsqueda
-  // ----------------------------
+  // Handle text input changes
   const onChangeText = (text: string) => {
     setQuery(text);
-
     if (text.trim().length === 0) {
-      // Si el campo queda vacío:
       setShouldSearch(false);
       setSuggestions([]);
       setTargetNode(null);
@@ -112,28 +79,17 @@ const ChooseDestination: React.FC<ChooseDestinationProps> = ({
     }
   };
 
-  // ----------------------------
-  // 6. handleSelectSuggestion: al pulsar una recomendación
-  // ----------------------------
+  // Handle selecting a suggestion
   const handleSelectSuggestion = (item: NodeMapDataSearchResultDTO) => {
     const { node, mapData } = item;
-
-    // a) Guardamos en contexto
     setTargetNode(node);
     setTargetMapData(mapData);
-
-    // b) Ponemos el texto en el input
-    const textoSeleccionado = `${node.name}, ${mapData.name}`;
-    setQuery(textoSeleccionado);
-
-    // c) Limpiamos sugerencias y detenemos búsqueda hasta que edite el usuario
+    setQuery(`${node.name}, ${mapData.name}`);
     setSuggestions([]);
     setShouldSearch(false);
   };
 
-  // ----------------------------
-  // 7. clearAll: vacía input y contexto al pulsar la “X”
-  // ----------------------------
+  // Clear input and context values
   const clearAll = () => {
     setQuery('');
     setSuggestions([]);
@@ -144,20 +100,17 @@ const ChooseDestination: React.FC<ChooseDestinationProps> = ({
 
   return (
     <View style={styles.container}>
-      {/* Solo mostrar input si isSearchVisible */}
       {isSearchVisible && (
         <View style={styles.searchContainer}>
-          {/* Contenedor para input + botón “X” */}
           <View style={styles.inputWrapper}>
             <TextInput
               value={query}
               onChangeText={onChangeText}
-              placeholder="Buscar nodo o mapa..."
+              placeholder="Search node or map..."
               style={styles.textInput}
               autoCorrect={false}
               autoCapitalize="none"
             />
-            {/* Botón “X” para limpiar */}
             {query.length > 0 && (
               <TouchableOpacity onPress={clearAll} style={styles.clearButton}>
                 <Text style={styles.clearButtonText}>×</Text>
@@ -171,7 +124,6 @@ const ChooseDestination: React.FC<ChooseDestinationProps> = ({
             </View>
           )}
 
-          {/* Mostrar lista de sugerencias solo si no estamos cargando y hay resultados */}
           {!loading && suggestions.length > 0 && (
             <FlatList
               data={suggestions}
@@ -182,7 +134,7 @@ const ChooseDestination: React.FC<ChooseDestinationProps> = ({
                   onPress={() => handleSelectSuggestion(item)}
                 >
                   <Text style={styles.suggestionText}>
-                    {item.node.name} , {item.mapData.name}
+                    {item.node.name}, {item.mapData.name}
                   </Text>
                 </TouchableOpacity>
               )}
@@ -192,7 +144,6 @@ const ChooseDestination: React.FC<ChooseDestinationProps> = ({
           )}
         </View>
       )}
-
     </View>
   );
 };
@@ -204,8 +155,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 12,
   },
-
-  // Wrapper que contiene el TextInput y la “X”
   inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -231,7 +180,6 @@ const styles = StyleSheet.create({
     fontSize: 18,
     color: '#888',
   },
-
   loadingContainer: {
     marginVertical: 8,
     alignItems: 'center',
@@ -248,7 +196,6 @@ const styles = StyleSheet.create({
   suggestionText: {
     fontSize: 16,
   },
-
 });
 
 export default ChooseDestination;

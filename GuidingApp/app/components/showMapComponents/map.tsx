@@ -18,13 +18,9 @@ import DestinationAlert from '../DestinationAlert';
 
 type MapaInteriorProps = {
   mapData: MapDataDTO;
-  origin: NodeDTO | null;
   destination: NodeDTO | null;
   current_node: NodeDTO | null;
-  searchPressed: boolean;
   centerTrigger: number;
-  isPreview: boolean;
-  onCancelSearch?: () => void;
   selectedFloor?: number;
 };
 
@@ -32,13 +28,9 @@ const { width, height } = Dimensions.get('window');
 
 const MapaInterior: React.FC<MapaInteriorProps> = ({
   mapData,
-  origin,
   destination,
   current_node,
-  searchPressed,
   centerTrigger,
-  isPreview,
-  onCancelSearch,
   selectedFloor,
 }) => {
   const [lastComment, setLastComment] = useState<string | null>(null);
@@ -58,10 +50,10 @@ const MapaInterior: React.FC<MapaInteriorProps> = ({
 
   // Check if destination is reached
  const shouldShowAlert =
-    searchPressed &&
-    !isPreview &&
     current_node !== null &&
-    destination !== null &&
+    destination &&
+    // current_destination && 
+    //destination.id === current_destination.id &&
     current_node.x === destination.x &&
     current_node.y === destination.y;
 
@@ -69,13 +61,12 @@ const MapaInterior: React.FC<MapaInteriorProps> = ({
   // Clone the initial map grid from the mapData prop
   const floor = typeof selectedFloor === 'number'
                 ? selectedFloor
-                : current_node?.floorNumber ?? origin?.floorNumber ?? 0;
+                : current_node?.floorNumber ?? 0;
   
   const startNode = React.useMemo(() => {
-    if (searchPressed && !isPreview && current_node) return current_node;
-    if (origin) return origin;
+    if (current_node) return current_node;
     return null;
-  }, [searchPressed, isPreview, current_node, origin]);
+  }, [current_node]);
 
   const graphSequences = React.useMemo(() => {
     if (!startNode || !destination) return null;
@@ -85,7 +76,7 @@ const MapaInterior: React.FC<MapaInteriorProps> = ({
   const seq = graphSequences?.find(s => s.floor === floor);
   let edgeComment: string | null = null;
 
-  if (searchPressed && current_node && seq) {
+  if (current_node && seq) {
     // Build an array of node IDs and find the index of the current node
     const ids = seq.nodes.map(n => n.node_id);
     const idx = ids.indexOf(current_node.id);
@@ -143,13 +134,6 @@ const MapaInterior: React.FC<MapaInteriorProps> = ({
     return -Math.atan2(dy, dx) * 180/Math.PI + 90;
   }, [currentFloorPath]);
 
-  // Determine which sensor to use for centering
-  const sensorForCenter = isPreview
-    ? origin || null
-    : current_node
-      ? current_node
-      : origin || null;
-
    // Determine floor matrix and dimensions
 
   const cellSize = width / matrix[0].length;
@@ -198,9 +182,9 @@ const MapaInterior: React.FC<MapaInteriorProps> = ({
     pan.flattenOffset();
     let toX = initialX;
     let toY = initialY;
-    if (sensorForCenter && sensorForCenter.floorNumber === floor) {
-      const px = sensorForCenter.x * cellSize;
-      const py = (matrix.length - 1 - sensorForCenter.y) * cellSize;
+    if (current_node && current_node.floorNumber === floor) {
+      const px = current_node.x * cellSize;
+      const py = (matrix.length - 1 - current_node.y) * cellSize;
       toX = width / 2 - (px + cellSize / 2);
       toY = height / 2 - (py + cellSize / 2);
     }
@@ -211,14 +195,14 @@ const MapaInterior: React.FC<MapaInteriorProps> = ({
     }).start();
   };
 
-  // Optionally auto-center on search or centerTrigger
-  useEffect(() => { centerMap(); }, [searchPressed, centerTrigger]);
+  // Optionally auto-center on centerTrigger
+  useEffect(() => { centerMap(); }, [centerTrigger]);
 
 
   return (
     <View style={styles.container}>
 
-      {shouldShowAlert && <DestinationAlert onCancelSearch={onCancelSearch} />}
+      {shouldShowAlert && <DestinationAlert/>}
       
       <PanGestureHandler
         ref={panRef}
@@ -297,17 +281,7 @@ const MapaInterior: React.FC<MapaInteriorProps> = ({
                   />
                 );
               })()}
-              {/* Render the origin point if it exists */}
-              {origin?.floorNumber === floor &&(
-                <Circle
-                  cx={origin.x * cellSize + cellSize / 2}
-                  cy={(matrix.length - 1 - origin.y) * cellSize + cellSize / 2}
-                  r={cellSize / 3}
-                  fill={MAP_COLORS.origin} 
-                  stroke={MAP_COLORS.darkStroke}
-                  strokeWidth={2}
-                />
-              )}
+      
               {/* Render the destination point if it exists */}
               {destination?.floorNumber === floor && (() => {
                 const cx = destination.x * cellSize + cellSize / 2;
@@ -346,7 +320,7 @@ const MapaInterior: React.FC<MapaInteriorProps> = ({
                     // Coordenadas actuales
                     const { x, y } = wp.dot;
                     // Comprueba si es el origen o el destino
-                    const isOrigin = origin && x === origin.x && y === origin.y;
+                    const isOrigin = current_node && x === current_node.x && y === current_node.y;
                     const isDestination = destination && x === destination.x && y === destination.y;
                     // Si es el primero y coincide con el origen, lo quitamos
                     if (idx === 0 && isOrigin) return false;
@@ -371,7 +345,7 @@ const MapaInterior: React.FC<MapaInteriorProps> = ({
                   })
               )}
               {/* Render the user's sensor as a triangle if not in preview mode */}
-              {!isPreview && current_node && current_node.floorNumber == floor && (() => {
+              { current_node && current_node.floorNumber == floor && (() => {
                 const sensorXPixel = current_node.x * cellSize;
                 const sensorYPixel = (matrix.length - 1 - current_node.y) * cellSize;
                 const sensorCenterX = sensorXPixel + cellSize / 2;

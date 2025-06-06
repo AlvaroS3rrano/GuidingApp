@@ -22,13 +22,11 @@ const GlobalMapScreen = () => {
 
   useEffect(() => {
     if (targetMapData) {
-      // Si targetMapData ya no es null, extraemos latitude/longitude y asignamos a `destination`
       setDestination({
         latitude: targetMapData.latitude,
         longitude: targetMapData.longitude,
       });
     } else {
-      // Si targetMapData vuelve a ser null, dejamos destination a null
       setDestination(null);
     }
   }, [targetMapData]);

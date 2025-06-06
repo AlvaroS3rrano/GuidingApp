@@ -1,14 +1,14 @@
 // showMap.tsx
 import React, { useState, useEffect, useRef, useContext } from 'react';
-import { StyleSheet, View, Button, TouchableOpacity, Text } from 'react-native';
+import { StyleSheet, View, Button, TouchableOpacity, Text, TouchableWithoutFeedback, Keyboard, } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import Map from '../components/showMapComponents/map';
-import SearchBar from '../components/showMapComponents/searchBar';
 import { beaconEventEmitter, ScannedDevice } from '@/app/services/beaconScannerService';
 import { MapDataDTO, NodeDTO, Path } from '@/app/classes/DTOs';
 import InfoBanner from '../components/showMapComponents/infoBanner';
 import { MaterialIcons } from '@expo/vector-icons';
 import { AppContext} from '../AppContext';
+import ChooseDestination from '../components/globalMapComponents/chooseDestination';
 
 /**
  * ShowMap.tsx
@@ -31,16 +31,8 @@ const ShowMapScreen: React.FC = () => {
     }
   }
 
-  const [origin, setOrigin] = useState<NodeDTO | null>(null);
-  const [destination, setDestination] = useState<NodeDTO | null>(null);
-  const [originString, setOriginString] = useState("");
-  const [destinationString, setDestinationString] = useState("");
   const [closestBeacon, setClosestBeacon] = useState<string | null>(null);
-  const [originSuggestion, setOriginSuggestion] = useState<string>('');
-  const [searchPressed, setSearchPressed] = useState(false);
   const [centerTrigger, setCenterTrigger] = useState(0);
-  const [originError, setOriginError] = useState("");
-  const [destinationError, setDestinationError] = useState("");
   const [currentBeacon, setCurrentBeacon] = useState<NodeDTO | null>(null);
 
   // Ref to debounce beacon updates.
@@ -59,13 +51,6 @@ const ShowMapScreen: React.FC = () => {
           return curr.distance < prev.distance ? curr : prev;
         }, devices[0]);
         setClosestBeacon(closest.identifier);
-        // Update the recommended origin if a matching node is found.
-        if (parsedMapData) {
-          const matchingNode = parsedMapData.nodes.find(
-            node => node.beaconId === closest.identifier
-          );
-           setOriginSuggestion(matchingNode?.name ?? '');
-        }
       }
     };
 
@@ -101,168 +86,74 @@ const ShowMapScreen: React.FC = () => {
       candidateRef.current = null;
     }
   }, [closestBeacon, parsedMapData]);
-
-  const isPreview: boolean =
-    origin != null && (origin.beaconId != (closestBeacon || ''));
-
-  const handleSearch = () => {
-    if (origin === null) {
-      setOriginError("The origin location does not exist.");
-    } else {
-      setOriginError("");
-    }
-    if (destination === null) {
-      setDestinationError("The destination location does not exist.");
-    } else {
-      setDestinationError("");
-    }
-    if (origin && destination) {
-      setSearchPressed(true);
-    }
-  };
-
-  const handleOriginChange = (nodeName: string) => {
-    setOriginString(nodeName);
-
-    if (nodeName === "") {
-      // User cleared the field: reset origin and error, then suggest based on beacon
-      setOrigin(null);
-      setOriginError("");
-      if (parsedMapData && closestBeacon) {
-        const suggested = parsedMapData.nodes.find(n => n.beaconId === closestBeacon);
-        setOriginSuggestion(suggested?.name ?? "");
-      }
-      return;
-    }
-
-    // User typed something: remove auto-suggestion and lookup by name
-    setOriginSuggestion("");
-    const originNode = parsedMapData?.nodes.find(n => n.name === nodeName) || null;
-    if (originNode) {
-      // Valid node name: update origin and clear errors
-      setOrigin(originNode);
-      setOriginError("");
-    } else {
-      // No match: clear origin and set error message
-      setOrigin(null);
-      setOriginError("Origin node not found");
-    }
-  };
-
-  const handleDestinationChange = (nodeName: string) => {
-    setDestinationString(nodeName);
-
-    if (nodeName === "") {
-      // User cleared the field: reset destination and error
-      setDestination(null);
-      setDestinationError("");
-      return;
-    }
-
-    // User typed something: lookup by name
-    const destinationNode = parsedMapData?.nodes.find(n => n.name === nodeName) || null;
-    if (destinationNode) {
-      // Valid node name: update destination and clear errors
-      setDestination(destinationNode);
-      setDestinationError("");
-    } else {
-      // No match: clear destination and set error message
-      setDestination(null);
-      setDestinationError("Destination node not found");
-    }
-  };
-
-  // Cancel search callback.
-  const cancelSearch = () => {
-    setSearchPressed(false);
-  };
-
   
   // Available floors and selected floor
   const floors = parsedMapData
     ? Array.from(new Set(parsedMapData.nodes.map(n => n.floorNumber))).sort((a, b) => a - b)
     : [];
   const [selectedFloor, setSelectedFloor] = useState<number>(
-    () => (currentBeacon?.floorNumber ?? origin?.floorNumber) ?? floors[0] ?? 0
+    () => currentBeacon?.floorNumber ?? floors[0] ?? 0
   );
 
   return (
-    <View style={styles.container}>
-      
-      {parsedMapData ? (
-        <>
-          <Map 
-            mapData={parsedMapData}
-            origin={origin} 
-            destination={destination}
-            current_node={(currentBeacon && !isPreview) ? currentBeacon : null}
-            searchPressed={searchPressed}
-            centerTrigger={centerTrigger}
-            isPreview={origin != null && (origin.beaconId !== (closestBeacon || ''))}
-            onCancelSearch={() => setSearchPressed(false)}
-            selectedFloor={selectedFloor}
-          />
-  
-          <View style={styles.overlayContainer}>
-            {searchPressed ? (
-              <View style={styles.cancelButtonContainer}>
-                <Button title="Cancel" onPress={cancelSearch} />
-              </View>
-            ) : (
-              <SearchBar
-                origin={originString}
-                destination={destinationString}
-                recommendedOrigin={originSuggestion}
-                destinationOptions={parsedMapData.nodes.map(n => n.name)}
-                onOriginChange={handleOriginChange}
-                onDestinationChange={handleDestinationChange}
-                onSearch={handleSearch}
-                buttonTitle={isPreview ? "Preview" : "Search"}
-                originError={originError}
-                destinationError={destinationError}
-              />
-            )}
-          </View>
-  
-          <TouchableOpacity
-            style={styles.centerButton}
-            onPress={() => setCenterTrigger(prev => prev + 1)}
-          >
-            <MaterialIcons name="my-location" size={24} color="black" />
-          </TouchableOpacity>
+    <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+      <View style={styles.container}>
+        
+        {parsedMapData ? (
+          <>
+            <Map 
+              mapData={parsedMapData}
+              destination={targetNode}
+              current_node={currentBeacon}
+              centerTrigger={centerTrigger}
+              selectedFloor={selectedFloor}
+            />
 
-           {/*  Floor switcher */}
-           {floors.length > 1 && (
-            <View style={styles.floorSwitcher}>
-              <TouchableOpacity
-                disabled={floors.indexOf(selectedFloor) === 0}
-                onPress={() => {
-                  const idx = floors.indexOf(selectedFloor);
-                  setSelectedFloor(floors[idx - 1]);
-                }}
-              >
-                <Text style={styles.arrow}>⬇️</Text>
-              </TouchableOpacity>
-
-              <Text style={styles.floorLabel}>Piso {selectedFloor}</Text>
-
-              <TouchableOpacity
-                disabled={floors.indexOf(selectedFloor) === floors.length - 1}
-                onPress={() => {
-                  const idx = floors.indexOf(selectedFloor);
-                  setSelectedFloor(floors[idx + 1]);
-                }}
-              >
-                <Text style={styles.arrow}>⬆️</Text>
-              </TouchableOpacity>
-              <InfoBanner/>
+            {/* Search Bar */}
+            <View style={styles.searchWrapper}>
+              <ChooseDestination isSearchVisible={true} />
             </View>
-          )}
-        </>
-      ) : (
-        <Text>Map data is not available</Text>
-      )}
-    </View>
+    
+            <TouchableOpacity
+              style={styles.centerButton}
+              onPress={() => setCenterTrigger(prev => prev + 1)}
+            >
+              <MaterialIcons name="my-location" size={24} color="black" />
+            </TouchableOpacity>
+
+            {/*  Floor switcher */}
+            {floors.length > 1 && (
+              <View style={styles.floorSwitcher}>
+                <TouchableOpacity
+                  disabled={floors.indexOf(selectedFloor) === 0}
+                  onPress={() => {
+                    const idx = floors.indexOf(selectedFloor);
+                    setSelectedFloor(floors[idx - 1]);
+                  }}
+                >
+                  <Text style={styles.arrow}>⬇️</Text>
+                </TouchableOpacity>
+
+                <Text style={styles.floorLabel}>Piso {selectedFloor}</Text>
+
+                <TouchableOpacity
+                  disabled={floors.indexOf(selectedFloor) === floors.length - 1}
+                  onPress={() => {
+                    const idx = floors.indexOf(selectedFloor);
+                    setSelectedFloor(floors[idx + 1]);
+                  }}
+                >
+                  <Text style={styles.arrow}>⬆️</Text>
+                </TouchableOpacity>
+                <InfoBanner/>
+              </View>
+            )}
+          </>
+        ) : (
+          <Text>Map data is not available</Text>
+        )}
+      </View>
+    </TouchableWithoutFeedback>
   );
   
 };
@@ -276,6 +167,13 @@ const styles = StyleSheet.create({
     top: 40,
     left: 10,
     right: 10,
+  },
+   searchWrapper: {
+    position: 'absolute',
+    top: 10,
+    left: 10,
+    right: 10,
+    zIndex: 10,
   },
   cancelButtonContainer: {
     backgroundColor: 'transparent',

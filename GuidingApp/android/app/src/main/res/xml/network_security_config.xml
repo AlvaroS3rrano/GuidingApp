@@ -2,7 +2,7 @@
 <network-security-config>
   <!-- allow your specific host with user‐installed or self‐signed certs -->
   <domain-config cleartextTrafficPermitted="true">
-    <domain includeSubdomains="true">192.168.1.32</domain>
+    <domain includeSubdomains="true">192.168.1.41</domain>
     <trust-anchors>
       <certificates src="system" />
       <certificates src="user" />

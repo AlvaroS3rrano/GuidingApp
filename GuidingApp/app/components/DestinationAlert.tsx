@@ -1,18 +1,21 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useContext } from 'react';
 import { Alert } from 'react-native';
+import { AppContext} from '../AppContext';
 
 type DestinationAlertProps = {
   onCancelSearch?: () => void;
 };
 
-const DestinationAlert: React.FC<DestinationAlertProps> = ({ onCancelSearch }) => {
+const DestinationAlert: React.FC<DestinationAlertProps> = () => {
+  const { setTargetNode, setTargetMapData } = useContext(AppContext);
+
   useEffect(() => {
     Alert.alert(
       'Destination Reached',
       'You have arrived at your destination!',
       [
         { text: 'Cancel', style: 'cancel' },
-        { text: 'OK', onPress: () => onCancelSearch?.() },
+        { text: 'OK', onPress: () => {setTargetMapData(null); setTargetNode(null);} },
       ],
       { cancelable: true }
     );
