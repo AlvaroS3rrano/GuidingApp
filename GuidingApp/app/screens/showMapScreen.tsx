@@ -9,6 +9,7 @@ import InfoBanner from '../components/showMapComponents/infoBanner';
 import { MaterialIcons } from '@expo/vector-icons';
 import { AppContext} from '../AppContext';
 import ChooseDestination from '../components/globalMapComponents/chooseDestination';
+import { NodeService } from '../services/nodeService';
 
 /**
  * ShowMap.tsx
@@ -34,11 +35,9 @@ const ShowMapScreen: React.FC = () => {
   const [closestBeacon, setClosestBeacon] = useState<string | null>(null);
   const [centerTrigger, setCenterTrigger] = useState(0);
   const [currentBeacon, setCurrentBeacon] = useState<NodeDTO | null>(null);
-
-  // Ref to debounce beacon updates.
   const candidateRef = useRef<{ node: NodeDTO; timer: NodeJS.Timeout | null } | null>(null);
-
   const { targetNode, setTargetNode, targetMapData, setTargetMapData } = useContext(AppContext);
+  const [firstExitNode, setFirstExitNode] = useState<NodeDTO | null>(null);
 
   // Subscribe to beacon updates.
   useEffect(() => {
@@ -86,7 +85,32 @@ const ShowMapScreen: React.FC = () => {
       candidateRef.current = null;
     }
   }, [closestBeacon, parsedMapData]);
-  
+
+  const parsedMapId = parsedMapData?.id ?? null;
+  useEffect(() => {
+    if (!parsedMapId) return;
+    if (!targetMapData) {
+      setFirstExitNode(null);
+      return;
+    }
+    
+
+    const isSameMap = targetMapData != null && targetMapData.id === parsedMapId;
+    if (!isSameMap) {
+      NodeService.getExitNodesByMapDataId(parsedMapId)
+        .then(nodes => {
+          setFirstExitNode(nodes.length > 0 ? nodes[0] : null);
+        })
+        .catch(err => {
+          console.error('Error fetching exit nodes:', err);
+          setFirstExitNode(null);
+        });
+    } else {
+      setFirstExitNode(null);
+    }
+  }, [parsedMapId, targetMapData?.id]);
+
+
   // Available floors and selected floor
   const floors = parsedMapData
     ? Array.from(new Set(parsedMapData.nodes.map(n => n.floorNumber))).sort((a, b) => a - b)
@@ -94,6 +118,8 @@ const ShowMapScreen: React.FC = () => {
   const [selectedFloor, setSelectedFloor] = useState<number>(
     () => currentBeacon?.floorNumber ?? floors[0] ?? 0
   );
+
+  
 
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
@@ -103,7 +129,7 @@ const ShowMapScreen: React.FC = () => {
           <>
             <Map 
               mapData={parsedMapData}
-              destination={targetNode}
+              destination={firstExitNode ?? targetNode}
               current_node={currentBeacon}
               centerTrigger={centerTrigger}
               selectedFloor={selectedFloor}

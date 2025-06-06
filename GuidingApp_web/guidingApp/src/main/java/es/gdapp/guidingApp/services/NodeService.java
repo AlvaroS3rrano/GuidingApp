@@ -3,15 +3,15 @@ package es.gdapp.guidingApp.services;
 import es.gdapp.guidingApp.dto.MapDataDTO;
 import es.gdapp.guidingApp.dto.NodeDTO;
 import es.gdapp.guidingApp.dto.NodeMapDataSearchResultDTO;
+import es.gdapp.guidingApp.models.MapData;
 import es.gdapp.guidingApp.models.Node;
 import es.gdapp.guidingApp.repositories.NodeRepository;
 import es.gdapp.guidingApp.services.auxiliarClasses.PairScore;
-import jakarta.persistence.criteria.Join;
-import jakarta.persistence.criteria.JoinType;
-import jakarta.persistence.criteria.Predicate;
+import jakarta.persistence.criteria.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
+import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 import es.gdapp.guidingApp.mappers.DataMapper;
 
@@ -143,5 +143,40 @@ public class NodeService {
 
         return resultsDTO;
     }
+
+    private Specification<Node> buildExitNodesSpecification(Long mapDataId) {
+        return (Root<Node> root, CriteriaQuery<?> query, CriteriaBuilder cb) -> {
+            // Hacemos fetch de mapData para evitar N+1 y marcamos distinct
+            root.fetch("mapData", JoinType.LEFT);
+            query.distinct(true);
+
+            // Join a MapData para poder comparar su id
+            Join<Node, MapData> joinMapData = root.join("mapData", JoinType.LEFT);
+
+            // Predicado: mapData.id = :mapDataId
+            Predicate pMapId = cb.equal(joinMapData.get("id"), mapDataId);
+
+            // Predicado: isExit = true
+            Predicate pIsExit = cb.isTrue(root.get("isExit"));
+
+            // Combinamos ambos con AND
+            return cb.and(pMapId, pIsExit);
+        };
+    }
+
+    public List<NodeDTO> findExitNodesByMapData(Long mapDataId) {
+        if (mapDataId == null) {
+            return List.of();
+        }
+
+        List<Node> exitNodes = nodeRepository.findAll(
+                buildExitNodesSpecification(mapDataId)
+        );
+
+        return exitNodes.stream()
+                .map(dataMapper::toNodeDTO)
+                .toList();
+    }
+
 
 }

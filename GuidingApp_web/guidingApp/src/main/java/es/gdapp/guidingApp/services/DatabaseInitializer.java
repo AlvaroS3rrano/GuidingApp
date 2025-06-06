@@ -26,8 +26,8 @@ public class DatabaseInitializer {
     @PostConstruct
     public void init() {
         // Create a new MapData instance with a 5x5 matrix and a north angle of 0.0
-        MapData mapData = new MapData("Default Map", 70.0, 40.335722, -3.876528, "Example", 11, 16);
-        mapData.getMatrices().add(new NamedMatrix(1, "firts floor",10,10 ));
+        MapData mapData = new MapData("Aulario I", 70.0, 40.335722, -3.876528, "Example", 11, 16);
+        MapData mapData2 = new MapData("Ampliación del Rectorado", 70.0, 40.3380278, -3.8736389, "Example", 11, 16);
         int[][] grid = {
                 {0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0},
                 {0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0},
@@ -66,6 +66,8 @@ public class DatabaseInitializer {
 
         mapData.putMatrix(0, "First floor", grid);
         mapData.putMatrix(1, "Second floor", grid2);
+        mapData2.putMatrix(0, "First floor", grid);
+        mapData2.putMatrix(1, "Second floor", grid2);
 
         // Create a couple of Node instances and associate them with the map
         Node node1 = new Node();
@@ -154,8 +156,25 @@ public class DatabaseInitializer {
 
         mapData.setEdges(edges);
 
-        // Save the MapData. If cascading is enabled on the relationship,
-        // the associated nodes will be saved automatically.
         mapDataRepository.save(mapData);
+
+
+        Node node5 = new Node();
+        node5.setName("Entrance Hall");
+        node5.setBeaconId("later");
+        node5.setFloorNumber(0);
+        node5.setX(14);
+        node5.setY(4);
+        node5.setArea(new int[][] { {11, 2}, {17, 2}, {17, 5}, {11, 5} });
+        node5.setExit(true);
+        node5.setEntrance(true);
+        node5.setMapData(mapData2);
+
+        mapData2.setNodes(new ArrayList<>());
+        mapData2.getNodes().add(node5);
+
+        mapDataRepository.save(mapData2);
+
+
     }
 }

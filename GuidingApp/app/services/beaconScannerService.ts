@@ -102,6 +102,7 @@ export const startBeaconScanning = async () => {
           lastSeen: Date.now(),
           mapID: -1,
         };
+        console.log(newDevice.id)
 
         if (newDevice.identifier) {
           const id = newDevice.identifier;

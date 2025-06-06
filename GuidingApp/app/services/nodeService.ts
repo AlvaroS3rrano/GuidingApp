@@ -48,4 +48,14 @@ export class NodeService {
       throw e;
     }
   }
+
+  static async getExitNodesByMapDataId(mapDataId: number): Promise<NodeDTO[]> {
+    try {
+      const response = await apiClient.get<NodeDTO[]>(`/exits/${mapDataId}`);
+      return response.data;
+    } catch (e) {
+      console.error(`Error fetching exit nodes for mapData ${mapDataId}:`, e);
+      throw e;
+    }
+  }
 }

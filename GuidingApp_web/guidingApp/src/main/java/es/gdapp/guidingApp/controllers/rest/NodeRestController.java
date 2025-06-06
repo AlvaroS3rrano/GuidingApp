@@ -1,6 +1,7 @@
 package es.gdapp.guidingApp.controllers.rest;
 
 import es.gdapp.guidingApp.dto.MapDataDTO;
+import es.gdapp.guidingApp.dto.NodeDTO;
 import es.gdapp.guidingApp.dto.NodeMapDataSearchResultDTO;
 import es.gdapp.guidingApp.mappers.DataMapper;
 import es.gdapp.guidingApp.models.Node;
@@ -71,6 +72,18 @@ public class NodeRestController {
             return ResponseEntity.noContent().build();
         }
         return ResponseEntity.ok(results);
+    }
+
+    @GetMapping("/exits/{mapDataId}")
+    public ResponseEntity<List<NodeDTO>> getExitNodes(
+            @PathVariable Long mapDataId) {
+        List<NodeDTO> exitNodes =
+                nodeService.findExitNodesByMapData(mapDataId);
+
+        if (exitNodes.isEmpty()) {
+            return ResponseEntity.noContent().build();
+        }
+        return ResponseEntity.ok(exitNodes);
     }
 
 }
