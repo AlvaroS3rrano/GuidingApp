@@ -1,129 +1,91 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useContext } from 'react';
 import { TouchableOpacity, Text, StyleSheet, Alert } from 'react-native';
-import { beaconEventEmitter } from '@/app/services/beaconScannerService';
 import { useRouter } from 'expo-router';
 import { MapDataDTO } from '../classes/DTOs';
-import { globalBannerState } from './globalBannerState';
+import { AppContext } from '../AppContext';
 
 const ClosestMapBanner: React.FC = () => {
-  // Al montar, reiniciamos el estado para que el popup se pueda volver a mostrar.
-  useEffect(() => {
-    setPopupShown(false);
-    globalBannerState.popupShown = false;
-  }, []);
-
-  const [closestMap, setClosestMap] = useState<MapDataDTO | null>(globalBannerState.closestMap);
-  const [popupShown, setPopupShown] = useState(globalBannerState.popupShown);
-  const [fallbackVisible, setFallbackVisible] = useState(globalBannerState.fallbackVisible);
-
-  // Creamos un ref para popupShown que se actualizará con el estado
-  const popupShownRef = useRef(popupShown);
-  useEffect(() => {
-    popupShownRef.current = popupShown;
-  }, [popupShown]);
-
   const router = useRouter();
-  // Ref para almacenar el temporizador de 3 minutos.
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const { currentMapData } = useContext(AppContext);
 
-  // Función que muestra la alerta (sólo se mostrará la primera vez)
+  const [fallbackVisible, setFallbackVisible] = useState(false);
+
+  // Timer for null-hide (2 minutes)
+  const nullTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const prevMapIdRef = useRef<number | null>(null);
+
+  // Show alert for detected area
   const showClosestMapAlert = (mapData: MapDataDTO) => {
     Alert.alert(
-      "Mapped area Detected",
+      'Mapped area Detected',
       `Do you want to use the guiding mode for ${mapData.name}?`,
       [
         {
-          text: "Accept",
+          text: 'Accept',
           onPress: () => {
             router.push({
               pathname: '/screens/showMapScreen',
-              params: { mapData: JSON.stringify(mapData) }
             });
           },
         },
-        {
-          text: "Cancel",
-          onPress: () => {
-            setPopupShown(true);
-            setFallbackVisible(true);
-            globalBannerState.popupShown = true;
-            globalBannerState.fallbackVisible = true;
-          },
-          style: "cancel",
-        },
+        { text: 'Cancel', style: 'cancel' },
       ],
       { cancelable: false }
     );
   };
 
-  // Reinicia el temporizador de 3 minutos. Mientras se sigan emitiendo eventos,
-  // se reiniciará y el banner se mantendrá.
-  const resetTimer = () => {
-    if (timeoutRef.current) clearTimeout(timeoutRef.current);
-    timeoutRef.current = setTimeout(() => {
-      // Si pasan 3 minutos sin reiniciarlo, se oculta el banner (y se limpia el estado global).
-      setClosestMap(null);
+  // Start null-hide timer when mapData is cleared
+  const startNullTimer = () => {
+    if (nullTimeoutRef.current) clearTimeout(nullTimeoutRef.current);
+    nullTimeoutRef.current = setTimeout(() => {
       setFallbackVisible(false);
-      setPopupShown(false);
-      globalBannerState.closestMap = null;
-      globalBannerState.fallbackVisible = false;
-      globalBannerState.popupShown = false;
-    }, 180000); // 180000 ms = 3 minutos
-  };
-
-  const handleMapData = (mapData: MapDataDTO) => {
-    setClosestMap(mapData);
-    globalBannerState.closestMap = mapData;
-    // Consulta el valor actualizado usando el ref
-    if (!popupShownRef.current) {
-      showClosestMapAlert(mapData);
-      setPopupShown(true);
-      setFallbackVisible(true);
-      globalBannerState.popupShown = true;
-      globalBannerState.fallbackVisible = true;
-    }
+      prevMapIdRef.current = null;
+    }, 120000);
   };
 
   useEffect(() => {
-    // Handler para cuando se detecta un nuevo mapData o se emite periódicamente.
-    const closestHandler = (mapData: MapDataDTO) => {
-      resetTimer();
-      handleMapData(mapData)
-    };
-
-    // Handler para el "heartbeat" periódico (nuevo evento con el mismo mapData).
-    const newMapDataHandler = (mapData: MapDataDTO) => {
-      resetTimer();
-      if (globalBannerState.closestMap==null){
-        handleMapData(mapData)
-      }
-    };
-
-    beaconEventEmitter.on('closestMapData', closestHandler);
-    beaconEventEmitter.on('newMapData', newMapDataHandler);
-
     return () => {
-      beaconEventEmitter.off('closestMapData', closestHandler);
-      beaconEventEmitter.off('newMapData', newMapDataHandler);
-      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+      if (nullTimeoutRef.current) clearTimeout(nullTimeoutRef.current);
     };
-  }, []); // Ahora no depende de popupShown porque usamos el ref.
+  }, []);
 
-  // Al pulsar el ícono (fallback), se muestra la alerta nuevamente.
+  // Handle mapData changes
+  useEffect(() => {
+    if (currentMapData?.id != null) {
+      // Clear null-hide if running
+      if (nullTimeoutRef.current) {
+        clearTimeout(nullTimeoutRef.current);
+        nullTimeoutRef.current = null;
+      }
+      // If new map, show alert and icon
+      if (prevMapIdRef.current !== currentMapData.id) {
+        prevMapIdRef.current = currentMapData.id;
+        setFallbackVisible(true);
+        showClosestMapAlert(currentMapData);
+      }
+    } else {
+      // MapData null: schedule hide after 2 min
+      if (nullTimeoutRef.current) {
+        clearTimeout(nullTimeoutRef.current);
+      }
+      startNullTimer();
+    }
+  }, [currentMapData]);
+
   const handleFallbackPress = () => {
-    if (closestMap) {
-      showClosestMapAlert(closestMap);
+    if (currentMapData && prevMapIdRef.current === currentMapData.id) {
+      showClosestMapAlert(currentMapData);
     }
   };
 
+  if (!fallbackVisible || !currentMapData) {
+    return null;
+  }
+
   return (
-    <>
-      {fallbackVisible && (
-        <TouchableOpacity style={styles.fallbackIcon} onPress={handleFallbackPress}>
-          <Text style={styles.fallbackIconText}>ⓘ</Text>
-        </TouchableOpacity>
-      )}
-    </>
+    <TouchableOpacity style={styles.fallbackIcon} onPress={handleFallbackPress}>
+      <Text style={styles.fallbackIconText}>ⓘ</Text>
+    </TouchableOpacity>
   );
 };
 
@@ -132,18 +94,19 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 10,
     right: 10,
+    zIndex: 999,
     backgroundColor: 'white',
     width: 40,
     padding: 5,
-    borderRadius: 30,
+    borderRadius: 20,
     elevation: 5,
-    opacity: 0.8,
-    justifyContent:'center',
-    alignItems:'center',
+    opacity: 0.9,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   fallbackIconText: {
     fontSize: 24,
-    color: 'black',
+    color: '#333',
   },
 });
 

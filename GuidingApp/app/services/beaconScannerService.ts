@@ -1,13 +1,11 @@
-// BeaconScannerService.ts
 import { BleManager, ScanMode } from "react-native-ble-plx";
 import base64 from "react-native-base64";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { calculateDistance } from "@/resources/distance";
 import requestPermissions from "@/app/hooks/permissions";
 import { EventEmitter } from "events";
 import { NodeService } from "./nodeService";
-import { MapService } from "./mapService";
 import { MapDataDTO } from "../classes/DTOs";
+import { MapDataService } from "./mapDataService";
 
 /**
  * BeaconScannerService - Handles BLE beacon scanning.
@@ -37,7 +35,6 @@ const bleManager = new BleManager();
 let devices: ScannedDevice[] = [];
 const knownMap   = new Map<string, ScannedDevice>();
 const unknownMap = new Map<string, ScannedDevice>();
-let previousMapData: MapDataDTO | null = null;
 
 export const startBeaconScanning = async () => {
   // Request necessary Bluetooth permissions
@@ -102,7 +99,6 @@ export const startBeaconScanning = async () => {
           lastSeen: Date.now(),
           mapID: -1,
         };
-        console.log(newDevice.id)
 
         if (newDevice.identifier) {
           const id = newDevice.identifier;
@@ -149,7 +145,7 @@ export const startBeaconScanning = async () => {
           devices.some((known) => known.identifier === device.identifier)
         );
 
-        beaconEventEmitter.emit("update", matchedKnownDevices);
+        // beaconEventEmitter.emit("update", matchedKnownDevices);
 
         const closest = matchedKnownDevices.reduce<ScannedDevice | undefined>(
           (closest, device) => {
@@ -163,47 +159,12 @@ export const startBeaconScanning = async () => {
         );
         // Obtienes el dispositivo más cercano a partir del Map
         const closestDevice = closest?.identifier
-        ? knownMap.get(closest.identifier)
-        : undefined;
+              ? knownMap.get(closest.identifier)
+              : undefined;
 
-        if (closestDevice && closestDevice.identifier) {
-        // Si todavía no tiene mapID (=-1), vas a buscarlo por beaconId
-          if (closestDevice.mapID === -1) {
-            try {
-              const mapData = await MapService.getMapDataByNodeId(closestDevice.identifier);
-              if (mapData) {
-                // 1) Actualiza el mapID en el Map
-                const updated = { ...closestDevice, mapID: mapData.id };
-                knownMap.set(closestDevice.identifier, updated);
-
-                // 2) Emite evento según cambio de mapa
-                if (previousMapData && previousMapData.id !== mapData.id) {
-                  previousMapData = mapData;
-                  beaconEventEmitter.emit("closestMapData", mapData);
-                } else {
-                  previousMapData = mapData;
-                  beaconEventEmitter.emit("newMapData", mapData);
-                }
-              } else {
-                console.log(`No se encontró mapData para el beacon ${closestDevice.identifier}`);
-              }
-            } catch (error) {
-              console.log(`Error al obtener mapData para el beacon ${closestDevice.identifier}:`, error);
-            }
-
-          // Si ya tenía mapID válido, sólo emites según si cambia
-          } else {
-            if (previousMapData && previousMapData.id !== closestDevice.mapID) {
-              try {
-                const mapData = await MapService.getMapDataById(closestDevice.mapID);
-                beaconEventEmitter.emit("closestMapData", mapData);
-              } catch (error) {
-                console.log(`Error al obtener mapData con id ${closestDevice.mapID}:`, error);
-              }
-            } else {
-              beaconEventEmitter.emit("newMapData", previousMapData);
-            }
-          }
+        //console.log(closestDevice)
+        if (closestDevice) {
+          beaconEventEmitter.emit('closestBeacon', closestDevice.identifier);
         }
       }
     }

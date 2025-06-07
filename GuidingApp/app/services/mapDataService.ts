@@ -7,7 +7,7 @@ const apiClient = axios.create({
   baseURL: `https://${COMP_IP}/api/mapdata`,
 });
 
-export class MapService {
+export class MapDataService {
   static async getAllMapData(): Promise<MapDataDTO[]> {
     try {
       const res = await apiClient.get<MapDataDTO[]>('/');

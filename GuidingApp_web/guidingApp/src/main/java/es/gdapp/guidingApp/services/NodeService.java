@@ -144,23 +144,17 @@ public class NodeService {
         return resultsDTO;
     }
 
-    private Specification<Node> buildExitNodesSpecification(Long mapDataId) {
-        return (Root<Node> root, CriteriaQuery<?> query, CriteriaBuilder cb) -> {
-            // Hacemos fetch de mapData para evitar N+1 y marcamos distinct
+    private Specification<Node> buildNodesSpecification(Long mapDataId, String booleanField) {
+        return (root, query, cb) -> {
             root.fetch("mapData", JoinType.LEFT);
             query.distinct(true);
 
-            // Join a MapData para poder comparar su id
-            Join<Node, MapData> joinMapData = root.join("mapData", JoinType.LEFT);
+            Join<Node, MapData> joinMap = root.join("mapData", JoinType.LEFT);
 
-            // Predicado: mapData.id = :mapDataId
-            Predicate pMapId = cb.equal(joinMapData.get("id"), mapDataId);
+            Predicate pMap = cb.equal(joinMap.get("id"), mapDataId);
+            Predicate pBool = cb.isTrue(root.get(booleanField));
 
-            // Predicado: isExit = true
-            Predicate pIsExit = cb.isTrue(root.get("isExit"));
-
-            // Combinamos ambos con AND
-            return cb.and(pMapId, pIsExit);
+            return cb.and(pMap, pBool);
         };
     }
 
@@ -168,12 +162,22 @@ public class NodeService {
         if (mapDataId == null) {
             return List.of();
         }
+        var spec = buildNodesSpecification(mapDataId, "isExit");
+        return nodeRepository
+                .findAll(spec)
+                .stream()
+                .map(dataMapper::toNodeDTO)
+                .toList();
+    }
 
-        List<Node> exitNodes = nodeRepository.findAll(
-                buildExitNodesSpecification(mapDataId)
-        );
-
-        return exitNodes.stream()
+    public List<NodeDTO> findEntranceNodesByMapData(Long mapDataId) {
+        if (mapDataId == null) {
+            return List.of();
+        }
+        var spec = buildNodesSpecification(mapDataId, "isEntrance");
+        return nodeRepository
+                .findAll(spec)
+                .stream()
                 .map(dataMapper::toNodeDTO)
                 .toList();
     }

@@ -22,6 +22,7 @@ type MapaInteriorProps = {
   current_node: NodeDTO | null;
   centerTrigger: number;
   selectedFloor?: number;
+  isSameMap: boolean;
 };
 
 const { width, height } = Dimensions.get('window');
@@ -32,6 +33,7 @@ const MapaInterior: React.FC<MapaInteriorProps> = ({
   current_node,
   centerTrigger,
   selectedFloor,
+  isSameMap,
 }) => {
   const [lastComment, setLastComment] = useState<string | null>(null);
   const [heading, setHeading] = useState(0);
@@ -51,9 +53,7 @@ const MapaInterior: React.FC<MapaInteriorProps> = ({
   // Check if destination is reached
  const shouldShowAlert =
     current_node !== null &&
-    destination &&
-    // current_destination && 
-    //destination.id === current_destination.id &&
+    destination && isSameMap &&
     current_node.x === destination.x &&
     current_node.y === destination.y;
 

@@ -1,9 +1,7 @@
 // showMap.tsx
 import React, { useState, useEffect, useRef, useContext } from 'react';
 import { StyleSheet, View, Button, TouchableOpacity, Text, TouchableWithoutFeedback, Keyboard, } from 'react-native';
-import { useLocalSearchParams } from 'expo-router';
 import Map from '../components/showMapComponents/map';
-import { beaconEventEmitter, ScannedDevice } from '@/app/services/beaconScannerService';
 import { MapDataDTO, NodeDTO, Path } from '@/app/classes/DTOs';
 import InfoBanner from '../components/showMapComponents/infoBanner';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -20,87 +18,46 @@ import { NodeService } from '../services/nodeService';
  */
 const ShowMapScreen: React.FC = () => {
 
-  const { mapData } = useLocalSearchParams<{ mapData?: string }>();
+  const {
+    currentBeacon,
+    currentMapData,
+    targetNode,
+    targetMapData,
+  } = useContext(AppContext);
 
-  let parsedMapData: MapDataDTO | null = null;  
-         
-  if (mapData) {
-    try {
-      parsedMapData = JSON.parse(mapData) as MapDataDTO;
-    } catch (error) {
-      console.error('Error parsing mapData:', error);
-    }
-  }
-
-  const [closestBeacon, setClosestBeacon] = useState<string | null>(null);
-  const [centerTrigger, setCenterTrigger] = useState(0);
-  const [currentBeacon, setCurrentBeacon] = useState<NodeDTO | null>(null);
-  const candidateRef = useRef<{ node: NodeDTO; timer: NodeJS.Timeout | null } | null>(null);
-  const { targetNode, setTargetNode, targetMapData, setTargetMapData } = useContext(AppContext);
   const [firstExitNode, setFirstExitNode] = useState<NodeDTO | null>(null);
+  const [centerTrigger, setCenterTrigger] = useState(0);
+  const [selectedFloor, setSelectedFloor] = useState<number>(0);
+  const [isSameMap, setIsSameMap] = useState<boolean>(false);
 
-  // Subscribe to beacon updates.
+  console.log(currentBeacon)
+
+  // When map changes, reset selected floor
   useEffect(() => {
-    const updateHandler = (devices: ScannedDevice[]) => {
-      if (devices.length > 0) {
-        // Determine the closest beacon based on distance.
-        const closest = devices.reduce((prev, curr) => {
-          if (prev.distance === null) return curr;
-          if (curr.distance === null) return prev;
-          return curr.distance < prev.distance ? curr : prev;
-        }, devices[0]);
-        setClosestBeacon(closest.identifier);
-      }
-    };
-
-    beaconEventEmitter.on("update", updateHandler);
-
-    return () => {
-      beaconEventEmitter.off("update", updateHandler);
-    };
-  }, []);
-
-  // Debounce logic: update current beacon only if the same beacon is received consistently.
-  useEffect(() => {
-    const beaconNode = closestBeacon && parsedMapData && parsedMapData.nodes
-      ? (Object.entries(parsedMapData.nodes).find(([, node]) => node.beaconId === closestBeacon)?.[1] || null)
-      : null;
-    if (beaconNode) {
-      if (!candidateRef.current || candidateRef.current.node.id !== beaconNode.id) {
-        if (candidateRef.current?.timer) {
-          clearTimeout(candidateRef.current.timer);
-        }
-        candidateRef.current = {
-          node: beaconNode,
-          timer: setTimeout(() => {
-            setCurrentBeacon(beaconNode);
-            candidateRef.current = null;
-          }, 1000),
-        };
-      }
-    } else {
-      if (candidateRef.current?.timer) {
-        clearTimeout(candidateRef.current.timer);
-      }
-      candidateRef.current = null;
+    if (currentMapData) {
+      const floors = Array.from(
+        new Set(currentMapData.nodes.map(n => n.floorNumber))
+      ).sort((a, b) => a - b);
+      setSelectedFloor(floors[0] ?? 0);
     }
-  }, [closestBeacon, parsedMapData]);
+  }, [currentMapData]);
 
-  const parsedMapId = parsedMapData?.id ?? null;
+  // Fetch first exit node when switching targets or map
   useEffect(() => {
-    if (!parsedMapId) return;
+    if (!currentMapData) {
+      setFirstExitNode(null);
+      return;
+    }
     if (!targetMapData) {
       setFirstExitNode(null);
       return;
     }
-    
 
-    const isSameMap = targetMapData != null && targetMapData.id === parsedMapId;
+    const parsedMapId = currentMapData.id;
+    setIsSameMap(targetMapData.id === parsedMapId);
     if (!isSameMap) {
       NodeService.getExitNodesByMapDataId(parsedMapId)
-        .then(nodes => {
-          setFirstExitNode(nodes.length > 0 ? nodes[0] : null);
-        })
+        .then(nodes => setFirstExitNode(nodes[0] ?? null))
         .catch(err => {
           console.error('Error fetching exit nodes:', err);
           setFirstExitNode(null);
@@ -108,38 +65,36 @@ const ShowMapScreen: React.FC = () => {
     } else {
       setFirstExitNode(null);
     }
-  }, [parsedMapId, targetMapData?.id]);
+  }, [currentMapData?.id, targetMapData?.id]);
 
-
-  // Available floors and selected floor
-  const floors = parsedMapData
-    ? Array.from(new Set(parsedMapData.nodes.map(n => n.floorNumber))).sort((a, b) => a - b)
+  // Prepare floors array
+  const floors = currentMapData
+    ? Array.from(
+        new Set(currentMapData.nodes.map(n => n.floorNumber))
+      ).sort((a, b) => a - b)
     : [];
-  const [selectedFloor, setSelectedFloor] = useState<number>(
-    () => currentBeacon?.floorNumber ?? floors[0] ?? 0
-  );
 
   
 
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
       <View style={styles.container}>
-        
-        {parsedMapData ? (
+        {currentMapData ? (
           <>
-            <Map 
-              mapData={parsedMapData}
+            <Map
+              mapData={currentMapData}
               destination={firstExitNode ?? targetNode}
               current_node={currentBeacon}
               centerTrigger={centerTrigger}
               selectedFloor={selectedFloor}
+              isSameMap={isSameMap}
             />
 
             {/* Search Bar */}
             <View style={styles.searchWrapper}>
               <ChooseDestination isSearchVisible={true} />
             </View>
-    
+
             <TouchableOpacity
               style={styles.centerButton}
               onPress={() => setCenterTrigger(prev => prev + 1)}
@@ -147,7 +102,7 @@ const ShowMapScreen: React.FC = () => {
               <MaterialIcons name="my-location" size={24} color="black" />
             </TouchableOpacity>
 
-            {/*  Floor switcher */}
+            {/* Floor switcher */}
             {floors.length > 1 && (
               <View style={styles.floorSwitcher}>
                 <TouchableOpacity
@@ -171,7 +126,7 @@ const ShowMapScreen: React.FC = () => {
                 >
                   <Text style={styles.arrow}>⬆️</Text>
                 </TouchableOpacity>
-                <InfoBanner/>
+                <InfoBanner />
               </View>
             )}
           </>
@@ -181,7 +136,6 @@ const ShowMapScreen: React.FC = () => {
       </View>
     </TouchableWithoutFeedback>
   );
-  
 };
 
 const styles = StyleSheet.create({

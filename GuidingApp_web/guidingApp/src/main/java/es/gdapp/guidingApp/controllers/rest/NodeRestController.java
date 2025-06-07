@@ -86,4 +86,16 @@ public class NodeRestController {
         return ResponseEntity.ok(exitNodes);
     }
 
+    @GetMapping("/entrance/{mapDataId}")
+    public ResponseEntity<List<NodeDTO>> getEntranceNodes(
+            @PathVariable Long mapDataId) {
+        List<NodeDTO> entranceNodes =
+                nodeService.findEntranceNodesByMapData(mapDataId);
+
+        if (entranceNodes.isEmpty()) {
+            return ResponseEntity.noContent().build();
+        }
+        return ResponseEntity.ok(entranceNodes);
+    }
+
 }

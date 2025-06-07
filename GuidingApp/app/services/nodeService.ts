@@ -58,4 +58,14 @@ export class NodeService {
       throw e;
     }
   }
+
+  static async getEntranceNodesByMapDataId(mapDataId: number): Promise<NodeDTO[]> {
+    try {
+      const response = await apiClient.get<NodeDTO[]>(`/entrance/${mapDataId}`);
+      return response.data;
+    } catch (e) {
+      console.error(`Error fetching entrance nodes for mapData ${mapDataId}:`, e);
+      throw e;
+    }
+  }
 }
