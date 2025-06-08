@@ -14,6 +14,7 @@ import { getMatrixForFloor, MapDataDTO, NodeDTO, Path } from '../../classes/DTOs
 import { beaconEventEmitter } from '@/app/services/beaconScannerService';
 import { MAP_COLORS } from '../../constants/colors';
 import DestinationAlert from '../DestinationAlert';
+import { goToGlobalMap } from '@/app/services/NavigationService';
 
 
 type MapaInteriorProps = {
@@ -54,9 +55,21 @@ const MapaInterior: React.FC<MapaInteriorProps> = ({
  const shouldShowAlert =
     current_node !== null &&
     destination && isSameMap &&
-    current_node.x === destination.x &&
-    current_node.y === destination.y;
+    current_node.beaconId === destination.beaconId 
 
+  const hasNavigatedRef = useRef(false);
+
+  useEffect(() => {
+    if (
+      !hasNavigatedRef.current &&          
+      current_node !== null &&
+      destination && !isSameMap &&
+      current_node.beaconId === destination.beaconId 
+    ) {
+      hasNavigatedRef.current = true;    
+      goToGlobalMap();                      
+    }
+  }, [current_node, destination, isSameMap]);
 
   // Clone the initial map grid from the mapData prop
   const floor = typeof selectedFloor === 'number'
@@ -175,8 +188,6 @@ const MapaInterior: React.FC<MapaInteriorProps> = ({
     }
   };
 
-  
-
   // Centering logic
   const centerMap = () => {
     pan.flattenOffset();
@@ -263,7 +274,7 @@ const MapaInterior: React.FC<MapaInteriorProps> = ({
                 const cellY = (matrix.length - 1 - end.y) * cellSize;
                 const cx = cellX + cellSize / 2;
                 const cy = cellY + cellSize / 2;
-                const size = cellSize * 0.5;  // tamaño de la flecha (ajusta si quieres)
+                const size = cellSize * 0.5;
 
                 const points = `
                   ${cx},${cy - size}
@@ -290,7 +301,6 @@ const MapaInterior: React.FC<MapaInteriorProps> = ({
 
                 return (
                   <G>
-                    {/* El círculo sigue aquí */}
                     <Circle
                       cx={cx}
                       cy={cy}
@@ -299,15 +309,16 @@ const MapaInterior: React.FC<MapaInteriorProps> = ({
                       stroke={MAP_COLORS.darkStroke}
                       strokeWidth={2}
                     />
-                    {/* Y la bandera encima */}
-                    <SvgImage
-                      x={cx - iconSize / 3}
-                      y={cy - iconSize + 3}
-                      width={iconSize}
-                      height={iconSize}
-                      href={require('../../../assets/images/race_flag.png')}
-                      preserveAspectRatio="xMidYMid slice"
-                    />
+                    {isSameMap && (
+                      <SvgImage
+                        x={destination.x * cellSize + cellSize / 2 - (cellSize * 2) / 3}
+                        y={(matrix.length - 1 - destination.y) * cellSize + cellSize / 2 - cellSize * 2 + 3}
+                        width={cellSize * 2}
+                        height={cellSize * 2}
+                        href={require('../../../assets/images/race_flag.png')}
+                        preserveAspectRatio="xMidYMid slice"
+                      />
+                    )}
                   </G>
                 );
               })()}

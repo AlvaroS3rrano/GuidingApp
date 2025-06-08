@@ -43,10 +43,10 @@ export interface NodeDTO {
   floorNumber: number;
 
   /** Whether this node represents an exit point */
-  isExit: boolean;
+  exit: boolean;
 
   /** Whether this node represents an entrance point */
-  isEntrance: boolean;
+  entrance: boolean;
 
   /** X-coordinate (e.g., for rendering on a map) */
   x: number;

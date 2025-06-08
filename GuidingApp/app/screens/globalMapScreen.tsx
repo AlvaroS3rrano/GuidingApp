@@ -9,16 +9,27 @@ import ClosestMapBanner from '../components/closestMapBanner';
 import { KEY_2 } from '../constants/public_key';
 import DestinationAlert from '../components/DestinationAlert';
 import { AppContext} from '../AppContext';
+import { goToShowMap } from '../services/NavigationService';
 
 const GlobalMapScreen = () => {
   const [origin, setOrigin] = useState<Region | null>(null);
   const [destination, setDestination] = useState<{ latitude: number; longitude: number } | null>(null);
   const [isSearchVisible, setSearchVisible] = useState(false);
   const [hasApproachAlerted, setHasApproachAlerted] = useState(false);
-  const searchRef = useRef<View | null>(null);
-  const mapRef = useRef<MapView | null>(null);  // Reference to the MapView
+  const mapRef = useRef<MapView | null>(null);
 
-  const { targetNode, setTargetNode, targetMapData, setTargetMapData } = useContext(AppContext);
+  const { targetMapData, currentBeacon} = useContext(AppContext);
+  console.log(currentBeacon)
+  useEffect(() => {
+    if (currentBeacon && targetMapData) {
+      const isEntrance = targetMapData.nodes.some(
+        n => n.id === currentBeacon.id && currentBeacon.entrance
+      );
+      if (isEntrance) {
+        goToShowMap();
+      }
+    }
+  }, [currentBeacon, targetMapData]);
 
   useEffect(() => {
     if (targetMapData) {

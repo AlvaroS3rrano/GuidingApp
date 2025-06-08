@@ -1,13 +1,21 @@
-import React, { createContext, ReactNode, useState, useEffect, useRef } from 'react';
+import React, {
+  createContext,
+  ReactNode,
+  useState,
+  useEffect,
+  useRef,
+  useMemo,
+  useCallback,
+} from 'react';
 import { MapDataDTO, NodeDTO } from './classes/DTOs';
 import { beaconEventEmitter } from './services/beaconScannerService';
 import { MapDataService } from './services/mapDataService';
 
 interface AppContextProps {
-  targetNode: any;
-  setTargetNode: (node: any) => void;
-  targetMapData: any;
-  setTargetMapData: (data: any) => void;
+  targetNode: NodeDTO | null;
+  setTargetNode: (node: NodeDTO | null) => void;
+  targetMapData: MapDataDTO | null;
+  setTargetMapData: (data: MapDataDTO | null) => void;
   currentBeacon: NodeDTO | null;
   currentMapData: MapDataDTO | null;
 }
@@ -21,103 +29,109 @@ export const AppContext = createContext<AppContextProps>({
   currentMapData: null,
 });
 
+const BEACON_DEBOUNCE_MS = 300;
+
 export function AppProvider({ children }: { children: ReactNode }) {
-  const [targetNode, setTargetNode] = useState<any>(null);
-  const [targetMapData, setTargetMapData] = useState<any>(null);
+  const [targetNode, setTargetNode] = useState<NodeDTO | null>(null);
+  const [targetMapData, setTargetMapData] = useState<MapDataDTO | null>(null);
   const [currentBeacon, setCurrentBeacon] = useState<NodeDTO | null>(null);
   const [currentMapData, setCurrentMapData] = useState<MapDataDTO | null>(null);
 
-  // Timeout refs: clear node after 4s, clear mapData after 3min
+  // Ref to keep the latest mapData
+  const mapDataRef = useRef<MapDataDTO | null>(null);
+  const nodeRef = useRef<NodeDTO | null>(null);
   const nodeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const mapTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  // Debounce candidate for stable beacon
-  const candidateRef = useRef<{ node: NodeDTO; timer: NodeJS.Timeout } | null>(null);
-  // Ref to always read latest currentMapData in handler
-  const mapDataRef = useRef<MapDataDTO | null>(currentMapData);
+  const pendingBeaconRef = useRef<string | null>(null);
+  const pendingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Sync ref when mapData state changes
   useEffect(() => {
     mapDataRef.current = currentMapData;
   }, [currentMapData]);
 
-  // Subscribe once to beacon events
   useEffect(() => {
-    const handler = async (beaconId: string) => {
-      // Reset node-clear timer
+    nodeRef.current = currentBeacon;
+  }, [currentBeacon]);
+
+  // Handle raw beacon events: schedule confirmation after 500ms of inactivity
+  const processBeacon = useCallback(async (beaconId: string) => {
+    if (mapTimeoutRef.current) clearTimeout(mapTimeoutRef.current);
+
+    if (nodeRef.current?.beaconId === beaconId) {
       if (nodeTimeoutRef.current) clearTimeout(nodeTimeoutRef.current);
-      nodeTimeoutRef.current = setTimeout(() => {
-        setCurrentBeacon(null);
-      }, 4000);
+      return;
+    }
 
-      // Reset map-clear timer
-      if (mapTimeoutRef.current) clearTimeout(mapTimeoutRef.current);
-      mapTimeoutRef.current = setTimeout(() => {
+    // 2) Si dentro del mapa actual ya existe el nodo, solo actualizar currentBeacon
+    const existingNode = mapDataRef.current?.nodes.find(n => n.beaconId === beaconId) || null;
+    if (existingNode) {
+      setCurrentBeacon(existingNode);
+      if (nodeTimeoutRef.current) clearTimeout(nodeTimeoutRef.current);
+      return;
+    }
+
+    try {
+      const mapDto = await MapDataService.getMapDataByNodeId(beaconId);
+      const nodeDto = mapDto.nodes.find(n => n.beaconId === beaconId) || null;
+      if (nodeDto) {
+        setCurrentMapData(mapDto);
+        setCurrentBeacon(nodeDto);
+        nodeTimeoutRef.current = setTimeout(() => {
+          setCurrentBeacon(null);
+          nodeRef.current = null;
+        }, 4000)
+        mapTimeoutRef.current = setTimeout(() => {
+          setCurrentMapData(null);
+          mapDataRef.current = null;
+        }, 120000);
+      } else {
         setCurrentMapData(null);
-      }, 180000);
-
-      try {
-        // Determine if beacon belongs to existing mapData
-        let mapDto = mapDataRef.current;
-        let nodeDto: NodeDTO | null = null;
-
-        if (mapDto && mapDto.nodes.some(n => n.beaconId === beaconId)) {
-          nodeDto = mapDto.nodes.find(n => n.beaconId === beaconId)!;
-        } else {
-          const fetchedMap = await MapDataService.getMapDataByNodeId(beaconId);
-          const fetchedNode = fetchedMap.nodes.find(n => n.beaconId === beaconId) || null;
-          if (!fetchedNode) {
-            // invalid beacon: clear debounce
-            if (candidateRef.current?.timer) clearTimeout(candidateRef.current.timer);
-            candidateRef.current = null;
-            return;
-          }
-          mapDto = fetchedMap;
-          nodeDto = fetchedNode;
-        }
-
-        if (nodeDto) {
-          // Debounce: require stable for 1s
-          if (!candidateRef.current || candidateRef.current.node.id !== nodeDto.id) {
-            if (candidateRef.current?.timer) clearTimeout(candidateRef.current.timer);
-            candidateRef.current = {
-              node: nodeDto,
-              timer: setTimeout(() => {
-                setCurrentBeacon(nodeDto);
-                setCurrentMapData(mapDto!);
-                candidateRef.current = null;
-              }, 1000),
-            };
-          }
-        }
-      } catch (error) {
-        console.error('Error handling beacon event:', error);
-        if (candidateRef.current?.timer) clearTimeout(candidateRef.current.timer);
-        candidateRef.current = null;
         setCurrentBeacon(null);
-        setCurrentMapData(null);
       }
-    };
-
-    beaconEventEmitter.on('closestBeacon', handler);
-    return () => {
-      beaconEventEmitter.off('closestBeacon', handler);
-      if (nodeTimeoutRef.current) clearTimeout(nodeTimeoutRef.current);
-      if (mapTimeoutRef.current) clearTimeout(mapTimeoutRef.current);
-      if (candidateRef.current?.timer) clearTimeout(candidateRef.current.timer);
-    };
+    } catch (err) {
+      console.error('Error al procesar beacon:', err);
+      setCurrentMapData(null);
+      setCurrentBeacon(null);
+    }
   }, []);
 
+  const handleBeacon = useCallback((beaconId: string) => {
+    // Cancel any pending switch
+    if (pendingTimeoutRef.current) clearTimeout(pendingTimeoutRef.current);
+
+    // Schedule process if stable after debounce
+    pendingBeaconRef.current = beaconId;
+    pendingTimeoutRef.current = setTimeout(() => {
+      if (pendingBeaconRef.current) {
+        processBeacon(pendingBeaconRef.current);
+        pendingBeaconRef.current = null;
+      }
+    }, BEACON_DEBOUNCE_MS);
+  }, [processBeacon]);
+
+  // Subscribe to beacon events once
+  useEffect(() => {
+    beaconEventEmitter.on('closestBeacon', handleBeacon);
+    return () => {
+      beaconEventEmitter.off('closestBeacon', handleBeacon);
+    };
+  }, [handleBeacon]);
+
+
+  const contextValue = useMemo(
+    () => ({
+      targetNode,
+      setTargetNode,
+      targetMapData,
+      setTargetMapData,
+      currentBeacon,
+      currentMapData,
+    }),
+    [targetNode, targetMapData, currentBeacon, currentMapData]
+  );
+
   return (
-    <AppContext.Provider
-      value={{
-        targetNode,
-        setTargetNode,
-        targetMapData,
-        setTargetMapData,
-        currentBeacon,
-        currentMapData,
-      }}
-    >
+    <AppContext.Provider value={contextValue}>
       {children}
     </AppContext.Provider>
   );

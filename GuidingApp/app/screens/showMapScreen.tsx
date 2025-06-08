@@ -8,6 +8,8 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { AppContext} from '../AppContext';
 import ChooseDestination from '../components/globalMapComponents/chooseDestination';
 import { NodeService } from '../services/nodeService';
+import { goToGlobalMap } from '../services/NavigationService';
+import FontAwesome5 from '@expo/vector-icons/FontAwesome5';
 
 /**
  * ShowMap.tsx
@@ -28,9 +30,10 @@ const ShowMapScreen: React.FC = () => {
   const [firstExitNode, setFirstExitNode] = useState<NodeDTO | null>(null);
   const [centerTrigger, setCenterTrigger] = useState(0);
   const [selectedFloor, setSelectedFloor] = useState<number>(0);
-  const [isSameMap, setIsSameMap] = useState<boolean>(false);
+  const [isSameMap, setIsSameMap] = useState<boolean>(true);
 
-  console.log(currentBeacon)
+  console.log(currentMapData?.id)
+  console.log(targetMapData?.id)
 
   // When map changes, reset selected floor
   useEffect(() => {
@@ -44,28 +47,23 @@ const ShowMapScreen: React.FC = () => {
 
   // Fetch first exit node when switching targets or map
   useEffect(() => {
-    if (!currentMapData) {
-      setFirstExitNode(null);
-      return;
-    }
-    if (!targetMapData) {
-      setFirstExitNode(null);
-      return;
-    }
-
-    const parsedMapId = currentMapData.id;
-    setIsSameMap(targetMapData.id === parsedMapId);
-    if (!isSameMap) {
-      NodeService.getExitNodesByMapDataId(parsedMapId)
-        .then(nodes => setFirstExitNode(nodes[0] ?? null))
-        .catch(err => {
-          console.error('Error fetching exit nodes:', err);
-          setFirstExitNode(null);
-        });
-    } else {
-      setFirstExitNode(null);
-    }
-  }, [currentMapData?.id, targetMapData?.id]);
+  if (!currentMapData || !targetMapData) {
+    setIsSameMap(true);
+    setFirstExitNode(null);
+    return;
+  }
+  // si cambiamos de mapa
+  if (currentMapData.id !== targetMapData.id) {
+    setIsSameMap(false)
+    NodeService
+      .getExitNodesByMapDataId(currentMapData.id)
+      .then(nodes => setFirstExitNode(nodes[0] ?? null))
+      .catch(() => setFirstExitNode(null));
+  } else {
+    setIsSameMap(true);
+    setFirstExitNode(null);
+  }
+}, [currentMapData?.id, targetMapData?.id]);
 
   // Prepare floors array
   const floors = currentMapData
@@ -79,6 +77,18 @@ const ShowMapScreen: React.FC = () => {
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
       <View style={styles.container}>
+        {/* Header Bar: always visible */}
+        <View style={styles.header}>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => goToGlobalMap()}
+          >
+            <FontAwesome5 name="map-marked-alt" size={24} color="black" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle} numberOfLines={1}>
+            {currentMapData?.name ?? 'Indoor Map'}
+          </Text>
+        </View>
         {currentMapData ? (
           <>
             <Map
@@ -139,26 +149,36 @@ const ShowMapScreen: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
+   container: { flex: 1 },
+  header: {
+    height: 56,
+    backgroundColor: 'white',
+    flexDirection: 'row',
+    justifyContent: 'flex-start',  
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    borderBottomWidth: 1,
+    borderColor: '#ddd',
+    zIndex: 10,
   },
-  overlayContainer: {
+  backButton: {
+    paddingRight: 12,
     position: 'absolute',
-    top: 40,
-    left: 10,
-    right: 10,
+    left: 20,
+    zIndex: 11,
   },
-   searchWrapper: {
+  headerTitle: {
+    flex: 1,                     
+    textAlign: 'center',         
+    fontSize: 18,
+    fontWeight: '600',
+  },
+  searchWrapper: {
     position: 'absolute',
-    top: 10,
+    top: 56 + 10,
     left: 10,
     right: 10,
     zIndex: 10,
-  },
-  cancelButtonContainer: {
-    backgroundColor: 'transparent',
-    padding: 10,
-    borderRadius: 5,
   },
   centerButton: {
     position: 'absolute',
@@ -171,27 +191,21 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     elevation: 3,
-  },
-  centerButtonText: {
-    fontSize: 24,
+    zIndex: 10,
   },
   floorSwitcher: {
     position: 'absolute',
-    bottom: 80,           // sobre el botón de centrar
-    left: 0, right: 0,
+    bottom: 80,
+    left: 0,
+    right: 0,
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
+    zIndex: 10,
   },
-  arrow: {
-    fontSize: 32,
-    marginHorizontal: 20,
-    opacity: 0.8,
-  },
-  floorLabel: {
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
+  arrow: { fontSize: 32, marginHorizontal: 20, opacity: 0.8 },
+  floorLabel: { fontSize: 18, fontWeight: 'bold' },
+  noMapText: { flex: 1, textAlign: 'center', marginTop: 50 },
 });
 
 export default ShowMapScreen;

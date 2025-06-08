@@ -1,11 +1,10 @@
 import React, { useState, useEffect, useRef, useContext } from 'react';
 import { TouchableOpacity, Text, StyleSheet, Alert } from 'react-native';
-import { useRouter } from 'expo-router';
 import { MapDataDTO } from '../classes/DTOs';
 import { AppContext } from '../AppContext';
+import { goToShowMap } from '../services/NavigationService';
 
 const ClosestMapBanner: React.FC = () => {
-  const router = useRouter();
   const { currentMapData } = useContext(AppContext);
 
   const [fallbackVisible, setFallbackVisible] = useState(false);
@@ -23,9 +22,7 @@ const ClosestMapBanner: React.FC = () => {
         {
           text: 'Accept',
           onPress: () => {
-            router.push({
-              pathname: '/screens/showMapScreen',
-            });
+            goToShowMap();
           },
         },
         { text: 'Cancel', style: 'cancel' },

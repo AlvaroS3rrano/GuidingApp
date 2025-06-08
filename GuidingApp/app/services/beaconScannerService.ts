@@ -4,8 +4,7 @@ import { calculateDistance } from "@/resources/distance";
 import requestPermissions from "@/app/hooks/permissions";
 import { EventEmitter } from "events";
 import { NodeService } from "./nodeService";
-import { MapDataDTO } from "../classes/DTOs";
-import { MapDataService } from "./mapDataService";
+
 
 /**
  * BeaconScannerService - Handles BLE beacon scanning.
