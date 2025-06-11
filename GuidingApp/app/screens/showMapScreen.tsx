@@ -32,8 +32,6 @@ const ShowMapScreen: React.FC = () => {
   const [selectedFloor, setSelectedFloor] = useState<number>(0);
   const [isSameMap, setIsSameMap] = useState<boolean>(true);
 
-  console.log(currentMapData?.id)
-  console.log(targetMapData?.id)
 
   // When map changes, reset selected floor
   useEffect(() => {

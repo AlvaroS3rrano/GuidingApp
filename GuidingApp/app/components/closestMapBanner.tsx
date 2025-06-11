@@ -3,15 +3,22 @@ import { TouchableOpacity, Text, StyleSheet, Alert } from 'react-native';
 import { MapDataDTO } from '../classes/DTOs';
 import { AppContext } from '../AppContext';
 import { goToShowMap } from '../services/NavigationService';
+import { usePathname } from 'expo-router';
 
 const ClosestMapBanner: React.FC = () => {
+  const pathname = usePathname();
   const { currentMapData } = useContext(AppContext);
 
+  // Hooks must run unconditionally
+  const [canShowBanner, setCanShowBanner] = useState(false);
   const [fallbackVisible, setFallbackVisible] = useState(false);
-
-  // Timer for null-hide (2 minutes)
   const nullTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const prevMapIdRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setCanShowBanner(true), 60_000);
+    return () => clearTimeout(timer);
+  }, []);
 
   // Show alert for detected area
   const showClosestMapAlert = (mapData: MapDataDTO) => {
@@ -58,7 +65,9 @@ const ClosestMapBanner: React.FC = () => {
       if (prevMapIdRef.current !== currentMapData.id) {
         prevMapIdRef.current = currentMapData.id;
         setFallbackVisible(true);
-        showClosestMapAlert(currentMapData);
+        if (!pathname.includes('showMapScreen') || canShowBanner) {
+          showClosestMapAlert(currentMapData);
+        }
       }
     } else {
       // MapData null: schedule hide after 2 min

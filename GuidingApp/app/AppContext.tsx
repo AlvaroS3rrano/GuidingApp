@@ -10,6 +10,7 @@ import React, {
 import { MapDataDTO, NodeDTO } from './classes/DTOs';
 import { beaconEventEmitter } from './services/beaconScannerService';
 import { MapDataService } from './services/mapDataService';
+import { goToGlobalMap } from './services/NavigationService';
 
 interface AppContextProps {
   targetNode: NodeDTO | null;
@@ -82,6 +83,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         }, 4000)
         mapTimeoutRef.current = setTimeout(() => {
           setCurrentMapData(null);
+          goToGlobalMap();
           mapDataRef.current = null;
         }, 120000);
       } else {

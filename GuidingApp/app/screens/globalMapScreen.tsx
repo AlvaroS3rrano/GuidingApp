@@ -15,7 +15,6 @@ const GlobalMapScreen = () => {
   const [origin, setOrigin] = useState<Region | null>(null);
   const [destination, setDestination] = useState<{ latitude: number; longitude: number } | null>(null);
   const [isSearchVisible, setSearchVisible] = useState(false);
-  const [hasApproachAlerted, setHasApproachAlerted] = useState(false);
   const mapRef = useRef<MapView | null>(null);
 
   const { targetMapData, currentBeacon} = useContext(AppContext);
@@ -102,21 +101,6 @@ const GlobalMapScreen = () => {
     return R * c;
   };
 
-  useEffect(() => {
-    if (origin && destination && !hasApproachAlerted) {
-      const dist = getDistanceInMeters(
-        origin.latitude,
-        origin.longitude,
-        destination.latitude,
-        destination.longitude
-      );
-      // If within 5 m, trigger alert
-      if (dist <= 5) {
-        setHasApproachAlerted(true);
-      }
-    }
-  }, [origin, destination, hasApproachAlerted]);
-
   // If no origin, show loading
   if (!origin) {
     return (
@@ -146,10 +130,6 @@ const GlobalMapScreen = () => {
           </View>
         </View>
       </Modal>
-
-      {hasApproachAlerted && (
-        <DestinationAlert onCancelSearch={() => setDestination(null)} />
-      )}
       
       <MapView
         ref={mapRef}  // Make sure the ref is correctly assigned
