@@ -32,7 +32,11 @@ export class NodeService {
       console.log('Fetched node:', response.data);
       return response.data;
     } catch (e) {
-      console.error(`Error fetching beacon ${beaconId}:`, e);
+      if (axios.isAxiosError(e) && e.response?.status === 404) {
+        console.log(`Beacon ${beaconId} no encontrado.`);
+      } else {
+        console.error(`Error fetching beacon ${beaconId}:`, e);
+      }
       throw e;
     }
   }

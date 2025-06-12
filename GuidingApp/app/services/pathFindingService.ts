@@ -2,7 +2,6 @@ import { Dot } from '@/app/classes/geometry';
 import { EdgeDTO, MapDataDTO, NodeDTO } from '@/app/classes/DTOs';
 import { findShortestPathInMatrix } from '@/app/algorithms/findShortestPathInMatrix';
 import { findPathAStar } from '@/app/algorithms/findPathAStar';
-import { findPathDijkstra } from '@/app/algorithms/findPathDijkstra';
 
 
 interface DotWithFloor {

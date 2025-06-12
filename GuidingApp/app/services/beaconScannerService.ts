@@ -4,6 +4,7 @@ import { calculateDistance } from "@/resources/distance";
 import requestPermissions from "@/app/hooks/permissions";
 import { EventEmitter } from "events";
 import { NodeService } from "./nodeService";
+import axios from "axios";
 
 
 /**
@@ -127,8 +128,12 @@ export const startBeaconScanning = async () => {
                 knownMap.set(id, dev);
               }
               // si no existe node, se queda en unknownMap
-            } catch (err) {
-              console.error(`Error al procesar el beacon ${id}`, err);
+            } catch (err: unknown) {
+              if (axios.isAxiosError(err) && err.response?.status === 404) {
+                console.log(`Beacon ${id} no encontrado.`);
+              } else {
+                console.error(`Error al procesar el beacon ${id}:`, err);
+              }
             }
           }
         }

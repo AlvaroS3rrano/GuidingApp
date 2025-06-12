@@ -7,16 +7,15 @@ import { usePathname } from 'expo-router';
 
 const ClosestMapBanner: React.FC = () => {
   const pathname = usePathname();
-  const { currentMapData } = useContext(AppContext);
+  const { targetNode, targetMapData, currentMapData } = useContext(AppContext);
 
-  // Hooks must run unconditionally
   const [canShowBanner, setCanShowBanner] = useState(false);
   const [fallbackVisible, setFallbackVisible] = useState(false);
   const nullTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const prevMapIdRef = useRef<number | null>(null);
 
   useEffect(() => {
-    const timer = setTimeout(() => setCanShowBanner(true), 60_000);
+    const timer = setTimeout(() => setCanShowBanner(true), 60000);
     return () => clearTimeout(timer);
   }, []);
 
@@ -55,6 +54,12 @@ const ClosestMapBanner: React.FC = () => {
 
   // Handle mapData changes
   useEffect(() => {
+
+    if (targetNode  || targetMapData) {
+      setFallbackVisible(false);
+      return;
+    }
+
     if (currentMapData?.id != null) {
       // Clear null-hide if running
       if (nullTimeoutRef.current) {
@@ -65,7 +70,7 @@ const ClosestMapBanner: React.FC = () => {
       if (prevMapIdRef.current !== currentMapData.id) {
         prevMapIdRef.current = currentMapData.id;
         setFallbackVisible(true);
-        if (!pathname.includes('showMapScreen') || canShowBanner) {
+         if (canShowBanner && !pathname.includes('showMapScreen')) {
           showClosestMapAlert(currentMapData);
         }
       }
@@ -76,7 +81,7 @@ const ClosestMapBanner: React.FC = () => {
       }
       startNullTimer();
     }
-  }, [currentMapData]);
+  }, [currentMapData, pathname, canShowBanner, targetNode, targetMapData]);
 
   const handleFallbackPress = () => {
     if (currentMapData && prevMapIdRef.current === currentMapData.id) {
