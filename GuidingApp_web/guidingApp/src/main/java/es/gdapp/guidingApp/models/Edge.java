@@ -1,9 +1,13 @@
 package es.gdapp.guidingApp.models;
 
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Data
+@NoArgsConstructor
+@AllArgsConstructor
 @Entity
 @Table(name = "graph_edge")
 public class Edge {
@@ -29,14 +33,18 @@ public class Edge {
     @JoinColumn(name = "to_node_id", nullable = false)
     private Node toNode;
 
-    // Constructor, getters y setters
-
-    public Edge() {
-    }
 
     public Edge(Node fromNode, Node toNode) {
         this.fromNode = fromNode;
         this.toNode = toNode;
+    }
+
+    public Edge(Node source, Node target, int weight, String comment, MapData mapData) {
+        this.fromNode = source;
+        this.toNode = target;
+        this.weight = weight;
+        this.comment = comment;
+        this.mapData = mapData;
     }
 
 

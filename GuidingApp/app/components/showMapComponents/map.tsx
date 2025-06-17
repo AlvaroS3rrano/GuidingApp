@@ -366,6 +366,7 @@ const MapaInterior: React.FC<MapaInteriorProps> = ({
                     points={`
                       ${sensorCenterX},${sensorYPixel}
                       ${sensorXPixel},${sensorYPixel + cellSize}
+                      ${sensorXPixel + cellSize/2},${sensorYPixel + cellSize/1.3}
                       ${sensorXPixel + cellSize},${sensorYPixel + cellSize}
                     `}
                     fill={MAP_COLORS.userArrow}

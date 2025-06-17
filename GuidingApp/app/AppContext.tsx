@@ -80,7 +80,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         nodeTimeoutRef.current = setTimeout(() => {
           setCurrentBeacon(null);
           nodeRef.current = null;
-        }, 4000)
+        }, 8000)
         mapTimeoutRef.current = setTimeout(() => {
           setCurrentMapData(null);
           goToGlobalMap();

@@ -188,6 +188,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   suggestionItem: {
+    backgroundColor: 'white',
     paddingVertical: 10,
     paddingHorizontal: 8,
     borderBottomWidth: 1,

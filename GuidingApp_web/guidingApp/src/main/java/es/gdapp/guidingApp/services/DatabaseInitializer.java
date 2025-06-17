@@ -28,6 +28,7 @@ public class DatabaseInitializer {
         // Create a new MapData instance with a 5x5 matrix and a north angle of 0.0
         MapData mapData = new MapData("Aulario I", 70.0, 40.335722, -3.876528, "Example", 11, 16);
         MapData mapData2 = new MapData("Ampliación del Rectorado", 70.0, 40.3380278, -3.8736389, "Example", 11, 16);
+        MapData mapData3 = new MapData("Aulario II", 70.0, 40.335184, -3.877456, "Example", 11, 16);
         int[][] grid = {
                 {0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0},
                 {0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0},
@@ -68,112 +69,149 @@ public class DatabaseInitializer {
         mapData.putMatrix(1, "Second floor", grid2);
         mapData2.putMatrix(0, "First floor", grid);
         mapData2.putMatrix(1, "Second floor", grid2);
+        mapData3.putMatrix(0, "First floor", grid);
+        mapData3.putMatrix(1, "Second floor", grid2);
 
-        // Create a couple of Node instances and associate them with the map
-        Node node1 = new Node();
-        node1.setName("Entrance Hall");
-        node1.setBeaconId("d4fcb04a6573ea399df3adbf06f91b38");
-        node1.setFloorNumber(0);
-        node1.setX(14);
-        node1.setY(4);
-        node1.setArea(new int[][] { {11, 2}, {17, 2}, {17, 5}, {11, 5} });
-        node1.setExit(true);
-        node1.setEntrance(true);
-        node1.setMapData(mapData);
+        // Nodes for mapData
+        Node node1 = new Node(
+                "Main Entrance",
+                "d4fcb04a6573ea399df3adbf06f91b38",
+                0,
+                true,
+                true,
+                14,
+                2,
+                new int[][]{{11, 2}, {17, 2}, {17, 5}, {11, 5}},
+                mapData
+        );
 
+        Node aI_central_hall = new Node(
+                "Central Hall",
+                "sdf",
+                0,
+                true,
+                true,
+                14,
+                6,
+                new int[][]{{11, 2}, {17, 2}, {17, 5}, {11, 5}},
+                mapData
+        );
 
-        Node node4 = new Node();
-        node4.setName("Class 103");
-        node4.setBeaconId("15c210b9f1ea2e121131bba29e8cc90a");
-        node4.setFloorNumber(1);
-        node4.setX(6);
-        node4.setY(12);
-        node4.setArea(new int[][] { {0, 5}, {10, 5}, {10, 10}, {0, 10} });
-        node4.setMapData(mapData);
+        Node node2 = new Node(
+                "Node 2",
+                "hola",
+                0,
+                false,
+                false,
+                6,
+                7,
+                new int[][]{{0, 0}, {10, 0}, {10, 5}, {0, 5}},
+                mapData
+        );
 
-        Node node3 = new Node();
-        node3.setName("Node 3");
-        node3.setBeaconId("530801241127a8aad378170fdbabbd17");
-        node3.setFloorNumber(1);
-        node3.setX(6);
-        node3.setY(9);
-        node3.setArea(new int[][] { {0, 0}, {10, 0}, {10, 5}, {0, 5} });
-        node3.setMapData(mapData);
+        Node node3 = new Node(
+                "Node 3",
+                "530801241127a8aad378170fdbabbd17",
+                1,
+                false,
+                false,
+                6,
+                9,
+                new int[][]{{0, 0}, {10, 0}, {10, 5}, {0, 5}},
+                mapData
+        );
 
-        Node node2 = new Node();
-        node2.setName("Node 2");
-        node2.setBeaconId("hola");
-        node2.setFloorNumber(0);
-        node2.setX(6);
-        node2.setY(7);
-        node2.setArea(new int[][] { {0, 0}, {10, 0}, {10, 5}, {0, 5} });
-        node2.setMapData(mapData);
+        Node node4 = new Node(
+                "Class 103",
+                "15c210b9f1ea2e121131bba29e8cc90a",
+                1,
+                false,
+                false,
+                6,
+                12,
+                new int[][]{{0, 5}, {10, 5}, {10, 10}, {0, 10}},
+                mapData
+        );
 
-        // Initialize the nodes list in MapData and add nodes
-        mapData.setNodes(new ArrayList<>());
-        mapData.getNodes().add(node1);
-        mapData.getNodes().add(node2);
-        mapData.getNodes().add(node3);
-        mapData.getNodes().add(node4);
+// Associate nodes to mapData
+        mapData.setNodes(new ArrayList<>(List.of(node1, aI_central_hall, node2, node3, node4)));
 
+// Edges
         List<Edge> edges = new ArrayList<>();
-        Edge edge1 = new Edge(node1, node2);
-        edge1.setComment("From the entrance hall, proceed to the stairs");
-        edge1.setWeight(5);
-        edge1.setMapData(mapData);
-
-        Edge edge2 = new Edge(node2, node1);
-        edge2.setComment("de 2 a 1");
-        edge2.setMapData(mapData);
-        edge2.setWeight(5);
-
-        Edge edge3 = new Edge(node2, node3);
-        edge3.setComment("de 2 a 3");
-        edge3.setMapData(mapData);
-        edge3.setWeight(5);
-
-        Edge edge4 = new Edge(node3, node4);
-        edge4.setComment("de 3 a 4");
-        edge4.setMapData(mapData);
-        edge4.setWeight(5);
-
-        Edge edge5 = new Edge(node4, node3);
-        edge5.setComment("de 4 a 3");
-        edge5.setMapData(mapData);
-        edge5.setWeight(5);
-
-        Edge edge6 = new Edge(node3, node2);
-        edge6.setComment("de 3 a 2");
-        edge6.setMapData(mapData);
-        edge6.setWeight(5);
-
-        edges.add(edge1);
-        edges.add(edge2);
-        edges.add(edge3);
-        edges.add(edge4);
-        edges.add(edge5);
-        edges.add(edge6);
+        edges.add(new Edge(node1, aI_central_hall, 5, "From the entrance, proceed to the hall", mapData));
+        edges.add(new Edge(aI_central_hall, node2, 5, "From the hall, proceed to the hall", mapData));
+        edges.add(new Edge(aI_central_hall, node1, 5, "from the hall, straight to the exit", mapData));
+        edges.add(new Edge(node2, aI_central_hall, 5, "de 2 a 1", mapData));
+        edges.add(new Edge(node2, node3, 5, "de 2 a 3", mapData));
+        edges.add(new Edge(node3, node4, 5, "de 3 a 4", mapData));
+        edges.add(new Edge(node4, node3, 5, "de 4 a 3", mapData));
+        edges.add(new Edge(node3, node2, 5, "de 3 a 2", mapData));
 
         mapData.setEdges(edges);
-
         mapDataRepository.save(mapData);
 
+// Node for mapData2
+        Node node5 = new Node(
+                "Entrance",
+                "later",
+                0,
+                true,
+                true,
+                14,
+                4,
+                new int[][]{{11, 2}, {17, 2}, {17, 5}, {11, 5}},
+                mapData2
+        );
 
-        Node node5 = new Node();
-        node5.setName("Entrance Hall");
-        node5.setBeaconId("later");
-        node5.setFloorNumber(0);
-        node5.setX(14);
-        node5.setY(4);
-        node5.setArea(new int[][] { {11, 2}, {17, 2}, {17, 5}, {11, 5} });
-        node5.setExit(true);
-        node5.setEntrance(true);
-        node5.setMapData(mapData2);
-
-        mapData2.setNodes(new ArrayList<>());
-        mapData2.getNodes().add(node5);
-
+        mapData2.setNodes(new ArrayList<>(List.of(node5)));
         mapDataRepository.save(mapData2);
+
+// Nodes for mapData3
+        Node entranceNode = new Node(
+                "Main Entrance",
+                "c36a2cf3dd7341fd57df9b60b7ac4a10",
+                0,
+                true,
+                true,
+                14,
+                2,
+                new int[][]{{9, 2}, {11, 2}, {11, 4}, {9, 4}},
+                mapData3
+        );
+
+        Node hallNode = new Node(
+                "Central Hall",
+                "fc0ed82db1f5f61e6eb4f270dc5eda3c",
+                0,
+                false,
+                false,
+                14,
+                6,
+                new int[][]{{13, 6}, {15, 6}, {15, 8}, {13, 8}},
+                mapData3
+        );
+
+        Node classroomNode = new Node(
+                "Class 101",
+                "3d4721ba9b35c9b90f6a81e6ba915811",
+                0,
+                false,
+                false,
+                6,
+                3,
+                new int[][]{{7, 9}, {9, 9}, {9, 11}, {7, 11}},
+                mapData3
+        );
+
+        List<Edge> edges2 = new ArrayList<>();
+        edges2.add(new Edge(entranceNode, hallNode, 5, "From the entrance, proceed to the hall", mapData3));
+        edges2.add(new Edge(hallNode, entranceNode, 5, "From the hall, proceed to the hall", mapData3));
+        edges2.add(new Edge(hallNode, classroomNode, 5, "from the hall, straight to the exit", mapData3));
+        edges2.add(new Edge(classroomNode, hallNode, 5, "de 2 a 1", mapData3));
+
+        mapData3.setNodes(new ArrayList<>(List.of(entranceNode, hallNode, classroomNode)));
+        mapDataRepository.save(mapData3);
+
 
 
     }

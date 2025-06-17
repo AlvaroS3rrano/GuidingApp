@@ -47,6 +47,19 @@ public class Node {
     @Column(columnDefinition = "TEXT")
     private int[][] area;
 
+    public Node(String name, String beaconId, Integer floorNumber, boolean isExit, boolean isEntrance,
+                Integer x, Integer y, int[][] area, MapData mapData) {
+        this.name = name;
+        this.beaconId = beaconId;
+        this.floorNumber = floorNumber;
+        this.isExit = isExit;
+        this.isEntrance = isEntrance;
+        this.x = x;
+        this.y = y;
+        this.area = area;
+        this.mapData = mapData;
+    }
+
     @Transient
     public String getNodeJson() {
         try {
