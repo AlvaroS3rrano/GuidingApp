@@ -7,8 +7,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import ChooseDestination from '../components/globalMapComponents/chooseDestination';
 import ClosestMapBanner from '../components/closestMapBanner';
 import { KEY_2 } from '../constants/public_key';
-import DestinationAlert from '../components/DestinationAlert';
-import { AppContext} from '../AppContext';
+import { AppContext } from '../AppContext';
 import { goToShowMap } from '../services/NavigationService';
 
 const GlobalMapScreen = () => {
@@ -17,16 +16,14 @@ const GlobalMapScreen = () => {
   const [isSearchVisible, setSearchVisible] = useState(false);
   const mapRef = useRef<MapView | null>(null);
 
-  const { targetMapData, currentBeacon} = useContext(AppContext);
-  console.log(currentBeacon)
+  const { targetMapData, currentBeacon } = useContext(AppContext);
+
   useEffect(() => {
     if (currentBeacon && targetMapData) {
       const isEntrance = targetMapData.nodes.some(
         n => n.id === currentBeacon.id && currentBeacon.entrance
       );
-      if (isEntrance) {
-        goToShowMap();
-      }
+      if (isEntrance) goToShowMap();
     }
   }, [currentBeacon, targetMapData]);
 
@@ -43,65 +40,57 @@ const GlobalMapScreen = () => {
 
   useEffect(() => {
     getCurrentLocation();
+    const watchId = Geolocation.watchPosition(
+      position => {
+        const { latitude, longitude } = position.coords;
+        setOrigin({
+          latitude,
+          longitude,
+          latitudeDelta: 0.001,
+          longitudeDelta: 0.001,
+        });
+      },
+      error => console.log('Error watching position:', error),
+      {
+        enableHighAccuracy: true,
+        distanceFilter: 1,
+        interval: 2000,
+        fastestInterval: 1000,
+      }
+    );
+
+    return () => {
+      Geolocation.clearWatch(watchId);
+    };
   }, []);
 
   const getCurrentLocation = () => {
     Geolocation.getCurrentPosition(
       position => {
-        console.log('Location fetched successfully:', position.coords); // Debugging log
         const { latitude, longitude } = position.coords;
-        const currentRegion = {
+        setOrigin({
           latitude,
           longitude,
-          latitudeDelta: 0.01,
-          longitudeDelta: 0.01,
-        };
-        setOrigin(currentRegion);
+          latitudeDelta: 0.001,
+          longitudeDelta: 0.001,
+        });
       },
-      error => {
-        console.log('Error fetching location:', error);  // Debugging error
-      },
-      {
-        enableHighAccuracy: true,
-        maximumAge: 0,
-      }
+      error => console.log('Error fetching location:', error),
+      { enableHighAccuracy: true, maximumAge: 0 }
     );
   };
 
-  // Function to center the map on the user's current location
   const centerMapOnUser = () => {
     if (origin && mapRef.current) {
-      console.log('Centering map to:', origin);  // Debugging log
       mapRef.current.animateToRegion({
         latitude: origin.latitude,
         longitude: origin.longitude,
-        latitudeDelta: 0.01,
-        longitudeDelta: 0.01,
+        latitudeDelta: 0.001,
+        longitudeDelta: 0.001,
       });
-    } else {
-      console.log('Origin or mapRef is null, cannot center map.');
     }
   };
 
-   // Simple Haversine formula to get meters between two coords
-  const getDistanceInMeters = (
-    lat1: number, lon1: number,
-    lat2: number, lon2: number
-  ) => {
-    const toRad = (v: number) => (v * Math.PI) / 180;
-    const R = 6371000; // Earth radius in meters
-    const dLat = toRad(lat2 - lat1);
-    const dLon = toRad(lon2 - lon1);
-    const a =
-      Math.sin(dLat / 2) ** 2 +
-      Math.cos(toRad(lat1)) *
-        Math.cos(toRad(lat2)) *
-        Math.sin(dLon / 2) ** 2;
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return R * c;
-  };
-
-  // If no origin, show loading
   if (!origin) {
     return (
       <View style={styles.loadingContainer}>
@@ -112,34 +101,25 @@ const GlobalMapScreen = () => {
 
   return (
     <View style={styles.container}>
-
-      <Modal
-        transparent
-        visible={isSearchVisible}
-        animationType="fade"
-      >
+      <Modal transparent visible={isSearchVisible} animationType="fade">
         <View style={styles.modalWrapper}>
           <TouchableWithoutFeedback onPress={() => setSearchVisible(false)}>
             <View style={styles.modalOverlay} />
           </TouchableWithoutFeedback>
-
           <View style={styles.searchContainer}>
-            <ChooseDestination
-              isSearchVisible={isSearchVisible}
-            />
+            <ChooseDestination isSearchVisible={isSearchVisible} />
           </View>
         </View>
       </Modal>
-      
+
       <MapView
-        ref={mapRef}  // Make sure the ref is correctly assigned
+        ref={mapRef}
         style={styles.map}
         initialRegion={origin}
-        showsUserLocation={true}
+        showsUserLocation
         showsCompass={false}
-        showsMyLocationButton={false}  // Disable the default "center" button
+        showsMyLocationButton={false}
       >
-        {/* Destination Marker */}
         {destination && (
           <Marker
             coordinate={destination}
@@ -153,7 +133,7 @@ const GlobalMapScreen = () => {
             />
           </Marker>
         )}
-        {/* Draw route if destination exists */}
+
         {origin && destination && (
           <MapViewRoute
             origin={{ latitude: origin.latitude, longitude: origin.longitude }}
@@ -161,88 +141,36 @@ const GlobalMapScreen = () => {
             apiKey={KEY_2}
             strokeColor="#000"
             strokeWidth={6}
-            onError={(errorMessage) => {
-              console.log('Error in MapViewDirections: ', errorMessage);
-            }}
+            onError={errorMessage => console.log('Route error:', errorMessage)}
           />
         )}
       </MapView>
 
-      {/* Custom Center Button */}
-      <TouchableOpacity
-        style={styles.centerButton}
-        onPress={centerMapOnUser}  // Trigger the centering
-      >
+      <TouchableOpacity style={styles.centerButton} onPress={centerMapOnUser}>
         <MaterialIcons name="my-location" size={24} color="black" />
       </TouchableOpacity>
 
-      {/* Search Button */}
       <TouchableOpacity
         style={styles.searchButton}
         onPress={() => setSearchVisible(!isSearchVisible)}
       >
         <MaterialIcons name="search" size={24} color="black" />
       </TouchableOpacity>
-      
+
       <ClosestMapBanner />
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  map: {
-    flex: 1,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-   modalWrapper: {
-    flex: 1,
-    justifyContent: 'flex-start', // o 'center' si quieres centrar verticalmente
-  },
-  modalOverlay: {
-    position: 'absolute',
-    top: 0, left: 0, right: 0, bottom: 0,
-    // opcional: oscurecer el fondo
-    backgroundColor: 'rgba(0,0,0,0.3)',
-  },
-  searchButton: {
-    position: 'absolute',
-    top: 10,
-    left: 10,
-    backgroundColor: 'white',
-    padding: 10,
-    borderRadius: 30,
-    elevation: 5,
-    opacity: 0.8,
-  },
-  searchContainer: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    zIndex: 300,
-    backgroundColor: 'white',
-    elevation: 8,
-    shadowColor: 'black',
-    shadowOpacity: 0.2,
-    shadowRadius: 3.5,
-  },
-  centerButton: {
-    position: 'absolute',
-    bottom: 20,
-    right: 20,
-    backgroundColor: 'white',
-    padding: 10,
-    borderRadius: 15,
-    elevation: 5,
-    opacity: 0.7,
-  },
+  container: { flex: 1 },
+  map: { flex: 1 },
+  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  modalWrapper: { flex: 1, justifyContent: 'flex-start' },
+  modalOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.3)' },
+  searchContainer: { position: 'absolute', top: 0, left: 0, right: 0, zIndex: 300, backgroundColor: 'white', elevation: 8, shadowColor: 'black', shadowOpacity: 0.2, shadowRadius: 3.5 },
+  searchButton: { position: 'absolute', top: 10, left: 10, backgroundColor: 'white', padding: 10, borderRadius: 30, elevation: 5, opacity: 0.8 },
+  centerButton: { position: 'absolute', bottom: 20, right: 20, backgroundColor: 'white', padding: 10, borderRadius: 15, elevation: 5, opacity: 0.7 },
 });
 
 export default GlobalMapScreen;
