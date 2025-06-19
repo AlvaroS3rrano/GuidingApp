@@ -1,11 +1,10 @@
-// showMap.tsx
 import React, { useState, useEffect, useRef, useContext } from 'react';
-import { StyleSheet, View, Button, TouchableOpacity, Text, TouchableWithoutFeedback, Keyboard, } from 'react-native';
+import { StyleSheet, View, TouchableOpacity, Text, TouchableWithoutFeedback, Keyboard } from 'react-native';
 import Map from '../components/showMapComponents/map';
-import { MapDataDTO, NodeDTO, Path } from '@/app/classes/DTOs';
+import { MapDataDTO, NodeDTO } from '@/app/classes/DTOs';
 import InfoBanner from '../components/showMapComponents/infoBanner';
 import { MaterialIcons } from '@expo/vector-icons';
-import { AppContext} from '../AppContext';
+import { AppContext } from '../AppContext';
 import ChooseDestination from '../components/globalMapComponents/chooseDestination';
 import { NodeService } from '../services/nodeService';
 import { goToGlobalMap } from '../services/NavigationService';
@@ -19,7 +18,6 @@ import FontAwesome5 from '@expo/vector-icons/FontAwesome5';
  * All error handling has been moved to the global ErrorBanner component in _layout.tsx.
  */
 const ShowMapScreen: React.FC = () => {
-
   const {
     currentBeacon,
     currentMapData,
@@ -32,36 +30,49 @@ const ShowMapScreen: React.FC = () => {
   const [selectedFloor, setSelectedFloor] = useState<number>(0);
   const [isSameMap, setIsSameMap] = useState<boolean>(true);
 
+  // Ref to track previous beacon floor
+  const previousFloorRef = useRef<number>(0);
 
-  // When map changes, reset selected floor
+  // When map changes, reset selected floor and previous floor ref
   useEffect(() => {
     if (currentMapData) {
-      const floors = Array.from(
+      const floorsList = Array.from(
         new Set(currentMapData.nodes.map(n => n.floorNumber))
       ).sort((a, b) => a - b);
-      setSelectedFloor(floors[0] ?? 0);
+      const initialFloor = floorsList[0] ?? 0;
+      setSelectedFloor(initialFloor);
+      previousFloorRef.current = initialFloor;
     }
   }, [currentMapData]);
 
+  // Update floor when current beacon (node) changes
+  useEffect(() => {
+    if (!currentBeacon) return;
+    const newFloor = currentBeacon.floorNumber;
+    if (newFloor !== previousFloorRef.current) {
+      setSelectedFloor(newFloor);
+    }
+    previousFloorRef.current = newFloor;
+  }, [currentBeacon]);
+
   // Fetch first exit node when switching targets or map
   useEffect(() => {
-  if (!currentMapData || !targetMapData) {
-    setIsSameMap(true);
-    setFirstExitNode(null);
-    return;
-  }
-  // si cambiamos de mapa
-  if (currentMapData.id !== targetMapData.id) {
-    setIsSameMap(false)
-    NodeService
-      .getExitNodesByMapDataId(currentMapData.id)
-      .then(nodes => setFirstExitNode(nodes[0] ?? null))
-      .catch(() => setFirstExitNode(null));
-  } else {
-    setIsSameMap(true);
-    setFirstExitNode(null);
-  }
-}, [currentMapData?.id, targetMapData?.id]);
+    if (!currentMapData || !targetMapData) {
+      setIsSameMap(true);
+      setFirstExitNode(null);
+      return;
+    }
+    if (currentMapData.id !== targetMapData.id) {
+      setIsSameMap(false);
+      NodeService
+        .getExitNodesByMapDataId(currentMapData.id)
+        .then(nodes => setFirstExitNode(nodes[0] ?? null))
+        .catch(() => setFirstExitNode(null));
+    } else {
+      setIsSameMap(true);
+      setFirstExitNode(null);
+    }
+  }, [currentMapData?.id, targetMapData?.id]);
 
   // Prepare floors array
   const floors = currentMapData
@@ -69,8 +80,6 @@ const ShowMapScreen: React.FC = () => {
         new Set(currentMapData.nodes.map(n => n.floorNumber))
       ).sort((a, b) => a - b)
     : [];
-
-  
 
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
@@ -110,6 +119,8 @@ const ShowMapScreen: React.FC = () => {
               <MaterialIcons name="my-location" size={24} color="black" />
             </TouchableOpacity>
 
+            <InfoBanner/>
+
             {/* Floor switcher */}
             {floors.length > 1 && (
               <View style={styles.floorSwitcher}>
@@ -134,9 +145,9 @@ const ShowMapScreen: React.FC = () => {
                 >
                   <Text style={styles.arrow}>⬆️</Text>
                 </TouchableOpacity>
-                <InfoBanner />
               </View>
             )}
+            
           </>
         ) : (
           <Text>Map data is not available</Text>
@@ -147,7 +158,7 @@ const ShowMapScreen: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
-   container: { flex: 1 },
+  container: { flex: 1 },
   header: {
     height: 56,
     backgroundColor: 'white',

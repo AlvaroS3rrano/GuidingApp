@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { View, StyleSheet, Dimensions, Animated, PanResponder, Alert } from 'react-native';
+import { View, StyleSheet, Dimensions, Animated, PanResponder, Alert, ToastAndroid } from 'react-native';
 import {
   PanGestureHandler,
   PinchGestureHandler,
@@ -36,7 +36,6 @@ const MapaInterior: React.FC<MapaInteriorProps> = ({
   selectedFloor,
   isSameMap,
 }) => {
-  const [lastComment, setLastComment] = useState<string | null>(null);
   const [heading, setHeading] = useState(0);
   const map_adjustments = mapData.northAngle;
 
@@ -86,36 +85,47 @@ const MapaInterior: React.FC<MapaInteriorProps> = ({
     return getGraphPathByFloor(mapData, startNode, destination);
   }, [mapData, startNode, destination]);
 
-  const seq = graphSequences?.find(s => s.floor === floor);
-  let edgeComment: string | null = null;
 
-  if (current_node && seq) {
-    // Build an array of node IDs and find the index of the current node
+  const [edgeComment, isSegmentTransition] = React.useMemo(() => {
+    if (!current_node || !graphSequences) return [null, false] as const;
+    const seqIndex = graphSequences.findIndex(s => s.floor === floor);
+    const seq = graphSequences[seqIndex];
+    if (!seq) return [null, false] as const;
+
     const ids = seq.nodes.map(n => n.node_id);
     const idx = ids.indexOf(current_node.id);
-    const nextId = ids[idx + 1];
 
-    if (nextId) {
-      // Find the corresponding edge in your map data
-      const edge = mapData.edges.find(e =>
-        (e.fromNode.id === current_node.id && e.toNode.id === nextId)
-        
+    let nextId = ids[idx + 1];
+    let edge = nextId != null
+      ? mapData.edges.find(e =>
+          e.fromNode.id === current_node.id &&
+          e.toNode.id === nextId
+        )
+      : null;
+
+    let segmentTransition = false;
+    if (!edge && seqIndex < graphSequences.length - 1) {
+      const nextSeq = graphSequences[seqIndex + 1];
+      edge = mapData.edges.find(e =>
+        e.fromNode.id === current_node.id &&
+        e.toNode.id === nextSeq.nodes[0].node_id
       );
-      edgeComment = edge?.comment ?? null; 
+      segmentTransition = true;
     }
-  }
+
+    return [edge?.comment ?? null, segmentTransition] as const;
+  }, [current_node, graphSequences, floor, mapData.edges]);
 
   useEffect(() => {
-    setLastComment(edgeComment);
-  }, [edgeComment]);
-
-  useEffect(() => {
-    if (lastComment) {
-      beaconEventEmitter.emit("info", lastComment);
+    if (edgeComment) {
+      if (isSegmentTransition) {
+        ToastAndroid.show(edgeComment, ToastAndroid.SHORT);
+      }
+      beaconEventEmitter.emit('info', edgeComment);
     } else {
-      beaconEventEmitter.emit("updateInfo");
+      beaconEventEmitter.emit('updateInfo');
     }
-  }, [lastComment]);
+  }, [edgeComment, isSegmentTransition]);
   
   const currentFloorWaypoints = React.useMemo<Dot[]>(
     () => {
@@ -148,7 +158,6 @@ const MapaInterior: React.FC<MapaInteriorProps> = ({
   }, [currentFloorPath]);
 
    // Determine floor matrix and dimensions
-
   const cellSize = width / matrix[0].length;
   const mapWidth = cellSize * matrix[0].length;
   const mapHeight = cellSize * matrix.length;

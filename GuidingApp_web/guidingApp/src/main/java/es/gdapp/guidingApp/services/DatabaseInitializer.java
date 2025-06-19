@@ -75,7 +75,7 @@ public class DatabaseInitializer {
         // Nodes for mapData
         Node node1 = new Node(
                 "Main Entrance",
-                "d4fcb04a6573ea399df3adbf06f91b38",
+                "sadfj",
                 0,
                 true,
                 true,
@@ -87,7 +87,7 @@ public class DatabaseInitializer {
 
         Node aI_central_hall = new Node(
                 "Central Hall",
-                "15c210b9f1ea2e121131bba29e8cc90a",
+                "lkajsdlj",
                 0,
                 false,
                 false,
@@ -111,7 +111,7 @@ public class DatabaseInitializer {
 
         Node node3 = new Node(
                 "Node 3",
-                "530801241127a8aad378170fdbabbd17",
+                "ksjdf",
                 1,
                 false,
                 false,
@@ -193,7 +193,7 @@ public class DatabaseInitializer {
 
         Node classroomNode = new Node( // purple
                 "Class 101",
-                "3d4721ba9b35c9b90f6a81e6ba915811",
+                "kskdf",
                 0,
                 false,
                 false,
@@ -205,7 +205,7 @@ public class DatabaseInitializer {
 
         Node stairNode1 = new Node(
                 "Stairs f0",
-                "sdfsd",
+                "3d4721ba9b35c9b90f6a81e6ba915811",
                 0,
                 false,
                 false,
@@ -215,15 +215,27 @@ public class DatabaseInitializer {
                 mapData3
         );
 
-        Node stairNode2 = new Node(
+        Node stairNode2 = new Node( // blue
                 "Stairs f1",
-                "sdf",
+                "530801241127a8aad378170fdbabbd17",
                 1,
                 false,
                 false,
                 6,
                 9,
                 new int[][]{{7, 9}, {9, 9}, {9, 11}, {7, 11}},
+                mapData3
+        );
+
+        Node hallwayf1Node = new Node( //purple
+                "Hallway f1",
+                "d4fcb04a6573ea399df3adbf06f91b38",
+                1,
+                false,
+                false,
+                14,
+                6,
+                new int[][]{{13, 6}, {15, 6}, {15, 8}, {13, 8}},
                 mapData3
         );
 
@@ -239,16 +251,32 @@ public class DatabaseInitializer {
                 mapData3
         );
 
-        mapData3.setNodes(new ArrayList<>(List.of(entranceNode, hallNode, classroomNode, stairNode1, stairNode2, class203)));
+        Node class205 = new Node( // green
+                "class 205",
+                "15c210b9f1ea2e121131bba29e8cc90a",
+                1,
+                false,
+                false,
+                14,
+                3,
+                new int[][]{{7, 9}, {9, 9}, {9, 11}, {7, 11}},
+                mapData3
+        );
+
+        mapData3.setNodes(new ArrayList<>(List.of(entranceNode, hallNode, classroomNode, stairNode1, stairNode2,hallwayf1Node, class203, class205)));
 
         List<Edge> edges2 = new ArrayList<>();
-        edges2.add(new Edge(entranceNode, hallNode, 5, "From the entrance, proceed to the hall", mapData3));
-        edges2.add(new Edge(hallNode, entranceNode, 5, "From the hall, proceed to the hall", mapData3));
+        edges2.add(new Edge(entranceNode, hallNode, 5, "From the entrance, proceed straight to the hall", mapData3));
+        edges2.add(new Edge(hallNode, entranceNode, 5, "From the hall, proceed straight to the entrance", mapData3));
         edges2.add(new Edge(hallNode, classroomNode, 5, "from the hall, straight to the exit", mapData3));
         edges2.add(new Edge(classroomNode, hallNode, 5, "de 2 a 1", mapData3));
-        edges2.add(new Edge(hallNode, stairNode1, 5, "de 2 a 1", mapData3));
+        edges2.add(new Edge(hallNode, stairNode1, 5, "Go to the stairs in the left", mapData3));
         edges2.add(new Edge(stairNode1, hallNode, 5, "de 2 a 1", mapData3));
-        edges2.add(new Edge(stairNode1, stairNode2, 5, "de 2 a 1", mapData3));
+        edges2.add(new Edge(stairNode1, stairNode2, 5, "Go up the stairs", mapData3));
+        edges2.add(new Edge(stairNode2, hallwayf1Node, 5, "Advance to the center of the hallway", mapData3));
+        edges2.add(new Edge(hallwayf1Node, stairNode2, 5, "de 2 a 1", mapData3));
+        edges2.add(new Edge(hallwayf1Node, class205, 5, "Check that the door sing says Class 205 ", mapData3));
+        edges2.add(new Edge(class205, hallwayf1Node, 5, "de 2 a 1", mapData3));
         edges2.add(new Edge(stairNode2, stairNode1, 5, "de 2 a 1", mapData3));
         edges2.add(new Edge(stairNode2, class203, 5, "de 2 a 1", mapData3));
         edges2.add(new Edge(class203, stairNode2, 5, "de 2 a 1", mapData3));

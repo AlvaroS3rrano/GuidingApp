@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { TouchableOpacity, Text, StyleSheet, Alert } from 'react-native';
+import { TouchableOpacity, Text, StyleSheet, Alert, View } from 'react-native';
 import { beaconEventEmitter } from '@/app/services/beaconScannerService';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 
@@ -50,7 +50,7 @@ const InfoBanner: React.FC = () => {
 const styles = StyleSheet.create({
   infoIcon: {
     position: 'absolute',
-    bottom: 0,
+    bottom: 80,
     right: 20,
     backgroundColor: 'white',
     width: 50,
@@ -59,6 +59,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     elevation: 3,
+    zIndex:99
   },
   infoIconText: {
     fontSize: 18,
