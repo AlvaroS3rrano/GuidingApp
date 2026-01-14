@@ -56,7 +56,7 @@ The project is divided into two main components: a **mobile application** (front
 
 ```text
 GuidingApp/
-├── android/                     # Android-specific generated files
+├── android/                     # Android native project (Expo prebuild)
 ├── app/                         # Main Expo application source
 │   ├── algorithms/              # Pathfinding and routing algorithms (A*)
 │   ├── classes/                 # Domain and helper classes
@@ -174,7 +174,7 @@ To run the application, you must provide your own Google Maps API key.
 export const GOOGLE_MAPS_API_KEY = 'YOUR_API_KEY_HERE';
 ```
 
-## Google Maps APIs Configuration
+#### Google Maps APIs Configuration
 
 In addition to providing a Google Maps API key, the following Google Maps APIs must be enabled in the Google Cloud Console:
 
@@ -189,6 +189,9 @@ These APIs can be enabled from the Google Cloud Console:
 
 https://console.cloud.google.com/apis/library
 
+> Billing must be enabled for the Google Cloud project in order to use Google Maps services.
+
+
 ---
 
 ### 2. AndroidManifest.xml
@@ -199,7 +202,7 @@ You must also add the API key to `AndroidManifest.xml` for Google Maps integrati
 <!-- AndroidManifest.xml -->
 <application>
   <!-- ... -->  
-  <meta-data`  
+  <meta-data  
     android:name="com.google.android.geo.API_KEY" 
     android:value="YOUR_API_KEY_HERE"/>
 </application>
@@ -294,4 +297,9 @@ npx expo run:android --device
 
 This project was developed as part of a **Bachelor’s Final Project (Trabajo Fin de Grado)** in Software Engineering and Computer Engineering.
 
+The complete project report (written in Spanish) is available in the repository:
+
+- **`memoria_GuidingApp.pdf`**
+
 The goal of the project is to explore hybrid indoor–outdoor navigation systems combining GPS, BLE beacons, and graph-based pathfinding algorithms.
+
